@@ -17,7 +17,42 @@
             </n-icon>
         </button>
         <div v-else class="collapse-spacer"></div>
-        <n-checkbox :checked="isCompleted" size="small" @update:checked="onToggleComplete" />
+        <div class="status-toggles flex align-items-center">
+            <n-tooltip trigger="hover" :delay="300" :duration="0" :keep-alive-on-hover="false">
+                <template #trigger>
+                    <button
+                        type="button"
+                        class="status-toggle"
+                        :class="{ active: isInFabrication }"
+                        :aria-label="isInFabrication ? 'Clear in fabrication' : 'Mark in fabrication'"
+                        :aria-pressed="isInFabrication"
+                        @click.stop="onToggleFabrication"
+                    >
+                        <n-icon size="13">
+                            <Hammer />
+                        </n-icon>
+                    </button>
+                </template>
+                In fabrication
+            </n-tooltip>
+            <n-tooltip trigger="hover" :delay="300" :duration="0" :keep-alive-on-hover="false">
+                <template #trigger>
+                    <button
+                        type="button"
+                        class="status-toggle"
+                        :class="{ active: isReadyAtLocation }"
+                        :aria-label="isReadyAtLocation ? 'Clear ready at location' : 'Mark ready at location'"
+                        :aria-pressed="isReadyAtLocation"
+                        @click.stop="onToggleReady"
+                    >
+                        <n-icon size="13">
+                            <MapMarkerAlt />
+                        </n-icon>
+                    </button>
+                </template>
+                Ready at location
+            </n-tooltip>
+        </div>
         <div class="progress flex align-items-center">
             <quantity-stepper
                 :model-value="currentCount"
@@ -67,7 +102,7 @@
 
 <script>
 import { mapActions, mapState } from 'pinia';
-import { ChevronDown, ChevronRight, ExternalLinkAlt, Plus } from '@vicons/fa';
+import { ChevronDown, ChevronRight, ExternalLinkAlt, Hammer, MapMarkerAlt, Plus } from '@vicons/fa';
 import { useIcarusStore } from '@/store/icarus';
 import { itemLabelMap } from '@/utility/icarusData';
 import { colorForName, TREE_MUTED_COLOR } from './treeLevelColors';
@@ -79,6 +114,8 @@ export default {
         ChevronDown,
         ChevronRight,
         ExternalLinkAlt,
+        Hammer,
+        MapMarkerAlt,
         Plus,
         QuantityStepper,
     },
@@ -139,8 +176,18 @@ export default {
         remainingCount() {
             return Math.max(0, this.requiredCount - this.currentCount);
         },
+        isReadyAtLocation() {
+            return (
+                Boolean(this.entry?.readyAtLocation) ||
+                Boolean(this.entry?.completed) ||
+                (this.requiredCount > 0 && this.currentCount >= this.requiredCount)
+            );
+        },
+        isInFabrication() {
+            return Boolean(this.entry?.inFabrication) || this.isReadyAtLocation;
+        },
         isCompleted() {
-            return Boolean(this.entry?.completed) || this.currentCount >= this.requiredCount;
+            return this.isReadyAtLocation;
         },
         componentRecipe() {
             if (this.node.isRaw) {
@@ -177,8 +224,11 @@ export default {
             if (this.entry.current > newRequired) {
                 this.entry.current = newRequired;
             }
-            if (this.entry.completed) {
+            if (this.entry.completed || this.entry.readyAtLocation) {
                 this.entry.current = newRequired;
+                this.entry.completed = true;
+                this.entry.readyAtLocation = true;
+                this.entry.inFabrication = true;
             }
         },
     },
@@ -190,9 +240,18 @@ export default {
                     current: 0,
                     required: 0,
                     completed: false,
+                    inFabrication: false,
+                    readyAtLocation: false,
                 };
             }
-            return this.progress[path];
+            const entry = this.progress[path];
+            if (entry.inFabrication === undefined) {
+                entry.inFabrication = false;
+            }
+            if (entry.readyAtLocation === undefined) {
+                entry.readyAtLocation = Boolean(entry.completed);
+            }
+            return entry;
         },
         resolveChildNode(child) {
             if (child.expanded) {
@@ -204,18 +263,48 @@ export default {
             }
             return child;
         },
-        setSubtreeCompletion(node, path, completed) {
-            this.setSubtreeProgressByRatio(node, path, completed ? 1 : 0);
+        setSubtreeFabrication(node, path, inFabrication) {
+            if (!inFabrication) {
+                this.setSubtreeProgressByRatio(node, path, 0);
+                this.clearSubtreeFabrication(node, path);
+                return;
+            }
+
+            const entry = this.ensureEntry(path);
+            entry.inFabrication = true;
+
+            (node.children || []).forEach((child) => {
+                this.setSubtreeFabrication(this.resolveChildNode(child), `${path}/${child.id}`, true);
+            });
+        },
+        clearSubtreeFabrication(node, path) {
+            const entry = this.ensureEntry(path);
+            entry.inFabrication = false;
+
+            (node.children || []).forEach((child) => {
+                this.clearSubtreeFabrication(this.resolveChildNode(child), `${path}/${child.id}`);
+            });
+        },
+        setSubtreeReady(node, path, ready) {
+            this.setSubtreeProgressByRatio(node, path, ready ? 1 : 0);
+            if (ready) {
+                this.setSubtreeFabrication(node, path, true);
+            }
         },
         setSubtreeProgressByRatio(node, path, ratio) {
             const entry = this.ensureEntry(path);
             const required = Math.ceil(node.quantity ?? 0);
             const clampedRatio = Math.min(Math.max(ratio, 0), 1);
             const current = required > 0 ? Math.min(required, Math.round(required * clampedRatio)) : 0;
+            const completed = required > 0 && current >= required;
 
             entry.current = current;
             entry.required = required;
-            entry.completed = required > 0 && current >= required;
+            entry.completed = completed;
+            entry.readyAtLocation = completed;
+            if (completed) {
+                entry.inFabrication = true;
+            }
 
             (node.children || []).forEach((child) => {
                 this.setSubtreeProgressByRatio(this.resolveChildNode(child), `${path}/${child.id}`, clampedRatio);
@@ -226,8 +315,11 @@ export default {
             const ratio = this.requiredCount > 0 ? next / this.requiredCount : 0;
             this.setSubtreeProgressByRatio(this.node, this.path, ratio);
         },
-        onToggleComplete(checked) {
-            this.setSubtreeCompletion(this.node, this.path, checked);
+        onToggleFabrication() {
+            this.setSubtreeFabrication(this.node, this.path, !this.isInFabrication);
+        },
+        onToggleReady() {
+            this.setSubtreeReady(this.node, this.path, !this.isReadyAtLocation);
         },
         addStation(stationId) {
             if (!stationId || !this.recipeData[stationId]) {
@@ -276,6 +368,37 @@ export default {
     .collapse-spacer {
         width: 1.15rem;
         flex-shrink: 0;
+    }
+
+    .status-toggles {
+        flex-shrink: 0;
+        gap: 0.1rem;
+    }
+
+    .status-toggle {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 1.25rem;
+        height: 1.25rem;
+        padding: 0;
+        border: 1px solid color-mix(in srgb, var(--tree-level-color) 30%, transparent);
+        border-radius: 3px;
+        background: transparent;
+        color: inherit;
+        opacity: 0.4;
+        cursor: pointer;
+
+        &:hover {
+            opacity: 0.75;
+            background-color: color-mix(in srgb, var(--tree-level-color) 18%, transparent);
+        }
+
+        &.active {
+            opacity: 1;
+            background-color: color-mix(in srgb, var(--tree-level-color) 28%, transparent);
+            border-color: color-mix(in srgb, var(--tree-level-color) 55%, transparent);
+        }
     }
 
     .progress {
@@ -347,7 +470,13 @@ export default {
     }
 
     &.completed {
-        opacity: 0.4;
+        .collapse-toggle,
+        .collapse-spacer,
+        .progress,
+        .label,
+        .stations {
+            opacity: 0.4;
+        }
 
         .label {
             text-decoration: line-through;

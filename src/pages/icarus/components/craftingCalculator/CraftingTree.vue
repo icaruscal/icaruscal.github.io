@@ -3,30 +3,52 @@
         <div class="crafting-tree-header flex align-items-center">
             <div class="components-section--label">Crafting Tree</div>
             <div class="header-actions flex align-items-center ml-auto">
-                <n-tooltip trigger="hover">
-                    <template #trigger>
-                        <n-button size="tiny" secondary quaternary circle :disabled="trees.length === 0" @click="collapseAll">
-                            <n-icon size="14">
-                                <Compress />
-                            </n-icon>
-                        </n-button>
-                    </template>
-                    Collapse all
-                </n-tooltip>
-                <n-tooltip trigger="hover">
-                    <template #trigger>
-                        <n-button class="ml-1" size="tiny" secondary quaternary circle :disabled="trees.length === 0" @click="expandAll">
-                            <n-icon size="14">
-                                <Expand />
-                            </n-icon>
-                        </n-button>
-                    </template>
-                    Expand all
-                </n-tooltip>
+                <n-button-group size="tiny" class="tree-expand-group">
+                    <n-tooltip trigger="hover">
+                        <template #trigger>
+                            <n-button size="tiny" secondary quaternary :disabled="trees.length === 0" @click="collapseAll">
+                                <n-icon size="14">
+                                    <Compress />
+                                </n-icon>
+                            </n-button>
+                        </template>
+                        Collapse all
+                    </n-tooltip>
+                    <n-tooltip trigger="hover">
+                        <template #trigger>
+                            <n-button size="tiny" secondary quaternary :disabled="trees.length === 0" @click="expandToLevel(1)">
+                                <n-icon size="14">
+                                    <AngleDown />
+                                </n-icon>
+                            </n-button>
+                        </template>
+                        Expand to level 1
+                    </n-tooltip>
+                    <n-tooltip trigger="hover">
+                        <template #trigger>
+                            <n-button size="tiny" secondary quaternary :disabled="trees.length === 0" @click="expandToLevel(2)">
+                                <n-icon size="14">
+                                    <AngleDoubleDown />
+                                </n-icon>
+                            </n-button>
+                        </template>
+                        Expand to level 2
+                    </n-tooltip>
+                    <n-tooltip trigger="hover">
+                        <template #trigger>
+                            <n-button size="tiny" secondary quaternary :disabled="trees.length === 0" @click="expandAll">
+                                <n-icon size="14">
+                                    <Expand />
+                                </n-icon>
+                            </n-button>
+                        </template>
+                        Expand all
+                    </n-tooltip>
+                </n-button-group>
                 <n-tooltip trigger="hover">
                     <template #trigger>
                         <n-button
-                            class="ml-1"
+                            class="ml-2"
                             size="tiny"
                             secondary
                             quaternary
@@ -59,13 +81,15 @@
 
 <script>
 import { mapActions, mapGetters } from 'pinia';
-import { Compress, Expand, Palette } from '@vicons/fa';
+import { AngleDoubleDown, AngleDown, Compress, Expand, Palette } from '@vicons/fa';
 import { useIcarusStore } from '@/store/icarus';
 import CraftingTreeNode from './CraftingTreeNode.vue';
 
 export default {
     name: 'CraftingTree',
     components: {
+        AngleDoubleDown,
+        AngleDown,
         Compress,
         Expand,
         Palette,
@@ -105,7 +129,7 @@ export default {
         toggleCollapse(path) {
             this.collapsedPaths[path] = !this.collapsedPaths[path];
         },
-        collectExpandablePaths(node, path, paths = []) {
+        collectExpandablePaths(node, path, depth = 0, entries = []) {
             const children = (node.children || []).map((child) => {
                 if (child.expanded) {
                     return {
@@ -118,18 +142,29 @@ export default {
             });
 
             if (children.length > 0) {
-                paths.push(path);
+                entries.push({ path, depth });
                 children.forEach((child) => {
-                    this.collectExpandablePaths(child, `${path}/${child.id}`, paths);
+                    this.collectExpandablePaths(child, `${path}/${child.id}`, depth + 1, entries);
                 });
             }
-            return paths;
+            return entries;
         },
         collapseAll() {
             const next = {};
             this.trees.forEach((tree) => {
-                this.collectExpandablePaths(tree, tree.id).forEach((path) => {
+                this.collectExpandablePaths(tree, tree.id).forEach(({ path }) => {
                     next[path] = true;
+                });
+            });
+            this.setCollapsedPaths(next);
+        },
+        expandToLevel(level) {
+            const next = {};
+            this.trees.forEach((tree) => {
+                this.collectExpandablePaths(tree, tree.id).forEach(({ path, depth }) => {
+                    if (depth >= level) {
+                        next[path] = true;
+                    }
                 });
             });
             this.setCollapsedPaths(next);
