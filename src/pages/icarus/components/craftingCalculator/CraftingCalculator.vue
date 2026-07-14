@@ -48,7 +48,7 @@
                                 <component-source-picker :component-id="item.id" @change="triggerCalc()"></component-source-picker>
                                 <n-tooltip trigger="hover">
                                     <template #trigger>
-                                        <n-button class="hover-button ml-auto" secondary type="error" size="small" @click="removeItem(item)">
+                                        <n-button class="hover-button ml-auto" secondary type="error" size="small" @click="removeListItem(item)">
                                             <n-icon size="13">
                                                 <Times></Times>
                                             </n-icon>
@@ -99,11 +99,7 @@
                         </div>
                     </div>
                     <div class="mt-4">
-                        <div class="components-section--label">Crafting Tree</div>
-                        <em v-if="requirementTrees.primary.length === 0" class="empty-subcategory-label">No items</em>
-                        <div v-for="tree in requirementTrees.primary" :key="tree.id" class="crafting-tree-root mb-3">
-                            <crafting-tree-node :node="tree" :path="tree.id" :progress="treeProgress" />
-                        </div>
+                        <crafting-tree :trees="requirementTrees.primary" :progress="treeProgress" />
                     </div>
                 </div>
                 <div v-else>
@@ -113,11 +109,7 @@
                         <component-source-picker v-if="!item.isRaw" :component-id="item.id" @change="triggerCalc()"></component-source-picker>
                     </div>
                     <div class="mt-4">
-                        <div class="components-section--label">Crafting Tree</div>
-                        <em v-if="requirementTrees.primary.length === 0" class="empty-subcategory-label">No items</em>
-                        <div v-for="tree in requirementTrees.primary" :key="tree.id" class="crafting-tree-root mb-3">
-                            <crafting-tree-node :node="tree" :path="tree.id" :progress="treeProgress" />
-                        </div>
+                        <crafting-tree :trees="requirementTrees.primary" :progress="treeProgress" />
                     </div>
                 </div>
             </div>
@@ -154,7 +146,7 @@ import { mapActions, mapGetters, mapState } from 'pinia';
 import { SortAlphaDown, Times } from '@vicons/fa';
 
 import ComponentSourcePicker from './ComponentSourcePicker.vue';
-import CraftingTreeNode from './CraftingTreeNode.vue';
+import CraftingTree from './CraftingTree.vue';
 import { useIcarusStore } from '@/store/icarus';
 import { itemLabelMap, isRawItem } from '@/utility/icarusData';
 import { GAME_ASSETS_URL } from '@/constants/common';
@@ -163,7 +155,7 @@ export default {
     name: 'CraftingToolCalculator',
     components: {
         ComponentSourcePicker,
-        CraftingTreeNode,
+        CraftingTree,
         SortAlphaDown,
         Times,
     },
@@ -222,7 +214,12 @@ export default {
         },
     },
     methods: {
-        ...mapActions(useIcarusStore, ['setIncludeSubComponents', 'setIncludeStationComponents', 'setSplitRawComponents']),
+        ...mapActions(useIcarusStore, [
+            'setIncludeSubComponents',
+            'setIncludeStationComponents',
+            'setSplitRawComponents',
+            'removeItem',
+        ]),
         sortInputs() {
             this.tab.items.sort((a, b) => {
                 const aLabel = this.recipeData[a.id].label;
@@ -233,7 +230,7 @@ export default {
         onQuantityChange(item) {
             if (item.quantity < 1) {
                 this.$nextTick(() => {
-                    this.removeItem(item);
+                    this.removeListItem(item);
                     this.triggerCalc();
                 });
             } else {
@@ -245,11 +242,8 @@ export default {
         validateQuantity(value) {
             return Number.isInteger(value);
         },
-        removeItem(item) {
-            const itemIndex = (this.tab.items || []).findIndex((i) => i.id === item.id);
-            if (itemIndex > -1) {
-                this.tab.items.splice(itemIndex, 1);
-            }
+        removeListItem(item) {
+            this.removeItem(item.id, this.tab);
         },
         triggerCalc: debounce(function () {
             this.calculateRequiredItems();

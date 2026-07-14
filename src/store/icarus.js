@@ -13,20 +13,72 @@ import {
 } from '@/utility/icarusData';
 
 // utility methods
+const DEFAULT_TAB_TITLE = 'Planning';
+const MULTI_TAB_TITLE = 'multi';
+const DASHBOARD_TAB_ID = 'dashboard';
+const DASHBOARD_TAB_TITLE = 'Dashboard';
+
 const generateTabId = () => Date.now();
 const generateNewTab = () =>
     reactive({
         id: generateTabId(),
-        title: `Planning`,
+        title: DEFAULT_TAB_TITLE,
+        titleIsCustom: false,
+        isDashboard: false,
+        items: [],
+        treeProgress: {},
+    });
+const generateDashboardTab = () =>
+    reactive({
+        id: DASHBOARD_TAB_ID,
+        title: DASHBOARD_TAB_TITLE,
+        titleIsCustom: true,
+        isDashboard: true,
         items: [],
         treeProgress: {},
     });
 const findTabIndex = (id, tabs) => tabs.findIndex((tab) => tab.id === id);
 
+const normalizeTab = (tab) => {
+    if (!tab.treeProgress) {
+        tab.treeProgress = {};
+    }
+    if (tab.isDashboard || tab.id === DASHBOARD_TAB_ID) {
+        tab.id = DASHBOARD_TAB_ID;
+        tab.title = DASHBOARD_TAB_TITLE;
+        tab.titleIsCustom = true;
+        tab.isDashboard = true;
+        tab.items = tab.items || [];
+        return tab;
+    }
+    if (tab.isDashboard === undefined) {
+        tab.isDashboard = false;
+    }
+    if (tab.titleIsCustom === undefined) {
+        // Preserve manually renamed existing tabs; leave default-titled tabs auto-managed
+        tab.titleIsCustom = tab.title !== DEFAULT_TAB_TITLE;
+    }
+    return tab;
+};
+
+const ensureDashboardTab = (tabs) => {
+    tabs.forEach(normalizeTab);
+    let dashboardIndex = tabs.findIndex((tab) => tab.isDashboard);
+    if (dashboardIndex === -1) {
+        tabs.unshift(generateDashboardTab());
+        return;
+    }
+    if (dashboardIndex > 0) {
+        const [dashboard] = tabs.splice(dashboardIndex, 1);
+        tabs.unshift(dashboard);
+    }
+};
+
 // default state
 const defaultTab = generateNewTab();
-const tabData = useStorage(`${LOCAL_STORAGE_PREFIX}/tabs`, [defaultTab]);
-const defaultTabId = tabData.value[0].id ?? defaultTab.id;
+const tabData = useStorage(`${LOCAL_STORAGE_PREFIX}/tabs`, [generateDashboardTab(), defaultTab]);
+ensureDashboardTab(tabData.value);
+const defaultTabId = tabData.value.find((tab) => tab.isDashboard)?.id ?? tabData.value[0].id;
 //console.log({defaultTabId, defaultTab, tabData});
 
 const settingsData = useStorage(
@@ -36,6 +88,7 @@ const settingsData = useStorage(
         includeStationComponents: false,
         splitRawComponents: true,
         searchFuzzyMatch: true,
+        treeLevelColors: true,
     },
     localStorage,
     { mergeDefaults: true }
@@ -65,8 +118,13 @@ export const useIcarusStore = defineStore('icarus', {
     }),
     getters: {
         activeTab: (state) => state.tabs.find((tab) => tab.id === state.activeTabId),
+        dashboardTab: (state) => state.tabs.find((tab) => tab.isDashboard),
+        planningTabs: (state) => state.tabs.filter((tab) => !tab.isDashboard),
         tabCount() {
             return this.tabs.length;
+        },
+        planningTabCount() {
+            return this.planningTabs.length;
         },
         includeSubComponents(state) {
             return state.settings.includeSubComponents;
@@ -76,6 +134,9 @@ export const useIcarusStore = defineStore('icarus', {
         },
         splitRawComponents(state) {
             return state.settings.splitRawComponents;
+        },
+        treeLevelColors(state) {
+            return state.settings.treeLevelColors !== false;
         },
         sortedRecipeOptions(state) {
             return state.recipeOptions.sort((a, b) => a.label.localeCompare(b.label));
@@ -108,6 +169,82 @@ export const useIcarusStore = defineStore('icarus', {
             }
             return this.sortedRecipeOptions;
         },
+        tabProgressSummaries() {
+            return this.planningTabs.map((tab) => {
+                const progressEntries = Object.values(tab.treeProgress || {});
+                let currentTotal = 0;
+                let requiredTotal = 0;
+                let completedNodes = 0;
+                let trackedNodes = 0;
+
+                if (progressEntries.length > 0) {
+                    progressEntries.forEach((entry) => {
+                        const required = Math.max(0, entry.required ?? 0);
+                        if (required <= 0) {
+                            return;
+                        }
+                        const current = Math.min(Math.max(0, entry.current ?? 0), required);
+                        requiredTotal += required;
+                        currentTotal += current;
+                        trackedNodes += 1;
+                        if (entry.completed || current >= required) {
+                            completedNodes += 1;
+                        }
+                    });
+                }
+
+                if (requiredTotal === 0) {
+                    (tab.items || []).forEach((item) => {
+                        const required = Math.max(0, item.quantity ?? 0);
+                        requiredTotal += required;
+                        trackedNodes += 1;
+                    });
+                }
+
+                const rootItems = (tab.items || []).map((item) => {
+                    const required = Math.max(0, Math.ceil(item.quantity ?? 0));
+                    const entry = tab.treeProgress?.[item.id];
+                    const current = Math.min(Math.max(0, entry?.current ?? 0), required);
+                    return {
+                        id: item.id,
+                        label: this.recipeData[item.id]?.label ?? item.id,
+                        required,
+                        current,
+                        completed: Boolean(entry?.completed) || (required > 0 && current >= required),
+                        percent: required > 0 ? Math.round((current / required) * 100) : 0,
+                    };
+                });
+
+                const percent = requiredTotal > 0 ? Math.round((currentTotal / requiredTotal) * 100) : 0;
+
+                return {
+                    id: tab.id,
+                    title: tab.title,
+                    itemCount: (tab.items || []).length,
+                    currentTotal,
+                    requiredTotal,
+                    completedNodes,
+                    trackedNodes,
+                    percent,
+                    rootItems,
+                };
+            });
+        },
+        overallProgress() {
+            const summaries = this.tabProgressSummaries;
+            const currentTotal = summaries.reduce((sum, tab) => sum + tab.currentTotal, 0);
+            const requiredTotal = summaries.reduce((sum, tab) => sum + tab.requiredTotal, 0);
+            const completedNodes = summaries.reduce((sum, tab) => sum + tab.completedNodes, 0);
+            const trackedNodes = summaries.reduce((sum, tab) => sum + tab.trackedNodes, 0);
+            return {
+                tabCount: summaries.length,
+                currentTotal,
+                requiredTotal,
+                completedNodes,
+                trackedNodes,
+                percent: requiredTotal > 0 ? Math.round((currentTotal / requiredTotal) * 100) : 0,
+            };
+        },
     },
     actions: {
         // * tab methods
@@ -118,17 +255,18 @@ export const useIcarusStore = defineStore('icarus', {
         },
         removeTab(id) {
             const tabIndex = findTabIndex(id, this.tabs);
-
-            if (tabIndex !== -1) {
-                this.tabs.splice(tabIndex, 1);
-            } else {
+            if (tabIndex === -1) {
                 console.error(`Could not find tab with id ${id}`, this.tabs);
                 return;
             }
 
-            const newTabIndex = Math.min(tabIndex, this.tabs.length - 1);
+            if (this.tabs[tabIndex].isDashboard) {
+                return;
+            }
 
-            // select previous tab if we delete the last one
+            this.tabs.splice(tabIndex, 1);
+
+            const newTabIndex = Math.min(tabIndex, this.tabs.length - 1);
             const newActiveTab = this.tabs[newTabIndex];
             this.activeTabId = newActiveTab.id;
         },
@@ -137,15 +275,46 @@ export const useIcarusStore = defineStore('icarus', {
         },
         setTabTitle(id, title) {
             const matchingId = findTabIndex(id, this.tabs);
-            if (matchingId !== -1) {
-                this.tabs[matchingId].title = title;
+            if (matchingId === -1) {
+                return;
             }
+            if (this.tabs[matchingId].isDashboard) {
+                return;
+            }
+            this.tabs[matchingId].title = title;
+            this.tabs[matchingId].titleIsCustom = true;
+        },
+        syncTabTitle(tab = this.activeTab) {
+            if (!tab || tab.isDashboard || tab.titleIsCustom) {
+                return;
+            }
+
+            const items = tab.items || [];
+            if (items.length === 0) {
+                tab.title = DEFAULT_TAB_TITLE;
+                return;
+            }
+
+            if (items.length === 1) {
+                const itemId = items[0].id;
+                tab.title = this.recipeData[itemId]?.label ?? itemId;
+                return;
+            }
+
+            tab.title = MULTI_TAB_TITLE;
+        },
+        syncAllTabTitles() {
+            this.tabs.forEach((tab) => this.syncTabTitle(tab));
         },
 
         // * item list methods
         addItem(itemId, quantity = 1) {
-            // implicitly adds or updates item to currently selected tab
-            const currentTab = this.activeTab;
+            let currentTab = this.activeTab;
+
+            if (currentTab?.isDashboard) {
+                currentTab = this.planningTabs[0] ?? this.addTab();
+                this.activeTabId = currentTab.id;
+            }
 
             if (currentTab) {
                 const matchingItem = currentTab.items.find((item) => item.id === itemId);
@@ -159,17 +328,23 @@ export const useIcarusStore = defineStore('icarus', {
                         quantity: outputQuantity,
                     });
                 }
+                this.syncTabTitle(currentTab);
             } else {
                 console.error(`Could not find tab with id ${this.activeTabId}`, this.tabs);
             }
         },
-        removeItem(itemId) {
-            // implicitly removes item from currently selected tab
-            const currentTab = this.activeTab;
+        removeItem(itemId, tab = this.activeTab) {
+            const currentTab = tab ?? this.activeTab;
+            if (currentTab?.isDashboard) {
+                return;
+            }
 
             if (currentTab) {
                 const matchingItemIndex = currentTab.items.findIndex((item) => item.id === itemId);
-                currentTab.items.splice(matchingItemIndex, 1);
+                if (matchingItemIndex > -1) {
+                    currentTab.items.splice(matchingItemIndex, 1);
+                }
+                this.syncTabTitle(currentTab);
             } else {
                 console.error(`Could not find tab with id ${this.activeTabId}`, this.tabs);
             }
@@ -182,6 +357,9 @@ export const useIcarusStore = defineStore('icarus', {
         },
         setSplitRawComponents(value) {
             this.settings.splitRawComponents = value;
+        },
+        setTreeLevelColors(value) {
+            this.settings.treeLevelColors = value;
         },
 
         // * recipe data
@@ -238,6 +416,7 @@ export const useIcarusStore = defineStore('icarus', {
             // share the same object reference so Set collapses them to one search result.
             this.recipeOptions = [...new Set(Object.values(recipeData))];
             this.isLoadingRecipes = false;
+            this.syncAllTabTitles();
 
             console.log({ itemTemplateData, itemStaticData, itemTableData, recipeData });
             console.log(`Processed data in ${performance.now() - startTime}ms`);
