@@ -27,6 +27,7 @@
             />
             <span class="progress-separator">/</span>
             <span class="progress-required">{{ requiredCount }}</span>
+            <span class="progress-remaining">({{ remainingCount }})</span>
         </div>
         <div class="label" :data-item-id="node.id">{{ node.label }}</div>
         <div v-if="stations.length > 0" class="stations flex align-items-center flex-wrap">
@@ -134,6 +135,9 @@ export default {
         currentCount() {
             const current = this.entry?.current ?? 0;
             return Math.min(Math.max(0, current), this.requiredCount);
+        },
+        remainingCount() {
+            return Math.max(0, this.requiredCount - this.currentCount);
         },
         isCompleted() {
             return Boolean(this.entry?.completed) || this.currentCount >= this.requiredCount;
@@ -286,6 +290,11 @@ export default {
         .progress-required {
             min-width: 1.25rem;
             font-weight: 500;
+        }
+
+        .progress-remaining {
+            opacity: 0.65;
+            font-size: 0.9em;
         }
 
         :deep(.quantity-stepper) {
