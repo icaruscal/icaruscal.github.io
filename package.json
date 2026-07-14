@@ -9,6 +9,7 @@
         "deploy": "gh-pages -d dist",
         "clean-dist-assets": "node -e \"require('fs').rmSync('dist/icarus-game/ItemIcons', {recursive: true, force: true}); require('fs').rmSync('dist/.git', {recursive: true, force: true})\"",
         "update-game-assets": "node ./scripts/scan-assets.mjs",
+        "build-recipe-catalog": "tsx ./scripts/build-recipe-catalog.ts",
         "gh": "yarn build && yarn clean-dist-assets && yarn deploy"
     },
     "dependencies": {
@@ -26,6 +27,7 @@
     "devDependencies": {
         "@emotion/hash": "^0.9.2",
         "@rollup/plugin-alias": "^5.1.1",
+        "@types/node": "^22.13.10",
         "@vicons/fa": "^0.13.0",
         "@vicons/utils": "^0.1.4",
         "@vitejs/plugin-vue": "^5.2.1",
@@ -34,6 +36,8 @@
         "gh-pages": "^6.3.0",
         "naive-ui": "^2.44.1",
         "sass": "^1.98.0",
+        "tsx": "^4.19.3",
+        "typescript": "^5.8.2",
         "vfonts": "^0.0.3",
         "vite": "^6.1.1",
         "vite-plugin-eslint": "^1.8.1"
