@@ -10,5 +10,5 @@ export const TREE_LEVEL_COLORS = [
     '#b5e48c', // lime
 ];
 
-/** Muted single tone when level colors are disabled */
-export const TREE_MUTED_COLOR = '#9aa3b2';
+/** Default text color when level colors are disabled (matches site text) */
+export const TREE_MUTED_COLOR = '#ffffff';

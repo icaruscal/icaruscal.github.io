@@ -23,8 +23,7 @@
                     </a>
                 </li>
                 <li class="mb-1">
-                    <strong>New:</strong> The components list now separates Raw items by in the UI by default (with an option to Disable it as
-                    desired).
+                    <strong>New:</strong> Crafting Tree with progress tracking across your planning lists.
                 </li>
                 <!-- <li class="mb-1">🔨 "Stack" count displays on icons for Items which are crafted in bulk (<em>e.g. x100 Steel Screw</em>)</li> -->
             </ul>

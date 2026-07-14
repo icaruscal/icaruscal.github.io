@@ -19,15 +19,11 @@
         <div v-else class="collapse-spacer"></div>
         <n-checkbox :checked="isCompleted" size="small" @update:checked="onToggleComplete" />
         <div class="progress flex align-items-center">
-            <n-input-number
-                class="progress-current"
-                size="tiny"
-                :value="currentCount"
+            <quantity-stepper
+                :model-value="currentCount"
                 :min="0"
                 :max="requiredCount"
-                :show-button="false"
-                :validator="validateCount"
-                @update:value="onCurrentChange"
+                @update:model-value="onCurrentChange"
             />
             <span class="progress-separator">/</span>
             <span class="progress-required">{{ requiredCount }}</span>
@@ -41,16 +37,28 @@
                 :class="{ preferred: station.isPreferred }"
             >
                 <span>{{ station.label }}</span>
-                <n-tooltip v-if="station.canAdd" trigger="hover">
-                    <template #trigger>
-                        <n-button class="station-add-btn" secondary type="default" size="tiny" @click.stop="addStation(station.id)">
-                            <n-icon size="12">
-                                <Plus />
-                            </n-icon>
-                        </n-button>
-                    </template>
-                    Add station to craft list
-                </n-tooltip>
+                <n-button-group v-if="station.canAdd" size="tiny" class="station-actions">
+                    <n-tooltip trigger="hover">
+                        <template #trigger>
+                            <n-button secondary type="default" @click.stop="addStation(station.id)">
+                                <n-icon size="12">
+                                    <Plus />
+                                </n-icon>
+                            </n-button>
+                        </template>
+                        Add station to craft list
+                    </n-tooltip>
+                    <n-tooltip trigger="hover">
+                        <template #trigger>
+                            <n-button secondary type="default" @click.stop="openStationInNewTab(station.id)">
+                                <n-icon size="12">
+                                    <ExternalLinkAlt />
+                                </n-icon>
+                            </n-button>
+                        </template>
+                        Open station in new tab
+                    </n-tooltip>
+                </n-button-group>
             </div>
         </div>
     </div>
@@ -58,17 +66,20 @@
 
 <script>
 import { mapActions, mapState } from 'pinia';
-import { ChevronDown, ChevronRight, Plus } from '@vicons/fa';
+import { ChevronDown, ChevronRight, ExternalLinkAlt, Plus } from '@vicons/fa';
 import { useIcarusStore } from '@/store/icarus';
 import { itemLabelMap } from '@/utility/icarusData';
 import { TREE_LEVEL_COLORS, TREE_MUTED_COLOR } from './treeLevelColors';
+import QuantityStepper from './QuantityStepper.vue';
 
 export default {
     name: 'CraftingTreeLine',
     components: {
         ChevronDown,
         ChevronRight,
+        ExternalLinkAlt,
         Plus,
+        QuantityStepper,
     },
     props: {
         node: {
@@ -168,7 +179,7 @@ export default {
         },
     },
     methods: {
-        ...mapActions(useIcarusStore, ['addItem']),
+        ...mapActions(useIcarusStore, ['addItem', 'openItemInNewTab']),
         ensureEntry(path = this.path) {
             if (!this.progress[path]) {
                 this.progress[path] = {
@@ -206,9 +217,6 @@ export default {
                 this.setSubtreeProgressByRatio(this.resolveChildNode(child), `${path}/${child.id}`, clampedRatio);
             });
         },
-        validateCount(value) {
-            return Number.isInteger(value);
-        },
         onCurrentChange(value) {
             const next = Math.min(Math.max(0, value ?? 0), this.requiredCount);
             const ratio = this.requiredCount > 0 ? next / this.requiredCount : 0;
@@ -223,6 +231,12 @@ export default {
             }
             this.addItem(stationId);
         },
+        openStationInNewTab(stationId) {
+            if (!stationId || !this.recipeData[stationId]) {
+                return;
+            }
+            this.openItemInNewTab(stationId);
+        },
     },
 };
 </script>
@@ -235,7 +249,6 @@ export default {
     gap: 0.35rem;
     color: var(--tree-level-color);
     background-color: color-mix(in srgb, var(--tree-level-color) 10%, transparent);
-    border-left: 3px solid var(--tree-level-color);
 
     .collapse-toggle {
         display: inline-flex;
@@ -263,12 +276,8 @@ export default {
 
     .progress {
         flex-shrink: 0;
-        gap: 0.15rem;
-        min-width: 4.5rem;
-
-        .progress-current {
-            width: 2.75rem;
-        }
+        gap: 0.2rem;
+        min-width: 5.5rem;
 
         .progress-separator {
             opacity: 0.7;
@@ -277,6 +286,21 @@ export default {
         .progress-required {
             min-width: 1.25rem;
             font-weight: 500;
+        }
+
+        :deep(.quantity-stepper) {
+            border-color: color-mix(in srgb, var(--tree-level-color) 35%, transparent);
+            background: color-mix(in srgb, var(--tree-level-color) 8%, transparent);
+
+            .step-btn:hover:not(:disabled) {
+                background: color-mix(in srgb, var(--tree-level-color) 20%, transparent);
+            }
+
+            .quantity-input {
+                width: 2rem;
+                border-left-color: color-mix(in srgb, var(--tree-level-color) 25%, transparent);
+                border-right-color: color-mix(in srgb, var(--tree-level-color) 25%, transparent);
+            }
         }
     }
 
@@ -294,7 +318,7 @@ export default {
         font-size: 0.8rem;
         opacity: 0.55;
         white-space: nowrap;
-        gap: 0.2rem;
+        gap: 0.35rem;
         color: color-mix(in srgb, var(--tree-level-color) 75%, #ffffff);
 
         &.preferred {
@@ -302,11 +326,14 @@ export default {
             font-weight: 600;
         }
 
-        .station-add-btn {
-            opacity: 0.85;
-            height: 1.25rem;
-            width: 1.25rem;
-            padding: 0;
+        .station-actions {
+            opacity: 0.9;
+
+            :deep(.n-button) {
+                height: 1.25rem;
+                min-width: 1.25rem;
+                padding: 0 0.3rem;
+            }
         }
     }
 
@@ -321,12 +348,5 @@ export default {
     &:hover {
         background-color: color-mix(in srgb, var(--tree-level-color) 18%, transparent);
     }
-}
-
-:deep(.progress-current .n-input) {
-    --n-height: 22px;
-    --n-font-size: 12px;
-    --n-padding-left: 4px;
-    --n-padding-right: 4px;
 }
 </style>

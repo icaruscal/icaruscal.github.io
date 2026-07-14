@@ -35,15 +35,12 @@
                                 </div>
                             </div>
                             <div class="flex align-items-center flex-grow-1">
-                                <n-input-number
+                                <quantity-stepper
                                     class="input-quantity flex-shrink-0"
-                                    v-model:value="item.quantity"
-                                    placeholder="Quantity"
+                                    :model-value="item.quantity"
                                     :min="0"
                                     :max="100000"
-                                    :step="recipeData[item.id]?.outputQuantity ?? 1"
-                                    :validator="validateQuantity"
-                                    :on-update-value="onQuantityChange(item)"
+                                    @update:model-value="onQuantityUpdate(item, $event)"
                                 />
                                 <component-source-picker :component-id="item.id" @change="triggerCalc()"></component-source-picker>
                                 <n-tooltip trigger="hover">
@@ -62,63 +59,15 @@
                 </transition-group>
             </div>
 
-            <div class="flex align-items-center mt-3">
-                <h3>Components</h3>
-            </div>
-            <div class="p-1">
-                <div class="ml-1">
-                    <div class="flex align-items-center mb-2">
-                        <n-switch class="mr-2" v-model:value="settings.splitRawComponents" />
-                        <span>Split raw components</span> <span class="ml-2 text-muted">(may not cover all potential raws)</span>
-                    </div>
-                    <div class="flex align-items-center mb-2">
-                        <n-switch class="mr-2" v-model:value="settings.includeSubComponents" />
-                        <span>Include sub-components</span>
-                    </div>
-                    <div class="flex align-items-center mb-2 ml-3">
-                        <n-switch class="mr-2" v-model:value="settings.includeStationComponents" size="small" />
-                        <span>Include station components</span>
-                    </div>
-                </div>
-                <div v-if="settings.splitRawComponents" class="mt-4">
-                    <div>
-                        <div class="components-section--label">Raw</div>
-                        <em v-if="rawComponents.length === 0" class="empty-subcategory-label">No raw items</em>
-                        <div v-for="item in rawComponents" :key="item.id" class="component-row flex align-items-center">
-                            <div class="quantity">{{ item.quantity }}</div>
-                            <div class="label" :data-item-id="item.id">{{ item.label }}</div>
-                        </div>
-                    </div>
-                    <div class="mt-4">
-                        <div class="components-section--label">Craftable</div>
-                        <em v-if="craftableComponents.length === 0" class="empty-subcategory-label">No craftable items</em>
-                        <div v-for="item in craftableComponents" :key="item.id" class="component-row flex align-items-center">
-                            <div class="quantity">{{ item.quantity }}</div>
-                            <div class="label" :data-item-id="item.id">{{ item.label }}</div>
-                            <component-source-picker :component-id="item.id" @change="triggerCalc()"></component-source-picker>
-                        </div>
-                    </div>
-                    <div class="mt-4">
-                        <crafting-tree :trees="requirementTrees.primary" :progress="treeProgress" />
-                    </div>
-                </div>
-                <div v-else>
-                    <div v-for="item in requiredComponents" :key="item.id" class="component-row flex align-items-center">
-                        <div class="quantity">{{ item.quantity }}</div>
-                        <div class="label" :data-item-id="item.id">{{ item.label }}</div>
-                        <component-source-picker v-if="!item.isRaw" :component-id="item.id" @change="triggerCalc()"></component-source-picker>
-                    </div>
-                    <div class="mt-4">
-                        <crafting-tree :trees="requirementTrees.primary" :progress="treeProgress" />
-                    </div>
-                </div>
+            <div class="mt-4">
+                <crafting-tree :trees="requirementTrees" :progress="treeProgress" />
             </div>
 
-            <div class="flex align-items-center">
+            <div class="flex align-items-center mt-3">
                 <h3>Crafting Stations</h3>
             </div>
-            <div class="">
-                <div v-for="componentName in requiredCraftingStations" class="recipe-item stations pl-0 flex align-items-center">
+            <div>
+                <div v-for="componentName in requiredCraftingStations" :key="componentName" class="recipe-item stations pl-0 flex align-items-center">
                     <div class="flex align-items-center">
                         <n-image
                             class="icon"
@@ -142,13 +91,14 @@
 
 <script>
 import debounce from 'debounce';
-import { mapActions, mapGetters, mapState } from 'pinia';
+import { mapActions, mapState } from 'pinia';
 import { SortAlphaDown, Times } from '@vicons/fa';
 
 import ComponentSourcePicker from './ComponentSourcePicker.vue';
 import CraftingTree from './CraftingTree.vue';
+import QuantityStepper from './QuantityStepper.vue';
 import { useIcarusStore } from '@/store/icarus';
-import { itemLabelMap, isRawItem } from '@/utility/icarusData';
+import { itemLabelMap } from '@/utility/icarusData';
 import { GAME_ASSETS_URL } from '@/constants/common';
 
 export default {
@@ -156,6 +106,7 @@ export default {
     components: {
         ComponentSourcePicker,
         CraftingTree,
+        QuantityStepper,
         SortAlphaDown,
         Times,
     },
@@ -169,13 +120,8 @@ export default {
         return {
             itemLabelMap: itemLabelMap,
             gameAssetsUrl: GAME_ASSETS_URL,
-            requiredItemData: {},
             requiredCraftingStations: [],
-            requiredComponents: [],
-            requirementTrees: {
-                primary: [],
-                stations: [],
-            },
+            requirementTrees: [],
         };
     },
     watch: {
@@ -187,39 +133,27 @@ export default {
                 }
             },
         },
-        includeSubComponents(newValue) {
-            if (!newValue) {
-                this.setIncludeStationComponents(false);
-            }
-            this.triggerCalc();
+        'tab.items': {
+            deep: true,
+            immediate: true,
+            handler() {
+                this.triggerCalc();
+            },
         },
-        includeStationComponents(newValue) {
-            if (newValue) {
-                this.setIncludeSubComponents(true);
+        isLoadingRecipes(loading) {
+            if (!loading) {
+                this.triggerCalc();
             }
-            this.triggerCalc();
         },
     },
     computed: {
-        ...mapState(useIcarusStore, ['recipeData', 'itemStaticData', 'itemTableData', 'isLoadingRecipes', 'settings']),
-        ...mapGetters(useIcarusStore, ['includeSubComponents', 'includeStationComponents', 'splitRawComponents']),
-        craftableComponents() {
-            return this.requiredComponents.filter((item) => !item.isRaw);
-        },
-        rawComponents() {
-            return this.requiredComponents.filter((item) => item.isRaw);
-        },
+        ...mapState(useIcarusStore, ['recipeData', 'itemStaticData', 'itemTableData', 'isLoadingRecipes']),
         treeProgress() {
             return this.tab.treeProgress ?? {};
         },
     },
     methods: {
-        ...mapActions(useIcarusStore, [
-            'setIncludeSubComponents',
-            'setIncludeStationComponents',
-            'setSplitRawComponents',
-            'removeItem',
-        ]),
+        ...mapActions(useIcarusStore, ['removeItem']),
         sortInputs() {
             this.tab.items.sort((a, b) => {
                 const aLabel = this.recipeData[a.id].label;
@@ -227,20 +161,16 @@ export default {
                 return aLabel.localeCompare(bLabel);
             });
         },
+        onQuantityUpdate(item, value) {
+            item.quantity = value;
+            this.onQuantityChange(item);
+        },
         onQuantityChange(item) {
             if (item.quantity < 1) {
                 this.$nextTick(() => {
                     this.removeListItem(item);
-                    this.triggerCalc();
-                });
-            } else {
-                this.$nextTick(() => {
-                    this.triggerCalc();
                 });
             }
-        },
-        validateQuantity(value) {
-            return Number.isInteger(value);
         },
         removeListItem(item) {
             this.removeItem(item.id, this.tab);
@@ -253,10 +183,6 @@ export default {
             const recipeData = this.recipeData;
             const itemStaticData = this.itemStaticData;
             const itemTableData = this.itemTableData;
-            const includeSubComponents = this.includeSubComponents;
-            const includeStationComponents = this.includeStationComponents;
-
-            const requiredItemData = {};
             const requiredCraftingStations = new Set();
 
             const getComponentLabel = (componentId) =>
@@ -265,32 +191,23 @@ export default {
                 itemTableData[itemStaticData[componentId]?.itemTableId]?.displayName ??
                 componentId.replace(/_/g, ' ');
 
-            const addToTotals = (totals, componentId, quantity) => {
-                const existingQuantity = totals[componentId] ?? 0;
-                totals[componentId] = existingQuantity + quantity;
-            };
-
-            const buildRequirementNode = (itemId, requestedQuantity, options = {}, activePath = new Set()) => {
-                const { expandSubComponents = false, expandTree = false, totals = {}, stations = new Set() } = options;
+            const buildRequirementNode = (itemId, requestedQuantity, stations = new Set(), activePath = new Set()) => {
                 const label = getComponentLabel(itemId);
+                const hasRecipe = Boolean(recipeData[itemId]);
 
                 const node = {
                     id: itemId,
                     quantity: requestedQuantity,
                     label,
-                    isRaw: isRawItem(label),
+                    isRaw: !hasRecipe,
                     children: [],
                 };
 
-                if (activePath.has(itemId)) {
+                if (activePath.has(itemId) || !hasRecipe) {
                     return node;
                 }
 
                 const recipe = recipeData[itemId];
-                if (!recipe) {
-                    return node;
-                }
-
                 node.recipeId = recipe.id;
                 node.outputQuantity = recipe.outputQuantity || 1;
                 node.preferredSource = recipe.preferredSource ?? null;
@@ -305,30 +222,17 @@ export default {
 
                 (recipe.inputs || []).forEach((input) => {
                     const inputQuantity = input.quantity * multiplier;
-                    addToTotals(totals, input.id, inputQuantity);
-
-                    const childLabel = getComponentLabel(input.id);
+                    const childHasRecipe = Boolean(recipeData[input.id]);
                     const child = {
                         id: input.id,
                         quantity: inputQuantity,
-                        label: childLabel,
-                        isRaw: isRawItem(childLabel),
+                        label: getComponentLabel(input.id),
+                        isRaw: !childHasRecipe,
                     };
                     node.children.push(child);
 
-                    const shouldExpand = (expandSubComponents || expandTree) && recipeData[input.id] && !child.isRaw && !nextPath.has(input.id);
-                    if (shouldExpand) {
-                        child.expanded = buildRequirementNode(
-                            input.id,
-                            inputQuantity,
-                            {
-                                expandSubComponents,
-                                expandTree,
-                                totals: expandSubComponents ? totals : {},
-                                stations: expandSubComponents ? stations : new Set(),
-                            },
-                            nextPath
-                        );
+                    if (childHasRecipe && !nextPath.has(input.id)) {
+                        child.expanded = buildRequirementNode(input.id, inputQuantity, stations, nextPath);
                     }
                 });
 
@@ -337,72 +241,16 @@ export default {
 
             const primaryStations = new Set();
             const primaryTrees = selectedItems.map((item) =>
-                buildRequirementNode(item.id, item.quantity ?? 1, {
-                    expandSubComponents: includeSubComponents,
-                    expandTree: true,
-                    totals: requiredItemData,
-                    stations: primaryStations,
-                })
+                buildRequirementNode(item.id, item.quantity ?? 1, primaryStations)
             );
             primaryStations.forEach((station) => requiredCraftingStations.add(station));
 
-            const stationTrees = [];
-            if (includeStationComponents) {
-                const processedStations = new Set();
-
-                while (true) {
-                    const stationsToProcess = [...requiredCraftingStations].filter((station) => !processedStations.has(station));
-                    if (stationsToProcess.length === 0) {
-                        break;
-                    }
-
-                    stationsToProcess.forEach((station) => processedStations.add(station));
-
-                    const iterationStations = new Set();
-                    stationsToProcess.forEach((station) => {
-                        stationTrees.push(
-                            buildRequirementNode(station, 1, {
-                                expandSubComponents: includeSubComponents,
-                                expandTree: true,
-                                totals: requiredItemData,
-                                stations: iterationStations,
-                            })
-                        );
-                    });
-
-                    iterationStations.forEach((station) => requiredCraftingStations.add(station));
-                }
-            }
-
-            this.requirementTrees = {
-                primary: primaryTrees,
-                stations: stationTrees,
-            };
-
-            const requiredComponents = Object.keys(requiredItemData).map((componentName) => {
-                const roundedQuantity = Math.ceil(requiredItemData[componentName]);
-                const label = getComponentLabel(componentName);
-                return {
-                    id: componentName,
-                    quantity: roundedQuantity,
-                    label,
-                    isRaw: isRawItem(label),
-                };
-            });
-
-            const sortedRequiredComponents = requiredComponents.sort((a, b) => {
-                if (b.quantity !== a.quantity) return b.quantity - a.quantity;
-                return a.label.localeCompare(b.label);
-            });
-
-            // transform set into array
+            this.requirementTrees = primaryTrees;
             this.requiredCraftingStations = [...requiredCraftingStations].sort((a, b) => {
                 const aLabel = recipeData[a]?.label ?? itemLabelMap[a] ?? a;
                 const bLabel = recipeData[b]?.label ?? itemLabelMap[b] ?? b;
                 return aLabel.localeCompare(bLabel);
             });
-            this.requiredItemData = requiredItemData;
-            this.requiredComponents = sortedRequiredComponents;
         },
     },
 };
@@ -415,12 +263,6 @@ export default {
     padding-right: 0.25rem;
 }
 
-.text-muted {
-    font-size: 0.75rem;
-    opacity: 0.6;
-    line-height: 1.1rem;
-    vertical-align: middle;
-}
 .recipe-item {
     min-height: 60px;
     padding: 0.3rem 0.3rem 0.4rem 0.3rem;
@@ -431,17 +273,11 @@ export default {
     }
 
     .input-quantity {
-        width: 5.5rem;
         margin-right: 0.5rem;
     }
 
     .icon {
         margin: 0 0.5rem 0 0;
-    }
-
-    .label-wrap {
-        width: 9rem;
-        min-width: 2.5rem;
     }
 
     .label {
@@ -473,41 +309,5 @@ export default {
 }
 .list-move {
     transition: transform 0.5s ease;
-}
-
-.component-row {
-    min-height: 1.7rem;
-    border-radius: 4px;
-
-    .quantity {
-        min-width: 2rem;
-        text-align: right;
-        margin-right: 0.5rem;
-        flex-shrink: 0;
-        font-weight: 500;
-    }
-
-    .label {
-        min-width: 12rem;
-    }
-
-    &:hover {
-        background-color: rgba(222, 222, 255, 0.03);
-    }
-}
-
-.components-section--label {
-    font-size: 1rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    opacity: 0.5;
-    margin-bottom: 0.25rem;
-}
-
-.empty-subcategory-label {
-    font-size: 0.85rem;
-    opacity: 0.6;
-    margin-left: 1rem;
 }
 </style>

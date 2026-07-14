@@ -106,7 +106,7 @@ export default {
     .tree-children {
         margin-left: 1.25rem;
         padding-left: 0.75rem;
-        border-left: 2px solid color-mix(in srgb, var(--tree-level-color) 55%, transparent);
+        border-left: 2px solid color-mix(in srgb, var(--tree-level-color) 22%, transparent);
     }
 }
 </style>

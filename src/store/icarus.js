@@ -84,20 +84,12 @@ const defaultTabId = tabData.value.find((tab) => tab.isDashboard)?.id ?? tabData
 const settingsData = useStorage(
     `${LOCAL_STORAGE_PREFIX}/settings`,
     {
-        includeSubComponents: false,
-        includeStationComponents: false,
-        splitRawComponents: true,
         searchFuzzyMatch: true,
         treeLevelColors: true,
     },
     localStorage,
     { mergeDefaults: true }
 );
-
-// Enforce invariant: station components requires sub-components
-if (settingsData.value.includeStationComponents) {
-    settingsData.value.includeSubComponents = true;
-}
 
 // * data store
 export const useIcarusStore = defineStore('icarus', {
@@ -125,15 +117,6 @@ export const useIcarusStore = defineStore('icarus', {
         },
         planningTabCount() {
             return this.planningTabs.length;
-        },
-        includeSubComponents(state) {
-            return state.settings.includeSubComponents;
-        },
-        includeStationComponents(state) {
-            return state.settings.includeStationComponents;
-        },
-        splitRawComponents(state) {
-            return state.settings.splitRawComponents;
         },
         treeLevelColors(state) {
             return state.settings.treeLevelColors !== false;
@@ -333,6 +316,21 @@ export const useIcarusStore = defineStore('icarus', {
                 console.error(`Could not find tab with id ${this.activeTabId}`, this.tabs);
             }
         },
+        openItemInNewTab(itemId) {
+            if (!itemId || !this.recipeData[itemId]) {
+                return null;
+            }
+
+            const tab = this.addTab();
+            const outputQuantity = this.recipeData[itemId].outputQuantity ?? 1;
+            tab.items.push({
+                id: itemId,
+                quantity: outputQuantity,
+            });
+            this.syncTabTitle(tab);
+            this.activeTabId = tab.id;
+            return tab;
+        },
         removeItem(itemId, tab = this.activeTab) {
             const currentTab = tab ?? this.activeTab;
             if (currentTab?.isDashboard) {
@@ -348,15 +346,6 @@ export const useIcarusStore = defineStore('icarus', {
             } else {
                 console.error(`Could not find tab with id ${this.activeTabId}`, this.tabs);
             }
-        },
-        setIncludeSubComponents(value) {
-            this.settings.includeSubComponents = value;
-        },
-        setIncludeStationComponents(value) {
-            this.settings.includeStationComponents = value;
-        },
-        setSplitRawComponents(value) {
-            this.settings.splitRawComponents = value;
         },
         setTreeLevelColors(value) {
             this.settings.treeLevelColors = value;

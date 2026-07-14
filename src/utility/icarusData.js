@@ -3,50 +3,6 @@ export const itemIgnoreMap = Object.freeze({
     Charcoal: true, // shows "Spoiled Meat" as the only input, which is misleading
 });
 
-// Manually curated list of item display labels that are considered raw/harvestable materials.
-// Entries may be exact strings or RegExp patterns matched against the resolved display label.
-// Note: items with overrides in itemLabelMap should use their overridden label (e.g. 'Aluminum Ore' not 'Bauxite').
-export const rawItemMatchers = Object.freeze([
-    // --- Patterns ---
-    /Ore$/, // Iron Ore, Copper Ore, Coal Ore, Gold Ore, Platinum Ore, Titanium Ore, etc.
-    /Vestige$/, // e.g. "Alpha Wolf Vestige"
-    /Fur$/, // e.g. "Bear Fur", "Wolf Fur"
-    /Noxious Crust/,
-    /Animal Fat/,
-    /Meat$/, // e.g. "Raw Meat", "Cooked Meat"
-    /Carcass$/, // e.g. "Small Carcass", "Medium Carcass", "Large Carcass"
-    /Pelt$/, // e.g. "Rabbit Pelt", "Wolf Pelt"
-
-    // --- Exact labels ---
-    'Aluminum Ore', // itemLabelMap override (ID: Bauxite)
-    'Animal Fat',
-    'Bone',
-    'Clay',
-    'Condensed Enzymes',
-    'Egg',
-    'Exotics',
-    'Fiber',
-    'Fur',
-    'Leather',
-    'Obsidian',
-    'Oxite',
-    'Poison Sac',
-    'Salt',
-    'Scoria',
-    'Seed',
-    'Silica',
-    'Stabilized Exotics',
-    'Stone',
-    'Stick',
-    'Sulfur',
-    'Tree Sap',
-    'Volatile Raw Exotics',
-    'Wood',
-    // TODO: add more as needed
-]);
-
-export const isRawItem = (label) => rawItemMatchers.some((matcher) => (matcher instanceof RegExp ? matcher.test(label) : matcher === label));
-
 export const itemLabelMap = Object.freeze({
     // raw material that doesn't have a recipe definition with `Name` will need correcting
     Bauxite: 'Aluminum Ore',
