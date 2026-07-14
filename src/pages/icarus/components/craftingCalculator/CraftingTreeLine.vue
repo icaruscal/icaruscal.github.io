@@ -70,7 +70,7 @@ import { mapActions, mapState } from 'pinia';
 import { ChevronDown, ChevronRight, ExternalLinkAlt, Plus } from '@vicons/fa';
 import { useIcarusStore } from '@/store/icarus';
 import { itemLabelMap } from '@/utility/icarusData';
-import { TREE_LEVEL_COLORS, TREE_MUTED_COLOR } from './treeLevelColors';
+import { colorForName, TREE_MUTED_COLOR } from './treeLevelColors';
 import QuantityStepper from './QuantityStepper.vue';
 
 export default {
@@ -119,7 +119,7 @@ export default {
             if (!this.colorEnabled) {
                 return TREE_MUTED_COLOR;
             }
-            return TREE_LEVEL_COLORS[this.depth % TREE_LEVEL_COLORS.length];
+            return colorForName(this.node.label ?? this.node.id);
         },
         levelStyle() {
             return {

@@ -28,7 +28,7 @@
 
 <script>
 import CraftingTreeLine from './CraftingTreeLine.vue';
-import { TREE_LEVEL_COLORS, TREE_MUTED_COLOR } from './treeLevelColors';
+import { colorForName, TREE_MUTED_COLOR } from './treeLevelColors';
 
 export default {
     name: 'CraftingTreeNode',
@@ -67,7 +67,7 @@ export default {
             if (!this.colorEnabled) {
                 return TREE_MUTED_COLOR;
             }
-            return TREE_LEVEL_COLORS[this.depth % TREE_LEVEL_COLORS.length];
+            return colorForName(this.node.label ?? this.node.id);
         },
         levelStyle() {
             return {

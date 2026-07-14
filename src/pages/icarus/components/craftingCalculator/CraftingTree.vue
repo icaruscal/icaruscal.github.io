@@ -39,7 +39,7 @@
                             </n-icon>
                         </n-button>
                     </template>
-                    {{ colorEnabled ? 'Disable level colors' : 'Enable level colors' }}
+                    {{ colorEnabled ? 'Disable item colors' : 'Enable item colors' }}
                 </n-tooltip>
             </div>
         </div>

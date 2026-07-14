@@ -39,7 +39,9 @@ const generateDashboardTab = () =>
         treeProgress: {},
         collapsedPaths: {},
     });
-const findTabIndex = (id, tabs) => tabs.findIndex((tab) => tab.id === id);
+const tabIdsEqual = (a, b) => a === b || String(a) === String(b);
+const findTabIndex = (id, tabs) => tabs.findIndex((tab) => tabIdsEqual(tab.id, id));
+const findTab = (id, tabs) => tabs.find((tab) => tabIdsEqual(tab.id, id));
 
 const normalizeTab = (tab) => {
     if (!tab.treeProgress) {
@@ -48,12 +50,14 @@ const normalizeTab = (tab) => {
     if (!tab.collapsedPaths) {
         tab.collapsedPaths = {};
     }
+    if (!Array.isArray(tab.items)) {
+        tab.items = [];
+    }
     if (tab.isDashboard || tab.id === DASHBOARD_TAB_ID) {
         tab.id = DASHBOARD_TAB_ID;
         tab.title = DASHBOARD_TAB_TITLE;
         tab.titleIsCustom = true;
         tab.isDashboard = true;
-        tab.items = tab.items || [];
         return tab;
     }
     if (tab.isDashboard === undefined) {
@@ -79,43 +83,60 @@ const ensureDashboardTab = (tabs) => {
     }
 };
 
-// default state
-const defaultTab = generateNewTab();
-const tabData = useStorage(`${LOCAL_STORAGE_PREFIX}/tabs`, [generateDashboardTab(), defaultTab]);
-ensureDashboardTab(tabData.value);
-const defaultTabId = tabData.value.find((tab) => tab.isDashboard)?.id ?? tabData.value[0].id;
-//console.log({defaultTabId, defaultTab, tabData});
-
-const settingsData = useStorage(
-    `${LOCAL_STORAGE_PREFIX}/settings`,
-    {
-        searchFuzzyMatch: true,
-        treeLevelColors: true,
-        pageLayout: 'side',
-    },
-    localStorage,
-    { mergeDefaults: true }
-);
+const resolveActiveTabId = (tabs, preferredId) => {
+    const match = preferredId != null ? findTab(preferredId, tabs) : null;
+    if (match) {
+        return match.id;
+    }
+    return tabs.find((tab) => tab.isDashboard)?.id ?? tabs[0]?.id ?? DASHBOARD_TAB_ID;
+};
 
 // * data store
 export const useIcarusStore = defineStore('icarus', {
-    state: () => ({
-        activeTabId: defaultTabId,
-        tabs: tabData,
-        settings: settingsData,
+    state: () => {
+        const tabs = useStorage(
+            `${LOCAL_STORAGE_PREFIX}/tabs`,
+            [generateDashboardTab(), generateNewTab()],
+            localStorage
+        );
+        ensureDashboardTab(tabs.value);
 
-        itemTemplateData: {},
-        itemStaticData: {},
-        itemTableData: {},
+        const activeTabId = useStorage(
+            `${LOCAL_STORAGE_PREFIX}/activeTabId`,
+            resolveActiveTabId(tabs.value, null),
+            localStorage
+        );
+        activeTabId.value = resolveActiveTabId(tabs.value, activeTabId.value);
 
-        recipeData: {},
-        recipeOptions: [],
-        isLoadingRecipes: false,
+        const settings = useStorage(
+            `${LOCAL_STORAGE_PREFIX}/settings`,
+            {
+                searchFuzzyMatch: true,
+                treeLevelColors: true,
+                pageLayout: 'side',
+            },
+            localStorage,
+            { mergeDefaults: true }
+        );
 
-        recipeSearch: '',
-    }),
+        return {
+            activeTabId,
+            tabs,
+            settings,
+
+            itemTemplateData: {},
+            itemStaticData: {},
+            itemTableData: {},
+
+            recipeData: {},
+            recipeOptions: [],
+            isLoadingRecipes: false,
+
+            recipeSearch: '',
+        };
+    },
     getters: {
-        activeTab: (state) => state.tabs.find((tab) => tab.id === state.activeTabId),
+        activeTab: (state) => findTab(state.activeTabId, state.tabs),
         dashboardTab: (state) => state.tabs.find((tab) => tab.isDashboard),
         planningTabs: (state) => state.tabs.filter((tab) => !tab.isDashboard),
         tabCount() {
@@ -259,11 +280,10 @@ export const useIcarusStore = defineStore('icarus', {
             this.tabs.splice(tabIndex, 1);
 
             const newTabIndex = Math.min(tabIndex, this.tabs.length - 1);
-            const newActiveTab = this.tabs[newTabIndex];
-            this.activeTabId = newActiveTab.id;
+            this.activeTabId = resolveActiveTabId(this.tabs, this.tabs[newTabIndex]?.id);
         },
         setActiveTab(id) {
-            this.activeTabId = id;
+            this.activeTabId = resolveActiveTabId(this.tabs, id);
         },
         setTabTitle(id, title) {
             const matchingId = findTabIndex(id, this.tabs);
