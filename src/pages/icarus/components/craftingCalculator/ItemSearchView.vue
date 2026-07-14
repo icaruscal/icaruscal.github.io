@@ -1,9 +1,19 @@
 <template>
-    <div>
-        <div class="mb-3 flex align-items-center">
-            <n-input type="text" v-model:value="searchValue" placeholder="Search..." clearable @input="onSearch" />
+    <div :class="['item-search', `item-search--${variant}`]">
+        <div class="search-bar flex align-items-center">
+            <n-input
+                ref="searchInput"
+                type="text"
+                v-model:value="searchValue"
+                placeholder="Search..."
+                clearable
+                :size="variant === 'top' ? 'large' : 'medium'"
+                @input="onSearch"
+                @focus="onFocus"
+                @keydown.esc.prevent="closeDropdown"
+            />
             <div class="flex-shrink-0 ml-3">
-                <n-tooltip trigger="hover" placement="right">
+                <n-tooltip trigger="hover" :placement="variant === 'top' ? 'bottom' : 'right'">
                     <template #trigger>
                         <n-checkbox v-model:checked="settings.searchFuzzyMatch">Fuzzy search</n-checkbox>
                     </template>
@@ -11,12 +21,24 @@
                 </n-tooltip>
             </div>
         </div>
-        <n-spin :show="isLoadingRecipes">
-            <n-card class="scroll-wrap" content-style="padding: 0;">
+
+        <n-spin :show="isLoadingRecipes" :class="{ 'dropdown-spin': variant === 'top' }">
+            <n-card
+                v-show="variant === 'side' || dropdownOpen"
+                class="scroll-wrap"
+                :class="{ 'dropdown-panel': variant === 'top' }"
+                content-style="padding: 0;"
+            >
                 <div v-if="filteredRecipeOptions.length === 0" class="p-3 font-italic">No matching items found.</div>
 
-                <RecycleScroller class="scroller" :items="filteredRecipeOptions" :item-size="40" key-field="id" v-slot="{ index, item }">
-                    <div class="recipe-item flex align-items-center" @click="addItem(item.id)">
+                <RecycleScroller
+                    class="scroller"
+                    :items="filteredRecipeOptions"
+                    :item-size="40"
+                    key-field="id"
+                    v-slot="{ item }"
+                >
+                    <div class="recipe-item flex align-items-center" @mousedown.prevent @click="onSelectItem(item.id)">
                         <div class="relative flex align-items-center">
                             <n-image
                                 class="icon"
@@ -57,6 +79,7 @@ import { Plus } from '@vicons/fa';
 
 import { useIcarusStore } from '@/store/icarus';
 import { GAME_ASSETS_URL } from '@/constants/common';
+
 const icarusStore = useIcarusStore();
 
 export default {
@@ -64,32 +87,100 @@ export default {
     components: {
         Plus,
     },
-    props: {},
+    props: {
+        variant: {
+            type: String,
+            default: 'side',
+            validator: (value) => ['side', 'top'].includes(value),
+        },
+    },
     data() {
         return {
             searchValue: null,
             gameAssetsUrl: GAME_ASSETS_URL,
+            dropdownOpen: false,
         };
     },
     computed: {
         ...mapState(useIcarusStore, ['recipeData', 'isLoadingRecipes', 'filteredRecipeOptions', 'settings']),
+    },
+    watch: {
+        variant() {
+            this.dropdownOpen = false;
+        },
+    },
+    mounted() {
+        document.addEventListener('mousedown', this.onDocumentMouseDown);
+    },
+    beforeUnmount() {
+        document.removeEventListener('mousedown', this.onDocumentMouseDown);
     },
     methods: {
         ...mapActions(useIcarusStore, ['addItem']),
         onSearch: debounce((value) => {
             icarusStore.recipeSearch = value;
         }, 250),
+        onFocus() {
+            if (this.variant === 'top') {
+                this.dropdownOpen = true;
+            }
+        },
+        closeDropdown() {
+            this.dropdownOpen = false;
+        },
+        onDocumentMouseDown(event) {
+            if (this.variant !== 'top' || !this.dropdownOpen) {
+                return;
+            }
+            if (!this.$el.contains(event.target)) {
+                this.closeDropdown();
+            }
+        },
+        onSelectItem(itemId) {
+            this.addItem(itemId);
+        },
     },
 };
 </script>
 
 <style scoped lang="scss">
-.scroll-wrap {
-    padding: 0;
-    height: 30rem;
+.item-search--side {
+    .search-bar {
+        margin-bottom: 0.75rem;
+    }
+
+    .scroll-wrap,
+    .scroller {
+        height: 30rem;
+    }
 }
-.scroller {
-    height: 30rem;
+
+.item-search--top {
+    position: relative;
+    width: min(42rem, 100%);
+    margin: 0 auto;
+
+    .search-bar {
+        width: 100%;
+    }
+
+    .dropdown-spin {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: calc(100% + 0.35rem);
+        z-index: 20;
+    }
+
+    .dropdown-panel {
+        box-shadow: 0 0.75rem 1.5rem rgba(0, 0, 0, 0.35);
+    }
+
+    .scroll-wrap,
+    .scroller {
+        height: 22rem;
+        max-height: min(22rem, 60vh);
+    }
 }
 
 .recipe-item {

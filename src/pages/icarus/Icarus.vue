@@ -1,5 +1,5 @@
 <template>
-    <div class="icarus-wrap p-2 pt-3">
+    <div class="icarus-wrap p-2 pt-3" :class="`layout-${pageLayout}`">
         <n-alert v-if="showWelcomeAlert" class="m-2 mb-3" title="Crafting Calculator" type="info" closable @after-leave="dismissAlert('welcome')">
             <ul class="mb-0 pl-0 list-none">
                 <li class="mb-1">
@@ -25,13 +25,16 @@
                 <li class="mb-1">
                     <strong>New:</strong> Crafting Tree with progress tracking across your planning lists.
                 </li>
-                <!-- <li class="mb-1">🔨 "Stack" count displays on icons for Items which are crafted in bulk (<em>e.g. x100 Steel Screw</em>)</li> -->
             </ul>
         </n-alert>
 
-        <div class="flex flex-wrap">
-            <div>
-                <item-search-view class="item-selector"></item-search-view>
+        <div v-if="pageLayout === 'top'" class="top-search-sticky">
+            <item-search-view variant="top"></item-search-view>
+        </div>
+
+        <div :class="pageLayout === 'side' ? 'flex flex-wrap' : 'top-layout-body'">
+            <div v-if="pageLayout === 'side'">
+                <item-search-view class="item-selector" variant="side"></item-search-view>
                 <div class="m-2 text-200">
                     <n-text depth="3" class="flex-shrink-0">Supports game version</n-text>
                     <div class="flex align-items-center mt-2">
@@ -42,7 +45,7 @@
                     </div>
                 </div>
             </div>
-            <tabs-view class="tab-view flex-1"></tabs-view>
+            <tabs-view :class="pageLayout === 'top' ? 'tab-view tab-view--full' : 'tab-view flex-1'"></tabs-view>
         </div>
 
         <n-alert
@@ -81,6 +84,7 @@
 
 <script>
 import { Hammer } from '@vicons/fa';
+import { mapGetters } from 'pinia';
 
 import ItemSearchView from '@/pages/icarus/components/craftingCalculator/ItemSearchView.vue';
 import TabsView from '@/pages/icarus/components/TabsView.vue';
@@ -107,7 +111,6 @@ export default {
         ItemSearchView,
         TabsView,
     },
-    props: [],
     data() {
         return {
             showWelcomeAlert: isAlertVisible('welcome'),
@@ -115,7 +118,9 @@ export default {
             showDevTodoAlert: isAlertVisible('devTodo'),
         };
     },
-    computed: {},
+    computed: {
+        ...mapGetters(useIcarusStore, ['pageLayout']),
+    },
     methods: {
         dismissAlert(alertName) {
             alertName && AlertVersion[alertName] && localStorage.setItem(`alert:version:${alertName}`, AlertVersion[alertName]);
@@ -129,17 +134,42 @@ export default {
     max-width: 100rem;
     margin: 0 auto;
 }
+
 .tab-view {
     min-width: 20rem;
     margin: 0.5rem;
+
+    &--full {
+        width: 100%;
+        min-width: 0;
+        margin-left: 0;
+        margin-right: 0;
+    }
 }
+
 .item-selector {
     width: 23rem;
     margin: 0.5rem;
 }
+
 .game-version {
     width: 8rem;
     text-align: center;
     margin-right: 1rem;
+}
+
+.top-search-sticky {
+    position: sticky;
+    top: 2.75rem;
+    z-index: 50;
+    margin: 0 0.5rem 0.75rem;
+    padding: 0.65rem 0.75rem;
+    background-color: color-mix(in srgb, var(--navbar-bg-color, #18181c) 92%, transparent);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--navbar-border-color, rgba(255, 255, 255, 0.09));
+}
+
+.top-layout-body {
+    width: 100%;
 }
 </style>

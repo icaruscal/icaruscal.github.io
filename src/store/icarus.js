@@ -86,6 +86,7 @@ const settingsData = useStorage(
     {
         searchFuzzyMatch: true,
         treeLevelColors: true,
+        pageLayout: 'side',
     },
     localStorage,
     { mergeDefaults: true }
@@ -120,6 +121,9 @@ export const useIcarusStore = defineStore('icarus', {
         },
         treeLevelColors(state) {
             return state.settings.treeLevelColors !== false;
+        },
+        pageLayout(state) {
+            return state.settings.pageLayout === 'top' ? 'top' : 'side';
         },
         sortedRecipeOptions(state) {
             return state.recipeOptions.sort((a, b) => a.label.localeCompare(b.label));
@@ -349,6 +353,9 @@ export const useIcarusStore = defineStore('icarus', {
         },
         setTreeLevelColors(value) {
             this.settings.treeLevelColors = value;
+        },
+        setPageLayout(value) {
+            this.settings.pageLayout = value === 'top' ? 'top' : 'side';
         },
 
         // * recipe data
