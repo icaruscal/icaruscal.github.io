@@ -98,12 +98,26 @@
                             <component-source-picker :component-id="item.id" @change="triggerCalc()"></component-source-picker>
                         </div>
                     </div>
+                    <div class="mt-4">
+                        <div class="components-section--label">Crafting Tree</div>
+                        <em v-if="requirementTrees.primary.length === 0" class="empty-subcategory-label">No items</em>
+                        <div v-for="tree in requirementTrees.primary" :key="tree.id" class="crafting-tree-root mb-3">
+                            <crafting-tree-node :node="tree" :path="tree.id" :progress="treeProgress" />
+                        </div>
+                    </div>
                 </div>
                 <div v-else>
                     <div v-for="item in requiredComponents" :key="item.id" class="component-row flex align-items-center">
                         <div class="quantity">{{ item.quantity }}</div>
                         <div class="label" :data-item-id="item.id">{{ item.label }}</div>
                         <component-source-picker v-if="!item.isRaw" :component-id="item.id" @change="triggerCalc()"></component-source-picker>
+                    </div>
+                    <div class="mt-4">
+                        <div class="components-section--label">Crafting Tree</div>
+                        <em v-if="requirementTrees.primary.length === 0" class="empty-subcategory-label">No items</em>
+                        <div v-for="tree in requirementTrees.primary" :key="tree.id" class="crafting-tree-root mb-3">
+                            <crafting-tree-node :node="tree" :path="tree.id" :progress="treeProgress" />
+                        </div>
                     </div>
                 </div>
             </div>
@@ -140,6 +154,7 @@ import { mapActions, mapGetters, mapState } from 'pinia';
 import { SortAlphaDown, Times } from '@vicons/fa';
 
 import ComponentSourcePicker from './ComponentSourcePicker.vue';
+import CraftingTreeNode from './CraftingTreeNode.vue';
 import { useIcarusStore } from '@/store/icarus';
 import { itemLabelMap, isRawItem } from '@/utility/icarusData';
 import { GAME_ASSETS_URL } from '@/constants/common';
@@ -148,6 +163,7 @@ export default {
     name: 'CraftingToolCalculator',
     components: {
         ComponentSourcePicker,
+        CraftingTreeNode,
         SortAlphaDown,
         Times,
     },
@@ -171,6 +187,14 @@ export default {
         };
     },
     watch: {
+        tab: {
+            immediate: true,
+            handler(tab) {
+                if (tab && !tab.treeProgress) {
+                    tab.treeProgress = {};
+                }
+            },
+        },
         includeSubComponents(newValue) {
             if (!newValue) {
                 this.setIncludeStationComponents(false);
@@ -192,6 +216,9 @@ export default {
         },
         rawComponents() {
             return this.requiredComponents.filter((item) => item.isRaw);
+        },
+        treeProgress() {
+            return this.tab.treeProgress ?? {};
         },
     },
     methods: {
@@ -250,11 +277,14 @@ export default {
             };
 
             const buildRequirementNode = (itemId, requestedQuantity, options = {}, activePath = new Set()) => {
-                const { expandSubComponents = false, totals = {}, stations = new Set() } = options;
+                const { expandSubComponents = false, expandTree = false, totals = {}, stations = new Set() } = options;
+                const label = getComponentLabel(itemId);
 
                 const node = {
                     id: itemId,
                     quantity: requestedQuantity,
+                    label,
+                    isRaw: isRawItem(label),
                     children: [],
                 };
 
@@ -283,16 +313,28 @@ export default {
                     const inputQuantity = input.quantity * multiplier;
                     addToTotals(totals, input.id, inputQuantity);
 
+                    const childLabel = getComponentLabel(input.id);
                     const child = {
                         id: input.id,
                         quantity: inputQuantity,
-                        label: getComponentLabel(input.id),
-                        isRaw: isRawItem(getComponentLabel(input.id)),
+                        label: childLabel,
+                        isRaw: isRawItem(childLabel),
                     };
                     node.children.push(child);
 
-                    if (expandSubComponents && recipeData[input.id] && !child.isRaw && !nextPath.has(input.id)) {
-                        child.expanded = buildRequirementNode(input.id, inputQuantity, options, nextPath);
+                    const shouldExpand = (expandSubComponents || expandTree) && recipeData[input.id] && !child.isRaw && !nextPath.has(input.id);
+                    if (shouldExpand) {
+                        child.expanded = buildRequirementNode(
+                            input.id,
+                            inputQuantity,
+                            {
+                                expandSubComponents,
+                                expandTree,
+                                totals: expandSubComponents ? totals : {},
+                                stations: expandSubComponents ? stations : new Set(),
+                            },
+                            nextPath
+                        );
                     }
                 });
 
@@ -303,6 +345,7 @@ export default {
             const primaryTrees = selectedItems.map((item) =>
                 buildRequirementNode(item.id, item.quantity ?? 1, {
                     expandSubComponents: includeSubComponents,
+                    expandTree: true,
                     totals: requiredItemData,
                     stations: primaryStations,
                 })
@@ -326,6 +369,7 @@ export default {
                         stationTrees.push(
                             buildRequirementNode(station, 1, {
                                 expandSubComponents: includeSubComponents,
+                                expandTree: true,
                                 totals: requiredItemData,
                                 stations: iterationStations,
                             })
