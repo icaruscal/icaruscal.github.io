@@ -22,32 +22,25 @@ yarn dev
 - This will produce both the json data files, as well as the image assets.
 
 ### Updating Via script
-You can Update the web app's game assets via running the yarn script: `yarn update-game-assets <path/to/Ue4ExportDir/export>` produced by the `export.bat` file in the step above.
-
-### Recipe catalog (stats + tier)
-Build a combined JSON of craftable items with granted stats and deduced unlock tier:
+Update ItemIcons from a Ue4Export:
 ```
-yarn build-recipe-catalog <path/to/IC_Export> [outFile]
+yarn update-game-assets <path/to/Ue4ExportDir/export>
 ```
-Defaults to writing `public/icarus-game/Data/recipe-catalog.json` (served by the web app). Unclear/missing joins are listed under `reviewQueue`.
+This syncs icons from the export (using `Traits/D_Itemable.json` as the reference list) and removes any leftover raw `D_*.json` tables from `public/icarus-game/Data`.
 
-Each entry has an `acquisition` field: `craft` (normal recipe with tier/stations), `shop` (bought in-world with currency, see `purchase.shop`), or `workshop` (orbital workshop item, see `purchase.workshop` research/replication costs). Purchase-only items have no tier or station.
+### Data catalog (recipes, items, stations, stats + tier)
+The app loads a single combined JSON (`data-catalog.json`), not the raw Ue4Export `D_*.json` tables.
+```
+yarn build-data-catalog <path/to/IC_Export> [prettyOutFile]
+```
+Writes a **pretty** file to `data/icarus-game/data-catalog.json` and a **minified** copy to `public/icarus-game/Data/data-catalog.json`.
 
-See [docs/icarus-game-data.md](./docs/icarus-game-data.md) for a full reference on the game's data tables, join chains, tier deduction, and purchase systems.
+`yarn build` / `yarn gh` re-minify from the pretty file via the Vite plugin (`yarn prepare-data-catalog`). During `yarn dev`, the pretty `data/` file is served at `/icarus-game/Data/data-catalog.json`. GitHub Pages gzip-compresses `.json` on the fly.
 
-### Updating Data files
-Once you have extracted the JSON data files, you will need to copy them over from the game directory folder(s) matching the table mapping shown below. 
-
-JSON files for the Web App are located in: [public/icarus-game/Data](./public/icarus-game/Data) and are used to calculate recipes on initial page load.
-| Web File                | Icarus Data Export location                          |
-|-------------------------|------------------------------------------------------|
-| D_ItemsStatic.json      | `%UE4ExportFolder%\Items\D_ItemsStatic.json`         |
-| D_ItemTemplate.json     | `%UE4ExportFolder%\Items\D_ItemTemplate.json`        |
-| D_Itemable.json         | `%UE4ExportFolder%\Traits\D_Itemable.json`           |
-| D_ProcessorRecipes.json | `%UE4ExportFolder%\Crafting\D_ProcessorRecipes.json` |
+Each recipe has an `acquisition` field: `craft`, `shop`, or `workshop`. See [docs/icarus-game-data.md](./docs/icarus-game-data.md).
 
 ### Updating Item Icons
-The Web App base directory is `public\icarus-game\ItemIcons`, and the extracted data is `export\Icarus\Content\Assets\2DArt\UI\Items\Item_Icons`. You can simply copy all images and folders over to update them.
+Prefer `yarn update-game-assets` (above). Manually: Web App base is `public/icarus-game/ItemIcons`; export source is `export/Icarus/Content/Assets/2DArt/UI/Items/Item_Icons`.
 
 **NOTE:** The `.gitignore` file handles known image filenames which were/are too long. Simply removing the duplicated text in the file name, and manually setting them was enough to fix the issue, as the code is setup to handle partial matches as-is. (More recent versions of the game seem to have fixed the duplicate naming convention, so this might not apply anymore!)
 

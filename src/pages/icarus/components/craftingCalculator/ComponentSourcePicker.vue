@@ -14,7 +14,7 @@
                     ]"
                     @click="setComponentPreferredSource(componentRecipe.id, craftingStationName)"
                 >
-                    <span>{{ recipeData[craftingStationName]?.label ?? itemLabelMap[craftingStationName] ?? craftingStationName }}</span>
+                    <span>{{ stationLabel(craftingStationName) }}</span>
                 </n-button>
             </template>
         </n-button-group>
@@ -24,7 +24,7 @@
 <script>
 import { mapState } from 'pinia';
 import { useIcarusStore } from '@/store/icarus';
-import { itemLabelMap } from '@/utility/icarusData';
+import { getStationLabel } from '@/utility/icarusData';
 
 export default {
     name: 'CraftingToolComponentSourcePicker',
@@ -35,13 +35,8 @@ export default {
             required: true,
         },
     },
-    data() {
-        return {
-            itemLabelMap: itemLabelMap,
-        };
-    },
     computed: {
-        ...mapState(useIcarusStore, ['recipeData']),
+        ...mapState(useIcarusStore, ['recipeData', 'stations', 'itemTableData']),
         componentRecipe() {
             return (
                 this.recipeData[this.componentId] ??
@@ -50,6 +45,13 @@ export default {
         },
     },
     methods: {
+        stationLabel(stationId) {
+            return getStationLabel(stationId, {
+                stations: this.stations,
+                recipeData: this.recipeData,
+                itemTableData: this.itemTableData,
+            });
+        },
         setComponentPreferredSource(recipeId, craftingStationName) {
             this.recipeData[recipeId].preferredSource = craftingStationName;
             this.$emit('change');

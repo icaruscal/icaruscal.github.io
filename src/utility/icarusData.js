@@ -178,6 +178,150 @@ export function processItemTableData(rows = []) {
     return itemTableData;
 }
 
+/**
+ * Convert `data-catalog.json` into the shapes the crafting UI expects.
+ * Craft recipes only; shop/workshop rows are ignored.
+ */
+export function processCatalogData(catalog = {}) {
+    const items = catalog.items ?? {};
+    const recipes = catalog.recipes ?? [];
+    const stations = catalog.stations ?? {};
+
+    const itemStaticData = {};
+    const itemTableData = {};
+    for (const [id, item] of Object.entries(items)) {
+        itemStaticData[id] = { id, itemTableId: id };
+        itemTableData[id] = {
+            id,
+            displayName: item.displayName ?? null,
+            icon: item.iconPath ?? '',
+        };
+    }
+
+    // Station labels for fallbacks (Character, recipe-set-only stations).
+    for (const [id, station] of Object.entries(stations)) {
+        if (!itemTableData[id]) {
+            itemTableData[id] = {
+                id,
+                displayName: station.displayName ?? station.recipeSetDisplayName ?? null,
+                icon: station.iconPath ?? '',
+            };
+        }
+        if (!itemStaticData[id]) {
+            itemStaticData[id] = { id, itemTableId: id };
+        }
+    }
+
+    const recipeData = {};
+    for (const recipe of recipes) {
+        if (recipe.acquisition !== 'craft') continue;
+        if (itemIgnoreMap[recipe.id]) continue;
+
+        const item = recipe.staticItemName ? items[recipe.staticItemName] : null;
+        const displayName = recipe.displayName ?? item?.displayName ?? null;
+        const iconPath = recipe.iconPath ?? item?.iconPath ?? '';
+        const sources = recipe.stations ?? [];
+        const outputs =
+            Array.isArray(recipe.outputs) && recipe.outputs.length > 0
+                ? recipe.outputs.map((out) => ({
+                      id: out.id,
+                      templateName: out.templateName ?? null,
+                      count: out.count ?? 1,
+                  }))
+                : recipe.staticItemName
+                  ? [{ id: recipe.staticItemName, templateName: recipe.templateName ?? null, count: recipe.outputCount ?? 1 }]
+                  : [];
+
+        recipeData[recipe.id] = {
+            id: recipe.id,
+            label: getItemLabel(recipe.id, { displayName }),
+            iconPath: iconPath || '',
+            outputItemId: recipe.templateName ?? null,
+            itemStaticId: recipe.staticItemName ?? null,
+            inputs: (recipe.ingredients ?? []).map((ing) => ({
+                id: ing.id,
+                quantity: ing.count,
+            })),
+            outputs,
+            sources,
+            preferredSource: sources[0] ?? null,
+            outputQuantity: recipe.outputCount ?? 1,
+        };
+    }
+
+    // Alias static item ids → primary craft recipe (tree recursion by ingredient id).
+    // Skip "selfish" conversion recipes (input id === recipe id), e.g. Frozen_Wood → Wood,
+    // Pyritic_Crust_Sulfur → Sulfur — those are optional processing paths, not the gather default.
+    // Skip gatherFirst items (Item.Resource.Ore* / similar): conversion recipes stay listed on
+    // recipeIds but the tree treats the static id as a terminal gather node.
+    const isSelfishRecipe = (recipe) => (recipe.inputs || []).some((input) => input.id === recipe.id);
+
+    const outputCountForStatic = (recipe, staticId) => {
+        const match = (recipe.outputs || []).find((out) => out.id === staticId);
+        return match?.count ?? recipe.outputQuantity ?? 1;
+    };
+
+    for (const [staticId, item] of Object.entries(items)) {
+        if (item.gatherFirst) continue;
+        const recipeIds = item.recipeIds ?? [];
+        if (recipeIds.length === 0) continue;
+        const primary = recipeIds.map((id) => recipeData[id]).find((recipe) => recipe && !isSelfishRecipe(recipe));
+        if (!primary || recipeData[staticId]) continue;
+
+        const outputQuantity = outputCountForStatic(primary, staticId);
+        // Secondary multi-outputs need their own yield + searchable id (e.g. Uranium → 10 Uranium_Inert).
+        if (
+            outputQuantity !== primary.outputQuantity ||
+            (primary.itemStaticId && primary.itemStaticId !== staticId)
+        ) {
+            const displayName = item.displayName ?? null;
+            recipeData[staticId] = {
+                ...primary,
+                id: staticId,
+                label: getItemLabel(staticId, { displayName }),
+                iconPath: item.iconPath || primary.iconPath || '',
+                outputItemId: staticId,
+                itemStaticId: staticId,
+                outputQuantity,
+            };
+        } else {
+            recipeData[staticId] = primary;
+        }
+    }
+
+    return {
+        recipeData: postProcessData(recipeData),
+        itemStaticData,
+        itemTableData,
+        stations,
+    };
+}
+
+/** Resolve a RecipeSet / station id to a player-facing label. */
+export function getStationLabel(stationId, { stations = {}, recipeData = {}, itemTableData = {} } = {}) {
+    if (!stationId) return stationId;
+    const station = stations[stationId];
+    const craftRecipeId = station?.craftRecipeId ?? null;
+    return (
+        station?.displayName ??
+        station?.recipeSetDisplayName ??
+        recipeData[stationId]?.label ??
+        (craftRecipeId ? recipeData[craftRecipeId]?.label : null) ??
+        itemTableData[stationId]?.displayName ??
+        itemLabelMap[stationId] ??
+        stationId
+    );
+}
+
+/** Recipe id used to craft the station deployable (may differ from RecipeSet id). */
+export function getStationCraftRecipeId(stationId, { stations = {}, recipeData = {} } = {}) {
+    if (!stationId) return null;
+    const craftRecipeId = stations[stationId]?.craftRecipeId ?? null;
+    if (craftRecipeId && recipeData[craftRecipeId]) return craftRecipeId;
+    if (recipeData[stationId]) return stationId;
+    return null;
+}
+
 export function processRecipeData(rows = [], { itemTemplateData = {}, itemStaticData = {}, itemTableData = {} } = {}) {
     const recipeDataByName = {};
 

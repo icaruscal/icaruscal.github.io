@@ -72,11 +72,11 @@
                         <n-image
                             class="icon"
                             width="32"
-                            :src="`${gameAssetsUrl}/ItemIcons/${recipeData[componentName]?.iconPath}.png`"
+                            :src="`${gameAssetsUrl}/ItemIcons/${stationIconPath(componentName)}.png`"
                             :fallback-src="`${gameAssetsUrl}/Images/question-mark.png`"
                             :preview-disabled="false"
                         />
-                        <div class="label">{{ recipeData[componentName]?.label ?? itemLabelMap[componentName] ?? componentName }}</div>
+                        <div class="label">{{ stationLabel(componentName) }}</div>
                     </div>
                 </div>
             </div>
@@ -98,7 +98,7 @@ import ComponentSourcePicker from './ComponentSourcePicker.vue';
 import CraftingTree from './CraftingTree.vue';
 import QuantityStepper from './QuantityStepper.vue';
 import { useIcarusStore } from '@/store/icarus';
-import { itemLabelMap } from '@/utility/icarusData';
+import { getStationCraftRecipeId, getStationLabel } from '@/utility/icarusData';
 import { GAME_ASSETS_URL } from '@/constants/common';
 
 export default {
@@ -118,7 +118,6 @@ export default {
     },
     data() {
         return {
-            itemLabelMap: itemLabelMap,
             gameAssetsUrl: GAME_ASSETS_URL,
             requiredCraftingStations: [],
             requirementTrees: [],
@@ -150,7 +149,7 @@ export default {
         },
     },
     computed: {
-        ...mapState(useIcarusStore, ['recipeData', 'itemStaticData', 'itemTableData', 'isLoadingRecipes']),
+        ...mapState(useIcarusStore, ['recipeData', 'itemStaticData', 'itemTableData', 'stations', 'isLoadingRecipes']),
         treeProgress() {
             return this.tab.treeProgress ?? {};
         },
@@ -160,6 +159,20 @@ export default {
     },
     methods: {
         ...mapActions(useIcarusStore, ['removeItem']),
+        stationLabel(stationId) {
+            return getStationLabel(stationId, {
+                stations: this.stations,
+                recipeData: this.recipeData,
+                itemTableData: this.itemTableData,
+            });
+        },
+        stationIconPath(stationId) {
+            const craftRecipeId = getStationCraftRecipeId(stationId, {
+                stations: this.stations,
+                recipeData: this.recipeData,
+            });
+            return this.stations[stationId]?.iconPath ?? this.recipeData[craftRecipeId]?.iconPath ?? '';
+        },
         sortInputs() {
             this.tab.items.sort((a, b) => {
                 const aLabel = this.recipeData[a.id].label;
@@ -189,13 +202,19 @@ export default {
             const recipeData = this.recipeData;
             const itemStaticData = this.itemStaticData;
             const itemTableData = this.itemTableData;
+            const stationsCatalog = this.stations;
             const requiredCraftingStations = new Set();
 
             const getComponentLabel = (componentId) =>
                 recipeData[componentId]?.label ??
-                itemLabelMap[componentId] ??
                 itemTableData[itemStaticData[componentId]?.itemTableId]?.displayName ??
                 componentId.replace(/_/g, ' ');
+
+            const stationContext = {
+                stations: stationsCatalog,
+                recipeData,
+                itemTableData,
+            };
 
             const buildRequirementNode = (itemId, requestedQuantity, stations = new Set(), activePath = new Set()) => {
                 const label = getComponentLabel(itemId);
@@ -228,7 +247,9 @@ export default {
 
                 (recipe.inputs || []).forEach((input) => {
                     const inputQuantity = input.quantity * multiplier;
-                    const childHasRecipe = Boolean(recipeData[input.id]);
+                    // Self-input conversion recipes (Frozen_Wood ← Frozen_Wood) are terminal mats.
+                    const isSelfInput = input.id === recipe.id;
+                    const childHasRecipe = !isSelfInput && Boolean(recipeData[input.id]);
                     const child = {
                         id: input.id,
                         quantity: inputQuantity,
@@ -253,8 +274,8 @@ export default {
 
             this.requirementTrees = primaryTrees;
             this.requiredCraftingStations = [...requiredCraftingStations].sort((a, b) => {
-                const aLabel = recipeData[a]?.label ?? itemLabelMap[a] ?? a;
-                const bLabel = recipeData[b]?.label ?? itemLabelMap[b] ?? b;
+                const aLabel = getStationLabel(a, stationContext);
+                const bLabel = getStationLabel(b, stationContext);
                 return aLabel.localeCompare(bLabel);
             });
         },

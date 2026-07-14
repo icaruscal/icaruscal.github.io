@@ -1,7 +1,7 @@
 # Icarus Game Data Reference
 
 Reference notes on how Icarus (the survival game) stores its gameplay data, how we extract it, and how the
-`scripts/build-recipe-catalog.ts` script joins it into `public/icarus-game/Data/recipe-catalog.json`.
+`scripts/build-data-catalog.ts` script joins it into `data-catalog.json`.
 Written to assist future AI/dev sessions — read this before spelunking the raw exports.
 
 ## 1. Extracting game data
@@ -51,6 +51,7 @@ Key tables:
 |---|---|---|
 | `D_ProcessorRecipes` | `Crafting/` | All craft recipes: `RecipeSets` (stations), `Inputs`, `Outputs`, optional `Requirement` (talent) |
 | `D_RecipeSets` | `Crafting/` | Station / recipe-set ids + `RecipeSetName` / icon (e.g. `Kitchen_Stove` → "Kitchen Stove"; deployable item label may differ, e.g. "Biofuel Stove") |
+| `D_Processing` | `Traits/` | Deployable Processing → `DefaultRecipeSet` when ids differ (e.g. `T3_Cleaning_Device` → `Cleaning_Device`) |
 | `D_ItemTemplate` | `Items/` | Thin wrapper: template name → static item row |
 | `D_ItemsStatic` | `Items/` | The item hub: links to all trait tables + gameplay tags |
 | `D_Itemable` | `Traits/` | DisplayName, Description, FlavorText, Icon |
@@ -117,11 +118,17 @@ Known gaps:
 - Currency items map back to `D_MetaCurrency` rows via `ItemStaticData.RowName`.
 - Some items exist in BOTH systems (Oxygel/MicroMeal have a Food_Shop recipe and a workshop entry).
 
-## 5. The catalog script
+## 5. The data catalog script
 
-`scripts/build-recipe-catalog.ts`, run with `yarn build-recipe-catalog <exportPath> [outFile]`
+`scripts/build-data-catalog.ts`, run with `yarn build-data-catalog <exportPath> [prettyOutFile]`
 (`tsx` runner; exportPath can be the export root or its `data/` dir).
-Default output: `public/icarus-game/Data/recipe-catalog.json` (fetchable at `/icarus-game/Data/recipe-catalog.json`).
+
+| Artifact | Path | When |
+|---|---|---|
+| Pretty (dev / git) | `data/icarus-game/data-catalog.json` | `yarn build-data-catalog` (always) |
+| Minified (app / deploy) | `public/icarus-game/Data/data-catalog.json` | same command, or `yarn prepare-data-catalog` / `yarn build` |
+
+Minified files under `public/...` are gitignored; Vite’s `dataCatalogPlugin` regenerates them on build and serves the pretty file during `yarn dev` at `/icarus-game/Data/data-catalog.json`. GitHub Pages gzip-compresses the minified `.json` on the fly.
 
 **Purpose:** one pre-joined JSON for the crafting calculator (and item browsing). The app can stop
 fetching / client-joining `D_ProcessorRecipes`, `D_ItemTemplate`, `D_ItemsStatic`, `D_Itemable`
@@ -133,6 +140,7 @@ fetching / client-joining `D_ProcessorRecipes`, `D_ItemTemplate`, `D_ItemsStatic
 |---|---|
 | `Crafting/D_ProcessorRecipes.json` | Recipes, inputs, outputs, stations, shop detection |
 | `Crafting/D_RecipeSets.json` | Station display names / icons (optional if missing) |
+| `Traits/D_Processing.json` | RecipeSet → deployable remap when ids differ (optional) |
 | `Items/D_ItemTemplate.json` | Output template → static item |
 | `Items/D_ItemsStatic.json` | Trait links; ingredient/raw material ids |
 | `Traits/D_Itemable.json` | DisplayName, Description, Icon |
@@ -145,7 +153,12 @@ fetching / client-joining `D_ProcessorRecipes`, `D_ItemTemplate`, `D_ItemsStatic
 
 ### Output shape
 
-Top-level keys: `meta`, `recipes`, `items`, `stations`, `lookup`, `reviewQueue`.
+Top-level keys: `meta`, `recipes`, `items`, `stations`.
+
+**Compact emit (same key names):** null / `[]` fields are omitted (treat missing as the default). Display
+(`displayName` / `description` / `iconPath`) lives on `items` / `stations`; recipes only carry those when
+there is no `staticItemName` (or values differ). Raw Unreal `icon`, `lookup`, and `reviewQueue` are not shipped
+(`items[*].recipeIds` + `meta.reviewQueueCount` / `flagSummary` cover the same info).
 
 ```jsonc
 {
@@ -153,11 +166,13 @@ Top-level keys: `meta`, `recipes`, `items`, `stations`, `lookup`, `reviewQueue`.
     "generatedAt": "...",
     "recipeCount": 2538,
     "craftCount": 2164,
-    "itemCount": 2491,
-    "rawMaterialCount": 633,   // items with recipeIds: []
+    "itemCount": 2504,
+    "rawMaterialCount": 626,   // items with no / empty recipeIds
+    "gatherFirstCount": 27,    // Item.Resource.Ore* / Wood / Fiber / … — terminal even with recipeIds
     "stationCount": 68,
     "shopCount": 40,
     "workshopCount": 334,
+    "reviewQueueCount": 199,
     "flagSummary": { /* ... */ },
     "notes": { /* usage hints written by the script */ }
   },
@@ -165,16 +180,14 @@ Top-level keys: `meta`, `recipes`, `items`, `stations`, `lookup`, `reviewQueue`.
     {
       "id": "Fruit_Pie",                 // D_ProcessorRecipes.Name (or D_WorkshopItems.Name)
       "acquisition": "craft",            // craft | shop | workshop
-      "purchase": null,                  // or { shop: {station, costs[]}, workshop: {researchCost[], replicationCost[], requiredMission} }
+      // purchase omitted unless shop/workshop
       "templateName": "Fruit_Pie",
-      "staticItemName": "Food_Fruit_Pie",
-      "displayName": "Fruit Pie",
-      "description": "...",
-      "icon": "/Game/.../ITEM_FruitPie.ITEM_FruitPie",
-      "iconPath": "Consumeables/ITEM_FruitPie",   // → `${gameAssetsUrl}/ItemIcons/${iconPath}.png`
+      "staticItemName": "Food_Fruit_Pie", // → items[staticItemName] for label / icon
       "stations": ["Kitchen_Stove", "Electric_Stove"],
       "ingredients": [{ "id": "Pastry", "count": 1, "table": "D_ItemsStatic" }],
       "outputCount": 1,
+      // Multi-output only: recipes[].outputs[{ id, templateName, count }]; each output gets items[id].recipeIds
+      // ResourceInputs (Water/Biofuel/…) become ingredients with table "Resource"
       "consumableName": "Fruit_Pie",
       "instantStats": [{ "key": "BaseFoodRecovery_+", "value": 150, "display": "+150 Food when Consumed" }],
       "modifier": {
@@ -184,7 +197,6 @@ Top-level keys: `meta`, `recipes`, `items`, `stations`, `lookup`, `reviewQueue`.
         "lifetimeSeconds": 1200,
         "grantedStats": [ /* same {key,value,display} shape */ ]
       },
-      "equipGrantedStats": [],
       "tier": {
         "value": 3,
         "method": "station_deduced",
@@ -204,9 +216,15 @@ Top-level keys: `meta`, `recipes`, `items`, `stations`, `lookup`, `reviewQueue`.
       "id": "Berry",
       "displayName": "Wild Berry",
       "description": "...",
-      "icon": "/Game/...",
-      "iconPath": "Consumeables/ITEM_Berries",
-      "recipeIds": []                     // empty → gather / raw
+      "iconPath": "Consumeables/ITEM_Berries"
+      // no recipeIds → gather / raw
+    },
+    "Oxite": {
+      "id": "Oxite",
+      "displayName": "Oxite",
+      "iconPath": "Voxels/ITEM_Ore_Oxite",
+      "recipeIds": ["Pyritic_Crust_Oxite", "Rock_Golem_Armor_Fragment_Oxite"],
+      "gatherFirst": true   // Item.Resource.Ore* — tree stops; conversions are optional
     },
     "Wood_Refined": {
       "id": "Wood_Refined",
@@ -226,25 +244,24 @@ Top-level keys: `meta`, `recipes`, `items`, `stations`, `lookup`, `reviewQueue`.
       "id": "Kitchen_Stove",
       "displayName": "Biofuel Stove",     // prefers deployable item label when a craft recipe exists
       "recipeSetDisplayName": "Kitchen Stove",
-      "icon": "/Game/...",
       "iconPath": "Deployables/T_ITEM_Kitchen_Stove",
-      "craftRecipeId": "Kitchen_Stove"    // null for Character / non-craftable sets
+      "craftRecipeId": "Kitchen_Stove"    // omitted when no craft recipe
+    },
+    "Cleaning_Device": {
+      "id": "Cleaning_Device",
+      // RecipeSet id ≠ craftable: D_Processing T3_Cleaning_Device → Cleaning_Device
+      "displayName": "Biofuel Bio-Cleaner",
+      "recipeSetDisplayName": "Cleaning Device",
+      "iconPath": "Deployables/T_ITEM_T3_Cleaning_Device",
+      "craftRecipeId": "T3_Cleaning_Device"
     },
     "Character": {
       "id": "Character",
       "displayName": "Character",
-      "recipeSetDisplayName": "Character",
-      "iconPath": null,                   // icon outside Item_Icons
-      "craftRecipeId": null
+      "recipeSetDisplayName": "Character"
+      // no iconPath / craftRecipeId
     }
-  },
-  "lookup": {
-    "byStaticItemName": { "Wood_Refined": ["Refined_Wood"], "Pastry": ["Pastry", "Pastry_Butter"] },
-    "byTemplateName":   { "Wood_Refined": ["Refined_Wood"], "Pastry": ["Pastry", "Pastry_Butter"] }
-  },
-  "reviewQueue": [
-    { "id": "...", "displayName": "...", "tier": null, "flags": ["tier_unknown"] }
-  ]
+  }
 }
 ```
 
@@ -253,39 +270,62 @@ Top-level keys: `meta`, `recipes`, `items`, `stations`, `lookup`, `reviewQueue`.
 | App `recipeData` field | Catalog |
 |---|---|
 | keyed by `recipe.Name` | `recipes[].id` |
-| `label` | `recipes[].displayName` (or `items[id].displayName`) |
-| `iconPath` | `recipes[].iconPath` / `items[id].iconPath` |
+| `label` | `items[staticItemName].displayName` (or `items[ingredientId]`) |
+| `iconPath` | `items[…].iconPath` / `stations[id].iconPath` |
 | `inputs[].id` / `.quantity` | `ingredients[].id` / `.count` |
 | `sources` | `stations` (string ids); labels in `stations[id].displayName` |
 | `preferredSource` | runtime only (not in catalog) |
 | `outputQuantity` | `outputCount` |
 | `outputItemId` | `templateName` |
 | `itemStaticId` | `staticItemName` |
-| alias lookup (`Wood_Refined` → refined wood recipe) | `items[id].recipeIds` or `lookup.byStaticItemName[id]` |
-| raw mat label via `D_Itemable` | `items[id]` (`recipeIds: []`) |
+| alias lookup (`Wood_Refined` → refined wood recipe) | `items[id].recipeIds` |
+| raw mat label via `D_Itemable` | `items[id]` (no / empty `recipeIds`) |
 
 ### Using it for crafting trees
 
 1. Filter `recipes` where `acquisition === "craft"` for search / top-level pickers.
-2. Display: recipe’s `displayName` / `iconPath`; for child ingredient nodes use `items[ingredientId]`.
+2. Display: `items[recipe.staticItemName]` (or recipe-level display fields if that join is missing); child nodes use `items[ingredientId]`.
 3. Station labels / icons: `stations[stationId]` (prefer `displayName` over `recipeSetDisplayName`).
-4. Recurse: `const next = items[ingredient.id].recipeIds` (same as `lookup.byStaticItemName[id]`).
-   - `[]` → treat as raw (`isRaw`)
+4. Recurse: `const next = items[ingredient.id].recipeIds ?? []`.
+   - `[]` / missing → treat as raw (`isRaw`)
+   - `items[id].gatherFirst === true` → treat as gather terminal (`isRaw`) even if `recipeIds` is non-empty
+     (conversion paths like Quarrite Armor Fragment → Oxite stay on `recipeIds` but are not used for the tree)
    - length > 1 → alternate recipes (e.g. `Pastry` vs `Pastry_Butter`); default to `[0]` until the UI offers a picker
-5. Quantity math: `ceil`/`requested / outputCount` × each `ingredients[].count` (same as today’s tree).
-6. Ignore shop/workshop rows in the calculator (empty ingredients by design).
+5. Quantity math: `ceil`/`requested / outputCount` × each `ingredients[].count` (same as today’s tree). For a secondary multi-output product, divide by that product’s count in `recipes[].outputs` (not the primary `outputCount`).
+6. Ignore shop/workshop rows in the calculator (`purchase` present; no `ingredients`).
+
+### Gather-first materials (`items[*].gatherFirst`)
+
+Some world resources also appear as **outputs** of optional conversion recipes (Quarrite armor fragments,
+pyritic crust, frozen ore thaw, terraforming dust → ore). Those recipes are real and stay in `recipes` /
+`items[*].recipeIds`, but the crafting calculator should still stop at the ore (or wood, etc.) as a
+gathered node.
+
+Detection (in `build-data-catalog.ts` from `D_ItemsStatic.Manual_Tags`):
+
+- Tag matches `Item.Resource.Ore` / `Item.Resource.Ore.*`
+- Or similar gather tags: `Item.Resource.Wood`, `.Fiber`, `.Stone`, `.Stick`, `.Leather`, `.Bone`, `.Fur`, `.Ice`
+
+Excluded on purpose: bare `Item.Resource`, `Item.Resource.Ingot` (refined / craftable), `Item.ResourceGenerator.*`.
+
+Loader (`processCatalogData`): does **not** alias `recipeData[staticId]` for `gatherFirst` items (and still
+skips “selfish” converters where input id === recipe id). Tree `isRaw` then follows `!recipeData[itemId]`.
 
 ### Semantics
 
-- `acquisition: "shop" | "workshop"` → purchase-only: `tier.method = "purchase_only"`, `tier.value = null`,
-  empty `stations` / `ingredients`. Workshop-only items (no processor recipe) use `id` = `D_WorkshopItems` row name.
+- `acquisition: "shop" | "workshop"` → purchase-only: `tier.method = "purchase_only"`, no `stations` / `ingredients`.
+  Workshop-only items (no processor recipe) use `id` = `D_WorkshopItems` row name.
 - Tier `method` values: `recipe_requirement`, `station_deduced`, `default_unlocked` (tier 0), `purchase_only`, `unknown`.
-- `iconPath` is null when the Unreal icon is outside `Item_Icons/` (e.g. Character crafting).
-- `items` covers every static id referenced as an output or ingredient; raw materials have empty `recipeIds`.
+- Missing `iconPath` means none / Unreal icon outside `Item_Icons/` (e.g. Character crafting).
+- `items` covers every static id referenced as an output or ingredient; raw materials omit `recipeIds`.
+- `gatherFirst: true` → world-gather primary; omit when false (compact emit).
+- Loader defaults: missing `purchase` / `modifier` / `instantStats` / `equipGrantedStats` / `flags` / `stations` /
+  `ingredients` → `null` or `[]` as appropriate.
 
 ### Flags
 
-Informational flags stay on the recipe; review flags also appear in `reviewQueue`.
+Informational flags stay on the recipe; `meta.reviewQueueCount` counts rows with any review flag
+(filter `recipes` by those flags if you need the list).
 
 | Flag | Meaning |
 |---|---|
@@ -300,14 +340,14 @@ Informational flags stay on the recipe; review flags also appear in `reviewQueue
 | `recipe_disabled` | `bForceDisableRecipe` set. Review. |
 | `non_blueprint_talent_tree` | Requirement talent sits in a non-`Blueprint_T*` tree (missions etc). Review. |
 
-Snapshot from the 2026-07 export: **2538** recipes (2164 craft, 40 shop, 334 workshop); **2491** items
-(633 raw); **68** stations; 363 grant stats; 59 unknown tier; 199 in review queue.
+Snapshot from the 2026-07 export: **2538** recipes (2164 craft, 40 shop, 334 workshop); **2504** items
+(626 raw, 27 gather-first); **68** stations; 363 grant stats; 59 unknown tier; 199 in review queue.
 
 ## 6. Misc facts worth remembering
 
-- The web app currently still loads `D_ItemTemplate`, `D_ItemsStatic`, `D_Itemable`, `D_ProcessorRecipes`
-  in `src/store/icarus.js` via `processRecipeData`; migrate loaders to `/icarus-game/Data/recipe-catalog.json`
-  when wiring the calculator to the catalog.
+- The web app loads `/icarus-game/Data/data-catalog.json` only (`src/store/icarus.js` → `processCatalogData`).
+  Raw `D_*.json` tables are not shipped under `public/`; read them from the Ue4Export when rebuilding the catalog
+  or syncing icons (`yarn update-game-assets` uses export `Traits/D_Itemable.json`).
 - Weather has its own unrelated `Tier` fields (`Weather/D_WeatherEvents.json`) — do not confuse with tech tiers.
 - `D_TalentRanks` (Novice/Apprentice/Journeyman/Master) is about talent point investment, not tech tiers.
 - Feature gating: rows may carry `Metadata.RequiredFeatureLevel` (e.g. `DangerousHorizons`, `GreatHunts`, `NewFrontiers`).

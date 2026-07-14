@@ -104,7 +104,7 @@
 import { mapActions, mapState } from 'pinia';
 import { ChevronDown, ChevronRight, ExternalLinkAlt, Hammer, MapMarkerAlt, Plus } from '@vicons/fa';
 import { useIcarusStore } from '@/store/icarus';
-import { itemLabelMap } from '@/utility/icarusData';
+import { getStationCraftRecipeId, getStationLabel } from '@/utility/icarusData';
 import { colorForName, TREE_MUTED_COLOR } from './treeLevelColors';
 import QuantityStepper from './QuantityStepper.vue';
 
@@ -151,7 +151,11 @@ export default {
     },
     emits: ['toggle-collapse'],
     computed: {
-        ...mapState(useIcarusStore, ['recipeData']),
+        ...mapState(useIcarusStore, {
+            recipeData: 'recipeData',
+            stationCatalog: 'stations',
+            itemTableData: 'itemTableData',
+        }),
         levelColor() {
             if (!this.colorEnabled) {
                 return TREE_MUTED_COLOR;
@@ -207,12 +211,21 @@ export default {
                 return [];
             }
             const preferred = recipe.preferredSource ?? this.node.preferredSource ?? recipe.sources[0];
-            return recipe.sources.map((stationId) => ({
-                id: stationId,
-                label: this.recipeData[stationId]?.label ?? itemLabelMap[stationId] ?? stationId,
-                isPreferred: stationId === preferred,
-                canAdd: Boolean(this.recipeData[stationId]),
-            }));
+            const stationContext = {
+                stations: this.stationCatalog,
+                recipeData: this.recipeData,
+                itemTableData: this.itemTableData,
+            };
+            return recipe.sources.map((stationId) => {
+                const craftRecipeId = getStationCraftRecipeId(stationId, stationContext);
+                return {
+                    id: stationId,
+                    craftRecipeId,
+                    label: getStationLabel(stationId, stationContext),
+                    isPreferred: stationId === preferred,
+                    canAdd: Boolean(craftRecipeId),
+                };
+            });
         },
     },
     watch: {
@@ -322,16 +335,24 @@ export default {
             this.setSubtreeReady(this.node, this.path, !this.isReadyAtLocation);
         },
         addStation(stationId) {
-            if (!stationId || !this.recipeData[stationId]) {
+            const craftRecipeId = getStationCraftRecipeId(stationId, {
+                stations: this.stationCatalog,
+                recipeData: this.recipeData,
+            });
+            if (!craftRecipeId) {
                 return;
             }
-            this.addItem(stationId);
+            this.addItem(craftRecipeId);
         },
         openStationInNewTab(stationId) {
-            if (!stationId || !this.recipeData[stationId]) {
+            const craftRecipeId = getStationCraftRecipeId(stationId, {
+                stations: this.stationCatalog,
+                recipeData: this.recipeData,
+            });
+            if (!craftRecipeId) {
                 return;
             }
-            this.openItemInNewTab(stationId);
+            this.openItemInNewTab(craftRecipeId);
         },
     },
 };

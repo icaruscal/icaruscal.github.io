@@ -8,8 +8,9 @@
  * `UE4ExportFiles` directory.  So this game expects you to have followed the export instructions in the readme, as
  * well as, execute the export.bat.
  *
- * This script will attempt to prune any extra assets as well as find all new ones, and assets that changed.  It uses the json
- * file to figure out what assets are suppose to be in the game assets folder from this app.
+ * This script will attempt to prune any extra assets as well as find all new ones, and assets that changed. It uses the
+ * export's `Traits/D_Itemable.json` to decide which ItemIcons belong in the web app.
+ * Game recipe/item JSON for the app is built separately via `yarn build-data-catalog` (not copied into public/Data).
  *
  * @module
  */
@@ -138,14 +139,32 @@ async function pathLogic(fullPathName, extractedUeExportDir, webLocExist) {
 }
 
 /**
- * parse out the Itemables file from the extracted data into an Javascript Object
- * This assumes the JSON was encoded in UTF-8.
- *
- * @param {import('node:fs').PathLike} baseWebLoc the base directory of the web app assets (Data/D_Itemable.json exists under it)
- * @returns {Promise<Itemables>} Promise to the parsed Itemable Json.
+ * Resolve Ue4Export `data/` root (export root or nested `data/`).
+ * @param {import('node:fs').PathLike} extractedUeExportDir
+ * @returns {Promise<string>}
  */
-async function parseItemablesFile(baseWebLoc) {
-    const itemableJsonFileName = path.join(baseWebLoc, 'Data', 'D_Itemable.json');
+async function resolveExportDataRoot(extractedUeExportDir) {
+    const abs = path.resolve(String(extractedUeExportDir));
+    const candidates = [
+        path.join(abs, 'Traits', 'D_Itemable.json'),
+        path.join(abs, 'data', 'Traits', 'D_Itemable.json'),
+    ];
+    for (const candidate of candidates) {
+        if (await statOrUndefined(candidate)) {
+            return path.dirname(path.dirname(candidate));
+        }
+    }
+    throw new Error(`Could not find Traits/D_Itemable.json under "${extractedUeExportDir}"`);
+}
+
+/**
+ * Parse D_Itemable from the Ue4Export data tree (UTF-8).
+ * @param {import('node:fs').PathLike} extractedUeExportDir
+ * @returns {Promise<Itemables>}
+ */
+async function parseItemablesFile(extractedUeExportDir) {
+    const dataRoot = await resolveExportDataRoot(extractedUeExportDir);
+    const itemableJsonFileName = path.join(dataRoot, 'Traits', 'D_Itemable.json');
     return JSON.parse(await readFile(itemableJsonFileName, { encoding: 'utf-8' }));
 }
 
@@ -233,32 +252,24 @@ async function* findOrphanedAssets(baseWebLoc, extractedUeExportDir, itemables) 
     }
 }
 
-/**
- * The source files to parse from the Data pak file from the game.
- */
-const sourceDataFiles = {
-    'D_Itemable.json': 'Traits/D_Itemable.json',
-    'D_ItemsStatic.json': 'Items/D_ItemsStatic.json',
-    'D_ItemTemplate.json': 'Items/D_ItemTemplate.json',
-    'D_ProcessorRecipes.json': 'Crafting/D_ProcessorRecipes.json',
-};
+/** Legacy raw tables previously copied into public/Data — removed in favor of data-catalog.json. */
+const obsoletePublicDataFiles = [
+    'D_Itemable.json',
+    'D_ItemsStatic.json',
+    'D_ItemTemplate.json',
+    'D_ProcessorRecipes.json',
+];
 
 /**
- * Copies the source Data Files (JSON) from the game into the web app public assets directory
- * @param {import('node:fs').PathLike} webPublicData the web app public asset directory
- * @param {import('node:fs').PathLike} extractedUeExportDir the game's asset folder
+ * Remove obsolete raw DataTable JSON from public/Data (app loads data-catalog.json only).
+ * @param {import('node:fs').PathLike} webPublicData
  */
-async function updateSourceDataFile(webPublicData, extractedUeExportDir) {
-    for (const [sourceFileName, dataFilePath] of Object.entries(sourceDataFiles)) {
-        const webFilePath = path.join(webPublicData, sourceFileName);
-        const extractFilePath = path.join(extractedUeExportDir, dataFilePath);
-
-        try {
-            await copyFile(extractFilePath, webFilePath);
-            await chmod(webFilePath, 0o644);
-            console.log(`${extractFilePath} => ${webFilePath} copied successfully.`);
-        } catch (e) {
-            console.warn(`ERROR: ${extractFilePath} => ${webFilePath} failed to copy`, e.message);
+async function removeObsoletePublicDataFiles(webPublicData) {
+    for (const name of obsoletePublicDataFiles) {
+        const webFilePath = path.join(webPublicData, name);
+        if (await statOrUndefined(webFilePath)) {
+            await rm(webFilePath, { force: true });
+            console.log(`Removed obsolete ${webFilePath}`);
         }
     }
 }
@@ -270,7 +281,7 @@ async function updateSourceDataFile(webPublicData, extractedUeExportDir) {
  * @param {import('node:fs').PathLike} extractedUeExportDir the base directory of the extracted assets from the game
  */
 async function updateGameAssets(baseWebLoc, extractedUeExportDir) {
-    const itemables = await parseItemablesFile(baseWebLoc);
+    const itemables = await parseItemablesFile(extractedUeExportDir);
 
     const missingAssets = [];
     async function gather() {
@@ -296,7 +307,7 @@ async function updateGameAssets(baseWebLoc, extractedUeExportDir) {
         console.log('Orphaned Assets');
         console.log(
             '****** These are assets in the web IconItems folder, that either does not exist in the extracted assets folder,\n',
-            'or does not get referenced in the D_Itemable.json file.'
+            'or is not referenced by Traits/D_Itemable.json in the export.'
         );
         console.log(...args);
         logger = console.log;
@@ -328,11 +339,12 @@ async function main() {
         process.exit(1);
     }
 
-    console.log('Updating web app game data');
-    await updateSourceDataFile(path.join(baseWebLoc, 'Data'), extractedUeExportDir);
+    console.log('Removing obsolete raw DataTable JSON from public/icarus-game/Data');
+    await removeObsoletePublicDataFiles(path.join(baseWebLoc, 'Data'));
 
-    console.log('Updating web game assets');
-    updateGameAssets(baseWebLoc, extractedUeExportDir);
+    console.log('Updating web game assets (ItemIcons)');
+    await updateGameAssets(baseWebLoc, extractedUeExportDir);
+    console.log('Remember: yarn build-data-catalog <exportRoot> to refresh data/icarus-game/data-catalog.json');
 }
 
 await main();

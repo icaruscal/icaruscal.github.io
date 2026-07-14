@@ -4,13 +4,7 @@ import { useStorage } from '@vueuse/core';
 import { useFuse } from '@vueuse/integrations/useFuse';
 
 import { LOCAL_STORAGE_PREFIX } from '@/constants/common';
-import {
-    generateHighlightedText,
-    processItemStaticData,
-    processItemTableData,
-    processItemTemplateData,
-    processRecipeData,
-} from '@/utility/icarusData';
+import { generateHighlightedText, processCatalogData } from '@/utility/icarusData';
 
 // utility methods
 const DEFAULT_TAB_TITLE = 'Planning';
@@ -127,6 +121,7 @@ export const useIcarusStore = defineStore('icarus', {
             itemTemplateData: {},
             itemStaticData: {},
             itemTableData: {},
+            stations: {},
 
             recipeData: {},
             recipeOptions: [],
@@ -388,50 +383,20 @@ export const useIcarusStore = defineStore('icarus', {
             const dateTime = new Date().getTime();
             this.isLoadingRecipes = true;
 
-            const itemTemplateResponse = await fetch(`/icarus-game/Data/D_ItemTemplate.json?v=${dateTime}`, {
+            const catalogResponse = await fetch(`/icarus-game/Data/data-catalog.json?v=${dateTime}`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
                 },
             });
-            const itemTemplate = await itemTemplateResponse.json();
-
-            const itemStaticResponse = await fetch(`/icarus-game/Data/D_ItemsStatic.json?v=${dateTime}`, {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-            });
-            const itemStatic = await itemStaticResponse.json();
-
-            const itemTableResponse = await fetch(`/icarus-game/Data/D_Itemable.json?v=${dateTime}`, {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-            });
-            const itemTable = await itemTableResponse.json();
-
-            const recipeResponse = await fetch(`/icarus-game/Data/D_ProcessorRecipes.json?v=${dateTime}`, {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-            });
-            const recipes = await recipeResponse.json();
+            const catalog = await catalogResponse.json();
 
             const startTime = performance.now();
-
-            const itemTemplateData = processItemTemplateData(itemTemplate.Rows);
-            this.itemTemplateData = itemTemplateData;
-
-            const itemStaticData = processItemStaticData(itemStatic.Rows);
+            const { recipeData, itemStaticData, itemTableData, stations } = processCatalogData(catalog);
+            this.itemTemplateData = {};
             this.itemStaticData = itemStaticData;
-
-            const itemTableData = processItemTableData(itemTable.Rows);
             this.itemTableData = itemTableData;
-
-            const { recipeData } = processRecipeData(recipes?.Rows, { itemTemplateData, itemStaticData, itemTableData });
+            this.stations = stations ?? {};
             this.recipeData = recipeData;
             // Use Set to deduplicate: aliased entries (e.g. "Refined_Wood" / "Wood_Refined")
             // share the same object reference so Set collapses them to one search result.
@@ -439,7 +404,7 @@ export const useIcarusStore = defineStore('icarus', {
             this.isLoadingRecipes = false;
             this.syncAllTabTitles();
 
-            console.log({ itemTemplateData, itemStaticData, itemTableData, recipeData });
+            console.log({ itemStaticData, itemTableData, stations, recipeData, meta: catalog.meta });
             console.log(`Processed data in ${performance.now() - startTime}ms`);
         },
     },
