@@ -3,16 +3,10 @@ import { createRouter, createWebHistory } from 'vue-router';
 
 const routes = [
     {
-        name: RouteName.HOMEPAGE,
-        path: '/',
-        title: 'Home',
-        component: () => import('@/Index.vue'),
-    },
-    {
         name: RouteName.ICARUS,
-        path: '/icarus',
+        path: '/',
         title: 'Icarus',
-        component: () => import('@/pages/icarus/icarus.vue'),
+        component: () => import('@/pages/icarus/Icarus.vue'),
     },
 ];
 

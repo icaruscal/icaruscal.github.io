@@ -1,4 +1,4 @@
-# drumstix42.github.io
+# icaruscal.github.io (original created by Drumstix42/drumstix42.github.io)
 
 # Icarus Calculator
 This is a web-based calculator tool for the survival game [Icarus](https://store.steampowered.com/app/1149460/ICARUS/). It is designed to be used as a companion tool while playing the game. It is written in [Vue.js](https://vuejs.org/) and deployed using [GitHub Pages](https://pages.github.com/).

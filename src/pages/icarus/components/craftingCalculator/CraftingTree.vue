@@ -80,11 +80,10 @@ export default {
             type: Object,
             required: true,
         },
-    },
-    data() {
-        return {
-            collapsedPaths: {},
-        };
+        collapsedPaths: {
+            type: Object,
+            default: () => ({}),
+        },
     },
     computed: {
         ...mapGetters(useIcarusStore, ['treeLevelColors']),
@@ -97,11 +96,14 @@ export default {
         toggleColors() {
             this.setTreeLevelColors(!this.colorEnabled);
         },
+        setCollapsedPaths(next) {
+            Object.keys(this.collapsedPaths).forEach((key) => {
+                delete this.collapsedPaths[key];
+            });
+            Object.assign(this.collapsedPaths, next);
+        },
         toggleCollapse(path) {
-            this.collapsedPaths = {
-                ...this.collapsedPaths,
-                [path]: !this.collapsedPaths[path],
-            };
+            this.collapsedPaths[path] = !this.collapsedPaths[path];
         },
         collectExpandablePaths(node, path, paths = []) {
             const children = (node.children || []).map((child) => {
@@ -130,10 +132,10 @@ export default {
                     next[path] = true;
                 });
             });
-            this.collapsedPaths = next;
+            this.setCollapsedPaths(next);
         },
         expandAll() {
-            this.collapsedPaths = {};
+            this.setCollapsedPaths({});
         },
     },
 };

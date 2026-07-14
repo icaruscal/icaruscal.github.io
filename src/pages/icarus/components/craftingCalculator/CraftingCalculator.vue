@@ -60,7 +60,7 @@
             </div>
 
             <div class="mt-4">
-                <crafting-tree :trees="requirementTrees" :progress="treeProgress" />
+                <crafting-tree :trees="requirementTrees" :progress="treeProgress" :collapsed-paths="collapsedPaths" />
             </div>
 
             <div class="flex align-items-center mt-3">
@@ -131,6 +131,9 @@ export default {
                 if (tab && !tab.treeProgress) {
                     tab.treeProgress = {};
                 }
+                if (tab && !tab.collapsedPaths) {
+                    tab.collapsedPaths = {};
+                }
             },
         },
         'tab.items': {
@@ -150,6 +153,9 @@ export default {
         ...mapState(useIcarusStore, ['recipeData', 'itemStaticData', 'itemTableData', 'isLoadingRecipes']),
         treeProgress() {
             return this.tab.treeProgress ?? {};
+        },
+        collapsedPaths() {
+            return this.tab.collapsedPaths ?? {};
         },
     },
     methods: {

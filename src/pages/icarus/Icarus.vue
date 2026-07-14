@@ -72,7 +72,7 @@
         </n-alert>
 
         <div class="m-2">
-            <div>Created by <a class="text-primary font-bold" href="https://github.com/Drumstix42/drumstix42.github.io">Drumstix42</a></div>
+            <div>Created by <a class="text-primary font-bold" href="https://github.com/Drumstix42/drumstix42.github.io">Drumstix42</a> Enhanced by ME!</div>
             <div>
                 This page/site is not affiliated with
                 <a class="text-primary" href="https://store.steampowered.com/app/1149460/ICARUS/" target="_blank">Icarus</a>,

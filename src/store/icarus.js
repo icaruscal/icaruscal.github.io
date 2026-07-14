@@ -27,6 +27,7 @@ const generateNewTab = () =>
         isDashboard: false,
         items: [],
         treeProgress: {},
+        collapsedPaths: {},
     });
 const generateDashboardTab = () =>
     reactive({
@@ -36,12 +37,16 @@ const generateDashboardTab = () =>
         isDashboard: true,
         items: [],
         treeProgress: {},
+        collapsedPaths: {},
     });
 const findTabIndex = (id, tabs) => tabs.findIndex((tab) => tab.id === id);
 
 const normalizeTab = (tab) => {
     if (!tab.treeProgress) {
         tab.treeProgress = {};
+    }
+    if (!tab.collapsedPaths) {
+        tab.collapsedPaths = {};
     }
     if (tab.isDashboard || tab.id === DASHBOARD_TAB_ID) {
         tab.id = DASHBOARD_TAB_ID;
