@@ -3,6 +3,7 @@
         <div>
             <Header></Header>
             <router-view></router-view>
+            <item-detail-modal />
         </div>
         <n-global-style></n-global-style>
     </n-config-provider>
@@ -12,6 +13,7 @@
 import { NConfigProvider, NGlobalStyle, darkTheme } from 'naive-ui';
 
 import Header from '@/pages/icarus/components/Header.vue';
+import ItemDetailModal from '@/pages/icarus/components/ItemDetailModal.vue';
 import { useIcarusStore } from '@/store/icarus';
 
 export default {
@@ -20,6 +22,7 @@ export default {
         NConfigProvider,
         NGlobalStyle,
         Header,
+        ItemDetailModal,
     },
     data() {
         return {

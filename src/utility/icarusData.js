@@ -94,6 +94,73 @@ const getItemLabel = (itemId, { displayName } = {}) => {
 
 const normalizeItemId = (value = '') => value.toLowerCase().split('_').filter(Boolean).sort().join('_');
 
+/** Normalize catalog locks; empty → null. */
+export function normalizeLocks(locks) {
+    if (!locks) return null;
+    const dlc = Array.isArray(locks.dlc) ? locks.dlc.filter((entry) => entry?.id) : [];
+    const missions = Array.isArray(locks.missions) ? locks.missions.filter((entry) => entry?.id) : [];
+    if (dlc.length === 0 && missions.length === 0) return null;
+    return { dlc, missions };
+}
+
+export function hasItemLocks(locks) {
+    return Boolean(normalizeLocks(locks));
+}
+
+/** Merge multiple lock objects, deduping by id within dlc / missions. */
+export function mergeItemLocks(...parts) {
+    const dlc = [];
+    const missions = [];
+    const seenDlc = new Set();
+    const seenMissions = new Set();
+    for (const part of parts) {
+        const normalized = normalizeLocks(part);
+        if (!normalized) continue;
+        for (const entry of normalized.dlc) {
+            if (seenDlc.has(entry.id)) continue;
+            seenDlc.add(entry.id);
+            dlc.push(entry);
+        }
+        for (const entry of normalized.missions) {
+            if (seenMissions.has(entry.id)) continue;
+            seenMissions.add(entry.id);
+            missions.push(entry);
+        }
+    }
+    return dlc.length || missions.length ? { dlc, missions } : null;
+}
+
+/** Tooltip lines for DLC / mission gates. */
+export function formatLocksTooltipLines(locks) {
+    const normalized = normalizeLocks(locks);
+    if (!normalized) return [];
+    const lines = [];
+    for (const entry of normalized.dlc) {
+        lines.push(`Requires DLC: ${entry.displayName || entry.id}`);
+    }
+    for (const entry of normalized.missions) {
+        lines.push(`Requires mission: ${entry.displayName || entry.id}`);
+    }
+    return lines;
+}
+
+/**
+ * Resolve locks for a recipe and/or static item.
+ * Prefer a specific recipe's locks when present (DLC alternate crafts); otherwise use
+ * item-level locks (gates shared by every acquisition path).
+ */
+export function resolveLocksForItem(
+    { recipeId = null, staticItemId = null } = {},
+    { catalog = null, recipeData = {}, itemStaticData = {} } = {}
+) {
+    const recipeLocks = normalizeLocks(recipeId ? recipeData?.[recipeId]?.locks : null);
+    if (recipeLocks) return recipeLocks;
+    return mergeItemLocks(
+        staticItemId ? catalog?.items?.[staticItemId]?.locks : null,
+        staticItemId ? itemStaticData?.[staticItemId]?.locks : null
+    );
+}
+
 const isSameItemVariant = (left, right) => {
     if (!left || !right) {
         return false;
@@ -195,6 +262,7 @@ export function processCatalogData(catalog = {}) {
             itemTableId: id,
             recipeIds: item.recipeIds ?? [],
             gatherFirst: Boolean(item.gatherFirst),
+            locks: normalizeLocks(item.locks),
         };
         itemTableData[id] = {
             id,
@@ -259,6 +327,8 @@ export function processCatalogData(catalog = {}) {
             instantStats: recipe.instantStats ?? [],
             equipGrantedStats: recipe.equipGrantedStats ?? [],
             modifier: recipe.modifier ?? null,
+            // Recipe-only — item-level locks (shared across all craft paths) live on items / itemStaticData.
+            locks: normalizeLocks(recipe.locks),
         };
     }
 
@@ -680,6 +750,7 @@ export function buildFoodConsumables(catalog = {}) {
             iconPath: recipe.iconPath ?? item?.iconPath ?? '',
             acquisition: recipe.acquisition ?? 'craft',
             mission: Boolean(recipe.mission || item?.mission || recipe.acquisition === 'mission'),
+            locks: mergeItemLocks(recipe.locks, item?.locks),
             category: isFood ? 'food' : 'medicine',
             isFood,
             tier: recipe.tier?.value ?? null,
@@ -722,4 +793,407 @@ export function recipeHasModifierTooltip(recipe = {}) {
 export function formatModifierLifetimeMinutes(lifetimeSeconds) {
     if (lifetimeSeconds == null || Number.isNaN(Number(lifetimeSeconds))) return null;
     return Math.round(Number(lifetimeSeconds) / 60);
+}
+
+const formatCostList = (costs = []) =>
+    costs
+        .map((cost) => `${cost.amount} ${cost.currencyDisplay || cost.currency}`)
+        .filter(Boolean)
+        .join(', ');
+
+const humanizeId = (value) => (value ? String(value).replace(/_/g, ' ') : null);
+
+const stationLabel = (stations, stationId) =>
+    stations?.[stationId]?.displayName || stations?.[stationId]?.recipeSetDisplayName || humanizeId(stationId) || stationId;
+
+const formatTierLabel = (value) => {
+    if (value == null) return null;
+    if (value === 0) return 'Tier 0 (default / hand craft)';
+    return `Tier ${value}`;
+};
+
+/** Clickable ref for an item / station / talent-linked craftable. */
+const resolveEntityRef = (rawId, { stations = {}, items = {}, recipesById = new Map() } = {}, extras = {}) => {
+    if (!rawId || rawId === 'None' || rawId === 'Character') {
+        return {
+            id: rawId || null,
+            label: rawId === 'Character' ? 'Hand crafting' : humanizeId(rawId),
+            iconPath: '',
+            detailId: null,
+            clickable: false,
+            ...extras,
+        };
+    }
+
+    const station = stations[rawId];
+    const craftRecipeId = station?.craftRecipeId ?? null;
+    const craftRecipe = craftRecipeId ? recipesById.get(craftRecipeId) : recipesById.get(rawId);
+    const staticId = craftRecipe?.staticItemName || (items[rawId] ? rawId : null);
+    const item = staticId ? items[staticId] : items[rawId];
+    const detailId = staticId || craftRecipeId || (items[rawId] ? rawId : null);
+
+    // Prefer real catalog labels only — never humanize an unknown id as a "station"
+    // name before fallbackLabel (talent display names were getting clobbered, e.g.
+    // Clay_Brick_Basic → "Clay Brick Basic" instead of "Clay Brick Building Base Set").
+    const knownStationLabel = station?.displayName || station?.recipeSetDisplayName || null;
+    let label;
+    if (extras.kind === 'talent' && extras.fallbackLabel) {
+        label = extras.fallbackLabel;
+    } else {
+        label =
+            knownStationLabel ||
+            item?.displayName ||
+            craftRecipe?.displayName ||
+            extras.fallbackLabel ||
+            humanizeId(rawId);
+    }
+
+    return {
+        ...extras,
+        id: rawId,
+        label,
+        iconPath: station?.iconPath || item?.iconPath || craftRecipe?.iconPath || '',
+        detailId: extras.kind === 'talent' ? null : detailId,
+        clickable: extras.kind === 'talent' ? false : Boolean(detailId),
+    };
+};
+
+const methodLabelFor = (method) => {
+    switch (method) {
+        case 'recipe_requirement':
+            return 'Tech tree unlock';
+        case 'station_deduced':
+            return 'Unlocked by station';
+        case 'default_unlocked':
+            return 'Default unlock';
+        case 'purchase_only':
+            return 'Purchase only';
+        default:
+            return 'Unlock unknown';
+    }
+};
+
+const buildAvailability = (tier, ctx) => {
+    const method = tier?.method ?? null;
+    const tierValue = tier?.value ?? null;
+    const unlockRefs = [];
+    let summary = null;
+
+    if (!tier) {
+        return {
+            tier: null,
+            tierLabel: null,
+            method: null,
+            methodLabel: methodLabelFor(null),
+            unlockRefs: [],
+            summary: 'Unlock path unknown.',
+        };
+    }
+
+    if (method === 'recipe_requirement') {
+        const talentId = tier.talentName;
+        const talentLabel = tier.talentDisplayName || humanizeId(talentId);
+        if (talentId) {
+            unlockRefs.push(
+                resolveEntityRef(
+                    talentId,
+                    ctx,
+                    { fallbackLabel: talentLabel, kind: 'talent' }
+                )
+            );
+        }
+        summary = null;
+    } else if (method === 'station_deduced') {
+        const sources = [...(tier.stationSources ?? [])].sort((a, b) => {
+            if (a.tier == null) return 1;
+            if (b.tier == null) return -1;
+            return a.tier - b.tier;
+        });
+        for (const source of sources) {
+            if (!source?.station || source.station === 'Character') continue;
+            unlockRefs.push(
+                resolveEntityRef(source.station, ctx, {
+                    tier: source.tier ?? null,
+                    kind: 'station',
+                })
+            );
+        }
+        if (unlockRefs.length === 0 && tier.talentName) {
+            unlockRefs.push(
+                resolveEntityRef(tier.talentName, ctx, {
+                    fallbackLabel: tier.talentDisplayName || humanizeId(tier.talentName),
+                    kind: 'talent',
+                })
+            );
+        }
+    } else if (method === 'default_unlocked') {
+        summary = 'No blueprint unlock required.';
+    } else if (method === 'purchase_only') {
+        summary = 'Not on the tech tree — buy from a shop or the orbital workshop.';
+    } else {
+        summary = 'Unlock path unknown.';
+    }
+
+    // Dedupe by detailId/id
+    const seen = new Set();
+    const uniqueRefs = unlockRefs.filter((ref) => {
+        const key = ref.detailId || ref.id;
+        if (!key || seen.has(key)) return false;
+        seen.add(key);
+        return true;
+    });
+
+    return {
+        tier: tierValue,
+        tierLabel: formatTierLabel(tierValue),
+        method,
+        methodLabel: methodLabelFor(method),
+        unlockRefs: uniqueRefs,
+        summary,
+    };
+};
+
+const recipeProducesStatic = (recipe, staticId) => {
+    if (!recipe || !staticId) return false;
+    if (recipe.staticItemName === staticId) return true;
+    return (recipe.outputs ?? []).some((out) => out.id === staticId);
+};
+
+const pickEffectsRecipe = (recipes) => {
+    let best = null;
+    let bestScore = -1;
+    for (const recipe of recipes) {
+        const instant = recipe.instantStats?.length ?? 0;
+        const granted = recipe.modifier?.grantedStats?.length ?? 0;
+        const equip = recipe.equipGrantedStats?.length ?? 0;
+        const hasModifierMeta = recipe.modifier ? 1 : 0;
+        const score = instant * 4 + granted * 3 + equip * 3 + hasModifierMeta;
+        if (score > bestScore) {
+            best = recipe;
+            bestScore = score;
+        }
+    }
+    return best;
+};
+
+const pickPrimaryCraftRecipe = (recipes) => {
+    const craft = recipes.filter((r) => r.acquisition === 'craft');
+    if (craft.length === 0) return null;
+    return [...craft].sort((a, b) => {
+        const at = a.tier?.value;
+        const bt = b.tier?.value;
+        if (at == null && bt == null) return 0;
+        if (at == null) return 1;
+        if (bt == null) return -1;
+        return at - bt;
+    })[0];
+};
+
+/**
+ * Resolve a static item id from either a D_ItemsStatic id or a recipe id.
+ */
+export function resolveCatalogStaticItemId(catalog = {}, itemOrRecipeId) {
+    if (!itemOrRecipeId) return null;
+    const items = catalog.items ?? {};
+    if (items[itemOrRecipeId]) return itemOrRecipeId;
+
+    const recipe = (catalog.recipes ?? []).find((row) => row.id === itemOrRecipeId);
+    if (recipe?.staticItemName && items[recipe.staticItemName]) {
+        return recipe.staticItemName;
+    }
+    if (recipe?.staticItemName) return recipe.staticItemName;
+    return itemOrRecipeId;
+}
+
+/**
+ * Build a plain item-detail view model from the full data catalog.
+ * Accepts a static item id or any recipe id that produces the item.
+ */
+export function buildItemDetail(catalog = {}, itemOrRecipeId) {
+    const items = catalog.items ?? {};
+    const stations = catalog.stations ?? {};
+    const allRecipes = catalog.recipes ?? [];
+    const recipesById = new Map(allRecipes.map((recipe) => [recipe.id, recipe]));
+    const entityCtx = { stations, items, recipesById };
+    const staticId = resolveCatalogStaticItemId(catalog, itemOrRecipeId);
+    if (!staticId) return null;
+
+    const item = items[staticId] ?? null;
+    const producing = allRecipes.filter((recipe) => recipeProducesStatic(recipe, staticId));
+    const recipeIdSet = new Set([...(item?.recipeIds ?? []), ...producing.map((r) => r.id)]);
+    const relatedRecipes = allRecipes.filter((recipe) => recipeIdSet.has(recipe.id) || recipeProducesStatic(recipe, staticId));
+
+    // Prefer recipe rows that produce this static id; fall back to recipeIds matches.
+    const sourceRecipes = producing.length > 0 ? producing : relatedRecipes;
+    const craftRecipes = sourceRecipes.filter((r) => r.acquisition === 'craft');
+    const effectsRecipe = pickEffectsRecipe(sourceRecipes);
+    const primaryCraft = pickPrimaryCraftRecipe(craftRecipes);
+
+    const displayName =
+        item?.displayName ??
+        sourceRecipes.find((r) => r.displayName)?.displayName ??
+        humanizeId(staticId);
+    const description = item?.description ?? sourceRecipes.find((r) => r.description)?.description ?? null;
+    const flavorText = item?.flavorText ?? null;
+    const iconPath = item?.iconPath ?? sourceRecipes.find((r) => r.iconPath)?.iconPath ?? '';
+
+    const craftTiers = craftRecipes.map((r) => r.tier?.value).filter((v) => v != null);
+    const earliestTier = craftTiers.length > 0 ? Math.min(...craftTiers) : null;
+    const unlockRecipe =
+        primaryCraft ??
+        sourceRecipes.find((r) => r.tier?.method && r.tier.method !== 'purchase_only') ??
+        sourceRecipes[0] ??
+        null;
+
+    const mapStations = (stationIds = []) =>
+        stationIds.map((id) => resolveEntityRef(id, entityCtx, { kind: 'station' }));
+
+    const acquisitions = [];
+    for (const recipe of sourceRecipes) {
+        if (recipe.acquisition === 'craft') {
+            acquisitions.push({
+                type: 'craft',
+                recipeId: recipe.id,
+                label: 'Craft',
+                stations: mapStations(recipe.stations ?? []),
+                outputCount: recipe.outputCount ?? 1,
+                tier: recipe.tier?.value ?? null,
+            });
+        }
+        if (recipe.purchase?.shop) {
+            const shopStationId = recipe.purchase.shop.station;
+            acquisitions.push({
+                type: 'shop',
+                recipeId: recipe.id,
+                label: 'In-world shop',
+                station: shopStationId,
+                stationRef: resolveEntityRef(shopStationId, entityCtx, { kind: 'station' }),
+                stationLabel: stationLabel(stations, shopStationId),
+                costsLabel: formatCostList(recipe.purchase.shop.costs),
+            });
+        }
+        if (recipe.purchase?.workshop) {
+            const workshop = recipe.purchase.workshop;
+            acquisitions.push({
+                type: 'workshop',
+                recipeId: recipe.id,
+                label: 'Orbital workshop',
+                researchLabel: formatCostList(workshop.researchCost),
+                replicationLabel: formatCostList(workshop.replicationCost),
+                requiredMission: workshop.requiredMission ?? null,
+            });
+        }
+        if (recipe.acquisition === 'gather') {
+            acquisitions.push({ type: 'gather', recipeId: recipe.id, label: 'Gathered / world' });
+        }
+        if (recipe.acquisition === 'mission') {
+            acquisitions.push({ type: 'mission', recipeId: recipe.id, label: 'Mission / faction' });
+        }
+    }
+
+    if (acquisitions.length === 0) {
+        if (item?.gatherFirst) {
+            acquisitions.push({ type: 'gather', recipeId: null, label: 'Gathered (world resource)' });
+        } else if (!(item?.recipeIds?.length > 0)) {
+            acquisitions.push({ type: 'gather', recipeId: null, label: 'Raw material / no craft recipe' });
+        }
+    }
+
+    // Dedupe acquisitions by what the player sees (type / tier / stations / costs),
+    // not recipe id — alternate recipes often share the same stations.
+    const seenAcquisition = new Set();
+    const uniqueAcquisitions = acquisitions.filter((entry) => {
+        const stationKey = (entry.stations || [])
+            .map((s) => s.id)
+            .filter(Boolean)
+            .sort()
+            .join(',');
+        const key = [
+            entry.type,
+            entry.tier ?? '',
+            entry.outputCount ?? '',
+            stationKey,
+            entry.station ?? '',
+            entry.costsLabel ?? '',
+            entry.researchLabel ?? '',
+            entry.replicationLabel ?? '',
+            entry.requiredMission ?? '',
+            entry.type === 'gather' || entry.type === 'mission' ? entry.label ?? '' : '',
+        ].join('|');
+        if (seenAcquisition.has(key)) return false;
+        seenAcquisition.add(key);
+        return true;
+    });
+
+    const recipes = craftRecipes.map((recipe) => ({
+        id: recipe.id,
+        outputCount: recipe.outputCount ?? 1,
+        stations: mapStations(recipe.stations ?? []),
+        locks: normalizeLocks(recipe.locks),
+        ingredients: (recipe.ingredients ?? []).map((ing) => {
+            const ingItem = items[ing.id];
+            return {
+                id: ing.id,
+                count: ing.count,
+                label: getItemLabel(ing.id, { displayName: ingItem?.displayName }),
+                iconPath: ingItem?.iconPath ?? '',
+            };
+        }),
+    }));
+
+    const usedInMap = new Map();
+    for (const recipe of allRecipes) {
+        if (recipe.acquisition !== 'craft') continue;
+        const match = (recipe.ingredients ?? []).find((ing) => ing.id === staticId);
+        if (!match) continue;
+        if (usedInMap.has(recipe.id)) continue;
+        const outItem = recipe.staticItemName ? items[recipe.staticItemName] : null;
+        usedInMap.set(recipe.id, {
+            recipeId: recipe.id,
+            staticItemName: recipe.staticItemName ?? null,
+            label: getItemLabel(recipe.id, {
+                displayName: recipe.displayName ?? outItem?.displayName,
+            }),
+            iconPath: recipe.iconPath ?? outItem?.iconPath ?? '',
+            count: match.count,
+        });
+    }
+    const usedIn = [...usedInMap.values()].sort((a, b) => a.label.localeCompare(b.label));
+
+    const instantStats = effectsRecipe?.instantStats ?? [];
+    const equipGrantedStats = effectsRecipe?.equipGrantedStats ?? [];
+    const modifier = effectsRecipe?.modifier ?? null;
+
+    const availability = buildAvailability(unlockRecipe?.tier, entityCtx);
+    if (earliestTier != null) {
+        availability.tier = earliestTier;
+        availability.tierLabel = formatTierLabel(earliestTier);
+    }
+
+    return {
+        id: staticId,
+        displayName: getItemLabel(staticId, { displayName }),
+        description,
+        flavorText,
+        iconPath,
+        gatherFirst: Boolean(item?.gatherFirst),
+        mission: Boolean(item?.mission || sourceRecipes.some((r) => r.mission || r.acquisition === 'mission')),
+        locks: normalizeLocks(item?.locks),
+        availability,
+        effects: {
+            instantStats,
+            modifier: modifier
+                ? {
+                      displayName: modifier.displayName ?? modifier.name ?? null,
+                      description: modifier.description ?? null,
+                      lifetimeMinutes: formatModifierLifetimeMinutes(modifier.lifetimeSeconds),
+                      grantedStats: modifier.grantedStats ?? [],
+                  }
+                : null,
+            equipGrantedStats,
+        },
+        acquisitions: uniqueAcquisitions,
+        recipes,
+        usedIn,
+    };
 }

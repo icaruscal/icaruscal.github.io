@@ -36,6 +36,10 @@
                                             {{ recipeData[item.id]?.label }}
                                         </div>
                                     </item-modifier-tooltip>
+                                    <item-detail-button
+                                        :item-id="recipeData[item.id]?.itemStaticId || item.id"
+                                        :label="recipeData[item.id]?.label"
+                                    />
                                     <recipe-variant-picker
                                         :item-id="item.id"
                                         :preferred-recipe-id="recipePreferences[item.id] || null"
@@ -103,6 +107,7 @@
                         </div>
                         <div class="material-qty">{{ material.quantity }}</div>
                         <div class="label">{{ material.label }}</div>
+                        <item-detail-button :item-id="material.id" :label="material.label" />
                     </div>
                 </div>
             </div>
@@ -143,6 +148,7 @@ import CraftingTree from './CraftingTree.vue';
 import ItemModifierTooltip from './ItemModifierTooltip.vue';
 import QuantityStepper from './QuantityStepper.vue';
 import RecipeVariantPicker from './RecipeVariantPicker.vue';
+import ItemDetailButton from '@/pages/icarus/components/ItemDetailButton.vue';
 import { useIcarusStore } from '@/store/icarus';
 import {
     getCraftRecipeIdsForItem,
@@ -158,6 +164,7 @@ export default {
     components: {
         ComponentSourcePicker,
         CraftingTree,
+        ItemDetailButton,
         ItemModifierTooltip,
         QuantityStepper,
         RecipeVariantPicker,

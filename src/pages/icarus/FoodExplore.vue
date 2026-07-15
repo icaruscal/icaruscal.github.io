@@ -200,6 +200,16 @@
                                             </div>
                                         </n-tooltip>
                                         <div v-else class="food-name">{{ food.label }}</div>
+                                        <item-lock-badge
+                                            :locks="food.locks"
+                                            :item-id="food.staticItemName || food.id"
+                                            :recipe-id="food.id"
+                                            size="sm"
+                                        />
+                                        <item-detail-button
+                                            :item-id="food.staticItemName || food.id"
+                                            :label="food.label"
+                                        />
                                         <n-dropdown
                                             v-if="craftRecipeId(food)"
                                             trigger="click"
@@ -287,6 +297,8 @@ import { Plus } from '@vicons/fa';
 import { mapState, mapGetters, mapActions } from 'pinia';
 import { useIcarusStore } from '@/store/icarus';
 import { GAME_ASSETS_URL } from '@/constants/common';
+import ItemDetailButton from '@/pages/icarus/components/ItemDetailButton.vue';
+import ItemLockBadge from '@/pages/icarus/components/ItemLockBadge.vue';
 
 const DEFAULT_FILTERS = () => ({
     search: '',
@@ -348,6 +360,8 @@ export default {
     name: 'FoodExplore',
     components: {
         Plus,
+        ItemDetailButton,
+        ItemLockBadge,
     },
     data() {
         return {
@@ -534,7 +548,7 @@ export default {
                     title: 'Name',
                     key: 'label',
                     sorter: 'default',
-                    width: 200,
+                    width: 240,
                     ellipsis: { tooltip: false },
                     fixed: 'left',
                     render: (row) => {
@@ -558,7 +572,19 @@ export default {
                               )
                             : nameNode;
 
-                        const children = [labeled];
+                        const children = [
+                            labeled,
+                            h(ItemLockBadge, {
+                                locks: row.locks,
+                                itemId: row.staticItemName || row.id,
+                                recipeId: row.id,
+                                size: 'sm',
+                            }),
+                            h(ItemDetailButton, {
+                                itemId: row.staticItemName || row.id,
+                                label: row.label,
+                            }),
+                        ];
                         if (recipeId) {
                             children.push(
                                 h(

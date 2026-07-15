@@ -54,8 +54,17 @@
                                 <div class="label text-overflow-ellipsis" v-bind:item-id="item.id">
                                     <span v-if="item.highlightedLabel" v-html="item.highlightedLabel"></span>
                                     <span v-else>{{ item.label }}</span>
+                                    <item-lock-badge
+                                        :recipe-id="item.id"
+                                        :item-id="recipeData[item.id]?.itemStaticId || item.id"
+                                        size="sm"
+                                    />
                                 </div>
                             </div>
+                            <item-detail-button
+                                :item-id="recipeData[item.id]?.itemStaticId || item.id"
+                                :label="item.label"
+                            />
                         </item-modifier-tooltip>
                         <n-tooltip trigger="hover">
                             <template #trigger>
@@ -81,6 +90,8 @@ import { Plus } from '@vicons/fa';
 
 import { useIcarusStore } from '@/store/icarus';
 import { GAME_ASSETS_URL } from '@/constants/common';
+import ItemDetailButton from '@/pages/icarus/components/ItemDetailButton.vue';
+import ItemLockBadge from '@/pages/icarus/components/ItemLockBadge.vue';
 import ItemModifierTooltip from './ItemModifierTooltip.vue';
 
 const icarusStore = useIcarusStore();
@@ -89,6 +100,8 @@ export default {
     name: 'CraftingToolItemSelector',
     components: {
         Plus,
+        ItemDetailButton,
+        ItemLockBadge,
         ItemModifierTooltip,
     },
     props: {

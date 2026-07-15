@@ -215,6 +215,7 @@ there is no `staticItemName` (or values differ). Raw Unreal `icon`, `lookup`, an
         "value": 3,
         "method": "station_deduced",
         "talentName": "Kitchen_Stove",
+        "talentDisplayName": "Biofuel Stove", // when D_Talents.DisplayName is set
         "talentTree": "Blueprint_T3_Machine",
         "stationSources": [
           { "station": "Kitchen_Stove", "tier": 3, "talentName": "Kitchen_Stove" },
@@ -230,6 +231,7 @@ there is no `staticItemName` (or values differ). Raw Unreal `icon`, `lookup`, an
       "id": "Berry",
       "displayName": "Wild Berry",
       "description": "...",
+      "flavorText": "...",          // D_Itemable.FlavorText (omitted when empty)
       "iconPath": "Consumeables/ITEM_Berries"
       // no recipeIds → gather / raw
     },
@@ -332,7 +334,9 @@ skips “selfish” converters where input id === recipe id). Tree `isRaw` then 
 - Tier `method` values: `recipe_requirement`, `station_deduced`, `default_unlocked` (tier 0), `purchase_only`, `unknown`.
 - Missing `iconPath` means none / Unreal icon outside `Item_Icons/` (e.g. Character crafting).
 - `items` covers every static id referenced as an output or ingredient; raw materials omit `recipeIds`.
+- `flavorText` comes from `D_Itemable.FlavorText` (compact-omitted when empty).
 - `gatherFirst: true` → world-gather primary; omit when false (compact emit).
+- `tier.talentDisplayName` is the talent's UI label when present (compact-omitted when null).
 - Loader defaults: missing `purchase` / `modifier` / `instantStats` / `equipGrantedStats` / `flags` / `stations` /
   `ingredients` → `null` or `[]` as appropriate.
 
@@ -367,6 +371,17 @@ Snapshot from the 2026-07 export: **2538** recipes (2164 craft, 40 shop, 334 wor
   re-run `yarn build-data-catalog` or `yarn prepare-data-catalog` after catalog changes.
 - Weather has its own unrelated `Tier` fields (`Weather/D_WeatherEvents.json`) — do not confuse with tech tiers.
 - `D_TalentRanks` (Novice/Apprentice/Journeyman/Master) is about talent point investment, not tech tiers.
-- Feature gating: rows may carry `Metadata.RequiredFeatureLevel` (e.g. `DangerousHorizons`, `GreatHunts`, `NewFrontiers`).
+- Feature gating uses two different signals in the game data:
+  - `Metadata.RequiredFeatureLevel` (e.g. `NewFrontiers`, `Laika`) is a **build rollout** marker — once the
+    client `version.json` FeatureLevel includes that release, the row is active for everyone. It is **not**
+    treated as a catalog DLC lock (Clay Brick Wall is NewFrontiers-flagged but playable without owning the
+    paid New Frontiers expansion).
+  - Real ownership gates come from talent/recipe `RequiredFlags` → `D_DLCPackageData` (Steam package id)
+    and are exposed as `locks.dlc` (display names from `D_DLCPackageData.DLCName`). Prospect craft unlocks
+    are `locks.missions` (from `RequiredFlags` → `D_AccountFlags.RewardedFromMissions` → `D_ProspectList.DropName`,
+    e.g. HEAL Device → CRISIS). Example: Creature Comforts Pack → `Creature_Comforts` package flag.
+  **Item** `locks` only keep gates that apply on *every* acquisition path (intersection). If any craft path is
+  unlocked — or the item is `gatherFirst` — item-level DLC badges are omitted; locked alternate recipes still
+  carry their own `locks` (e.g. base Concrete Mix unlocked, Industrial Furniture Pack recipes still gated).
 - Item icons export to `export/Icarus/Content/Assets/2DArt/UI/Items/Item_Icons`; the app serves them from
   `public/icarus-game/ItemIcons` (synced via `yarn update-game-assets`).

@@ -66,6 +66,12 @@
         </div>
         <div class="label flex align-items-center" :data-item-id="node.id">
             <span>{{ node.label }}</span>
+            <item-lock-badge
+                :item-id="detailItemId"
+                :recipe-id="componentRecipe?.id || node.id"
+                size="sm"
+            />
+            <item-detail-button :item-id="detailItemId" :label="node.label" />
             <recipe-variant-picker
                 v-if="!node.isRaw"
                 :item-id="node.id"
@@ -116,6 +122,8 @@ import { getStationCraftRecipeId, getStationLabel, resolveItemRecipe } from '@/u
 import { colorForName, TREE_MUTED_COLOR } from './treeLevelColors';
 import QuantityStepper from './QuantityStepper.vue';
 import RecipeVariantPicker from './RecipeVariantPicker.vue';
+import ItemDetailButton from '@/pages/icarus/components/ItemDetailButton.vue';
+import ItemLockBadge from '@/pages/icarus/components/ItemLockBadge.vue';
 
 export default {
     name: 'CraftingTreeLine',
@@ -126,6 +134,8 @@ export default {
         Hammer,
         MapMarkerAlt,
         Plus,
+        ItemDetailButton,
+        ItemLockBadge,
         QuantityStepper,
         RecipeVariantPicker,
     },
@@ -230,6 +240,9 @@ export default {
                 ) ??
                 null
             );
+        },
+        detailItemId() {
+            return this.componentRecipe?.itemStaticId || this.node.id;
         },
         stations() {
             const recipe = this.componentRecipe;

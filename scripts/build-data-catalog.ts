@@ -25,6 +25,7 @@ import { hashCatalogJson, stampExtractedAt } from './version-json.mjs';
 type RowRef = { RowName?: string; DataTableName?: string };
 type DataTable<T extends { Name: string }> = { Rows?: T[]; Defaults?: Record<string, unknown> };
 
+type MetadataBlock = { RequiredFeatureLevel?: RowRef };
 type RecipeRow = {
     Name: string;
     Requirement?: RowRef;
@@ -34,6 +35,8 @@ type RecipeRow = {
     ResourceInputs?: Array<{ Type?: { Value?: string }; RequiredUnits?: number }>;
     Outputs?: Array<{ Element?: RowRef; Count?: number }>;
     bForceDisableRecipe?: boolean;
+    SessionRequirement?: RowRef;
+    Metadata?: MetadataBlock | null;
 };
 
 type ItemTemplateRow = { Name: string; ItemStaticData?: RowRef };
@@ -45,6 +48,7 @@ type ItemsStaticRow = {
     Processing?: RowRef;
     Deployable?: RowRef;
     Manual_Tags?: { GameplayTags?: Array<{ TagName?: string }> };
+    Metadata?: MetadataBlock | null;
 };
 type ProcessingRow = {
     Name: string;
@@ -54,6 +58,7 @@ type ItemableRow = {
     Name: string;
     DisplayName?: string;
     Description?: string;
+    FlavorText?: string;
     Icon?: string;
 };
 type ConsumableRow = {
@@ -83,10 +88,13 @@ type StatRow = {
 };
 type TalentRow = {
     Name: string;
+    DisplayName?: string;
     TalentTree?: RowRef;
     RequiredTalents?: RowRef[];
     RequiredLevel?: number;
     bDefaultUnlocked?: boolean;
+    RequiredFlags?: RowRef[];
+    Metadata?: MetadataBlock | null;
 };
 type WorkshopCostEntry = { Meta?: RowRef; Amount?: number };
 type WorkshopItemRow = {
@@ -95,6 +103,22 @@ type WorkshopItemRow = {
     ResearchCost?: WorkshopCostEntry[];
     ReplicationCost?: WorkshopCostEntry[];
     RequiredMission?: RowRef;
+    Metadata?: MetadataBlock | null;
+};
+type AccountFlagRow = {
+    Name: string;
+    RewardedFromMissions?: RowRef[];
+    Metadata?: MetadataBlock | null;
+};
+type ProspectRow = {
+    Name: string;
+    DropName?: string;
+    Description?: string;
+    Metadata?: MetadataBlock | null;
+};
+type DlcPackageRow = {
+    Name: string;
+    DLCName?: string;
 };
 type MetaCurrencyRow = {
     Name: string;
@@ -136,8 +160,14 @@ type TierInfo = {
     value: number | null;
     method: 'recipe_requirement' | 'station_deduced' | 'default_unlocked' | 'purchase_only' | 'unknown';
     talentName: string | null;
+    talentDisplayName: string | null;
     talentTree: string | null;
-    stationSources: Array<{ station: string; tier: number | null; talentName: string | null }>;
+    stationSources: Array<{
+        station: string;
+        tier: number | null;
+        talentName: string | null;
+        talentDisplayName: string | null;
+    }>;
 };
 
 type PurchaseCost = { currency: string; currencyDisplay: string | null; amount: number };
@@ -195,8 +225,23 @@ type CatalogRecipe = {
     equipGrantedStats: ResolvedStat[];
     /** Faction / mission reward item (D_ItemsStatic Manual_Tags FactionMission.*). */
     mission?: boolean;
+    /** DLC / prospect gates required to unlock crafting or related content. */
+    locks: CatalogLocks | null;
     tier: TierInfo;
     flags: Flag[];
+};
+
+type CatalogLockEntry = {
+    id: string;
+    displayName: string;
+};
+
+/** Expansion / pack / prospect requirements for an item or recipe. */
+type CatalogLocks = {
+    /** Feature levels + Steam DLC packages (e.g. New Frontiers, Homestead). */
+    dlc: CatalogLockEntry[];
+    /** Prospects that grant a craft unlock (DropName, e.g. CRISIS). */
+    missions: CatalogLockEntry[];
 };
 
 /** Display record for a D_ItemsStatic row referenced by recipes / materials. */
@@ -204,6 +249,8 @@ type CatalogItem = {
     id: string;
     displayName: string | null;
     description: string | null;
+    /** Lore blurb from D_Itemable.FlavorText (optional). */
+    flavorText: string | null;
     iconPath: string | null;
     /** Craft recipe ids that produce this static item (absent/empty = raw / gather-only). */
     recipeIds: string[];
@@ -214,6 +261,7 @@ type CatalogItem = {
     gatherFirst?: boolean;
     /** Faction / mission reward item (Manual_Tags FactionMission.*). */
     mission?: boolean;
+    locks: CatalogLocks | null;
 };
 
 /** Crafting station (D_RecipeSets) with UI labels/icons. */
@@ -229,6 +277,7 @@ type CatalogStation = {
 type TalentTierResult = {
     tier: number | null;
     talentName: string | null;
+    talentDisplayName: string | null;
     talentTree: string | null;
     method: TierInfo['method'];
     flags: Flag[];
@@ -305,6 +354,64 @@ function isMissionFromTags(tags: string[]): boolean {
     return tags.some((tag) => tag === 'FactionMission.Item' || tag.startsWith('FactionMission.Item.'));
 }
 
+function emptyLocks(): CatalogLocks {
+    return { dlc: [], missions: [] };
+}
+
+function locksHaveEntries(locks: CatalogLocks | null | undefined): locks is CatalogLocks {
+    return Boolean(locks && (locks.dlc.length > 0 || locks.missions.length > 0));
+}
+
+function addLockEntry(list: CatalogLockEntry[], id: string, displayName: string | null | undefined) {
+    if (!id || id === 'None') return;
+    if (list.some((entry) => entry.id === id)) return;
+    list.push({ id, displayName: displayName || id.replace(/_/g, ' ') });
+}
+
+function mergeLocks(...parts: Array<CatalogLocks | null | undefined>): CatalogLocks | null {
+    const out = emptyLocks();
+    for (const part of parts) {
+        if (!part) continue;
+        for (const entry of part.dlc) addLockEntry(out.dlc, entry.id, entry.displayName);
+        for (const entry of part.missions) addLockEntry(out.missions, entry.id, entry.displayName);
+    }
+    return locksHaveEntries(out) ? out : null;
+}
+
+/**
+ * Locks that apply on every acquisition path. Any unlocked path (null / empty locks)
+ * → null (item is available without that gate). Different DLCs on different paths also
+ * yield null at item level; those stay on the individual recipes.
+ */
+function intersectPathLocks(paths: Array<CatalogLocks | null | undefined>): CatalogLocks | null {
+    if (paths.length === 0) return null;
+    if (paths.some((path) => !locksHaveEntries(path))) return null;
+
+    const lockedPaths = paths as CatalogLocks[];
+    const dlcIds = new Set(lockedPaths[0].dlc.map((entry) => entry.id));
+    const missionIds = new Set(lockedPaths[0].missions.map((entry) => entry.id));
+    for (const path of lockedPaths.slice(1)) {
+        const pathDlc = new Set(path.dlc.map((entry) => entry.id));
+        const pathMissions = new Set(path.missions.map((entry) => entry.id));
+        for (const id of [...dlcIds]) {
+            if (!pathDlc.has(id)) dlcIds.delete(id);
+        }
+        for (const id of [...missionIds]) {
+            if (!pathMissions.has(id)) missionIds.delete(id);
+        }
+    }
+
+    const out = emptyLocks();
+    const displayById = new Map<string, string>();
+    for (const path of lockedPaths) {
+        for (const entry of path.dlc) displayById.set(entry.id, entry.displayName);
+        for (const entry of path.missions) displayById.set(entry.id, entry.displayName);
+    }
+    for (const id of dlcIds) addLockEntry(out.dlc, id, displayById.get(id));
+    for (const id of missionIds) addLockEntry(out.missions, id, displayById.get(id));
+    return locksHaveEntries(out) ? out : null;
+}
+
 function manualTagNames(row: ItemsStaticRow | undefined): string[] {
     return (row?.Manual_Tags?.GameplayTags ?? [])
         .map((t) => t.TagName)
@@ -372,6 +479,7 @@ function emitRecipe(recipe: CatalogRecipe, items: Record<string, CatalogItem>): 
         modifier: recipe.modifier,
         equipGrantedStats: recipe.equipGrantedStats,
         mission: recipe.mission || undefined,
+        locks: recipe.locks,
         tier: recipe.tier,
         flags: recipe.flags,
     };
@@ -496,6 +604,9 @@ async function main(): Promise<void> {
         currencyTable,
         recipeSetsTable,
         processingTable,
+        accountFlagsTable,
+        prospectListTable,
+        dlcPackagesTable,
     ] = await Promise.all([
         load<DataTable<RecipeRow>>('Crafting/D_ProcessorRecipes.json'),
         load<DataTable<ItemTemplateRow>>('Items/D_ItemTemplate.json'),
@@ -510,6 +621,9 @@ async function main(): Promise<void> {
         load<DataTable<MetaCurrencyRow>>('Currency/D_MetaCurrency.json'),
         loadOptional<DataTable<RecipeSetRow>>('Crafting/D_RecipeSets.json'),
         loadOptional<DataTable<ProcessingRow>>('Traits/D_Processing.json'),
+        loadOptional<DataTable<AccountFlagRow>>('Flags/D_AccountFlags.json'),
+        loadOptional<DataTable<ProspectRow>>('Prospects/D_ProspectList.json'),
+        loadOptional<DataTable<DlcPackageRow>>('DLC/D_DLCPackageData.json'),
     ] as const);
 
     const recipes = recipesTable.Rows ?? [];
@@ -523,9 +637,71 @@ async function main(): Promise<void> {
     const talentsByName = indexByName(talentsTable);
     const currencyByName = indexByName(currencyTable);
     const recipeSetsByName = indexByName(recipeSetsTable ?? undefined);
+    const accountFlagsByName = indexByName(accountFlagsTable ?? undefined);
+    const prospectsByName = indexByName(prospectListTable ?? undefined);
+    const dlcPackagesByName = indexByName(dlcPackagesTable ?? undefined);
     const talentsByNameLower = new Map<string, TalentRow>();
     for (const [name, row] of talentsByName) {
         talentsByNameLower.set(name.toLowerCase(), row);
+    }
+
+    function addDlcPackageLock(locks: CatalogLocks, packageId: string | null | undefined) {
+        if (!packageId || packageId === 'None') return;
+        const row = dlcPackagesByName.get(packageId);
+        addLockEntry(locks.dlc, packageId, parseNsLocText(row?.DLCName) ?? packageId.replace(/_/g, ' '));
+    }
+
+    function addProspectLock(locks: CatalogLocks, prospectId: string | null | undefined) {
+        if (!prospectId || prospectId === 'None') return;
+        const row = prospectsByName.get(prospectId);
+        addLockEntry(locks.missions, prospectId, parseNsLocText(row?.DropName) ?? prospectId.replace(/_/g, ' '));
+    }
+
+    function applyFlagRef(locks: CatalogLocks, flag: RowRef | undefined) {
+        const id = flag?.RowName;
+        const table = flag?.DataTableName;
+        if (!id || id === 'None') return;
+        if (table === 'D_DLCPackageData' || (!table && dlcPackagesByName.has(id))) {
+            addDlcPackageLock(locks, id);
+            return;
+        }
+        if (table === 'D_AccountFlags' || (!table && accountFlagsByName.has(id))) {
+            const accountFlag = accountFlagsByName.get(id);
+            for (const mission of accountFlag?.RewardedFromMissions ?? []) {
+                addProspectLock(locks, mission.RowName);
+            }
+        }
+    }
+
+    function resolveLocks(args: {
+        recipe?: RecipeRow | null;
+        talentName?: string | null;
+        workshop?: WorkshopItemRow | null;
+        staticItemName?: string | null;
+    }): CatalogLocks | null {
+        const locks = emptyLocks();
+
+        // Ownership / mission gates only — Metadata.RequiredFeatureLevel is a build rollout
+        // marker (included once the client FeatureLevel reaches that row), not Steam DLC ownership.
+        applyFlagRef(locks, args.recipe?.SessionRequirement);
+
+        const talent = findTalent(args.talentName ?? args.recipe?.Requirement?.RowName);
+        if (talent) {
+            for (const flag of talent.RequiredFlags ?? []) {
+                applyFlagRef(locks, flag);
+            }
+        }
+
+        if (args.workshop) {
+            const requiredMission = args.workshop.RequiredMission?.RowName;
+            if (requiredMission && requiredMission !== 'None') {
+                if (args.workshop.RequiredMission?.DataTableName === 'D_ProspectList' || prospectsByName.has(requiredMission)) {
+                    addProspectLock(locks, requiredMission);
+                }
+            }
+        }
+
+        return locksHaveEntries(locks) ? locks : null;
     }
 
     const recipesByName = new Map<string, RecipeRow>();
@@ -549,7 +725,14 @@ async function main(): Promise<void> {
 
     function tierFromTalent(talentName: string | undefined | null): TalentTierResult {
         if (!talentName || talentName === 'None') {
-            return { tier: null, talentName: null, talentTree: null, method: 'unknown', flags: ['tier_unknown'] };
+            return {
+                tier: null,
+                talentName: null,
+                talentDisplayName: null,
+                talentTree: null,
+                method: 'unknown',
+                flags: ['tier_unknown'],
+            };
         }
 
         const talent = findTalent(talentName);
@@ -557,6 +740,7 @@ async function main(): Promise<void> {
             return {
                 tier: null,
                 talentName,
+                talentDisplayName: null,
                 talentTree: null,
                 method: 'unknown',
                 flags: ['missing_requirement_talent', 'tier_unknown'],
@@ -566,19 +750,41 @@ async function main(): Promise<void> {
         const tree = talent.TalentTree?.RowName ?? null;
         const tier = parseBlueprintTier(tree);
         const flags: Flag[] = [];
+        const displayName = parseNsLocText(talent.DisplayName) ?? null;
 
         if (tree && tier == null) flags.push('non_blueprint_talent_tree');
 
         if (tier != null) {
-            return { tier, talentName: talent.Name, talentTree: tree, method: 'recipe_requirement', flags };
+            return {
+                tier,
+                talentName: talent.Name,
+                talentDisplayName: displayName,
+                talentTree: tree,
+                method: 'recipe_requirement',
+                flags,
+            };
         }
 
         if (talent.bDefaultUnlocked) {
-            return { tier: 0, talentName: talent.Name, talentTree: tree, method: 'default_unlocked', flags };
+            return {
+                tier: 0,
+                talentName: talent.Name,
+                talentDisplayName: displayName,
+                talentTree: tree,
+                method: 'default_unlocked',
+                flags,
+            };
         }
 
         flags.push('tier_unknown');
-        return { tier: null, talentName: talent.Name, talentTree: tree, method: 'unknown', flags };
+        return {
+            tier: null,
+            talentName: talent.Name,
+            talentDisplayName: displayName,
+            talentTree: tree,
+            method: 'unknown',
+            flags,
+        };
     }
 
     function resolveStationTier(station: string): TalentTierResult {
@@ -617,6 +823,7 @@ async function main(): Promise<void> {
         const result: TalentTierResult = {
             tier: null,
             talentName: null,
+            talentDisplayName: null,
             talentTree: null,
             method: 'unknown',
             flags: ['missing_station_talent', 'tier_unknown'],
@@ -636,6 +843,7 @@ async function main(): Promise<void> {
                 value: direct.tier,
                 method: direct.method === 'default_unlocked' ? 'default_unlocked' : direct.tier != null ? 'recipe_requirement' : 'unknown',
                 talentName: direct.talentName,
+                talentDisplayName: direct.talentDisplayName,
                 talentTree: direct.talentTree,
                 stationSources: [],
                 flags,
@@ -649,8 +857,9 @@ async function main(): Promise<void> {
                 value: 0,
                 method: 'default_unlocked',
                 talentName: null,
+                talentDisplayName: null,
                 talentTree: null,
-                stationSources: [{ station: 'Character', tier: 0, talentName: null }],
+                stationSources: [{ station: 'Character', tier: 0, talentName: null, talentDisplayName: null }],
                 flags,
             };
         }
@@ -661,6 +870,7 @@ async function main(): Promise<void> {
                 station,
                 tier: resolved.tier,
                 talentName: resolved.talentName,
+                talentDisplayName: resolved.talentDisplayName,
                 flags: resolved.flags,
             };
         });
@@ -673,11 +883,13 @@ async function main(): Promise<void> {
                 value: null,
                 method: 'unknown',
                 talentName: null,
+                talentDisplayName: null,
                 talentTree: null,
-                stationSources: stationSources.map(({ station, tier, talentName }) => ({
+                stationSources: stationSources.map(({ station, tier, talentName, talentDisplayName }) => ({
                     station,
                     tier,
                     talentName,
+                    talentDisplayName,
                 })),
                 flags: uniqueFlags(flags),
             };
@@ -698,15 +910,18 @@ async function main(): Promise<void> {
         }
 
         const best = stationSources.find((s) => s.tier === minTier);
+        const bestTalent = best?.talentName ? findTalent(best.talentName) : undefined;
         return {
             value: minTier,
             method: 'station_deduced',
             talentName: best?.talentName ?? null,
-            talentTree: best?.talentName ? findTalent(best.talentName)?.TalentTree?.RowName ?? null : null,
-            stationSources: stationSources.map(({ station, tier, talentName }) => ({
+            talentDisplayName: best?.talentDisplayName ?? parseNsLocText(bestTalent?.DisplayName) ?? null,
+            talentTree: bestTalent?.TalentTree?.RowName ?? null,
+            stationSources: stationSources.map(({ station, tier, talentName, talentDisplayName }) => ({
                 station,
                 tier,
                 talentName,
+                talentDisplayName,
             })),
             flags: uniqueFlags(flags),
         };
@@ -715,12 +930,19 @@ async function main(): Promise<void> {
     type DisplayDetails = {
         displayName: string | null;
         description: string | null;
+        flavorText: string | null;
         icon: string | null;
         iconPath: string | null;
     };
 
     function resolveStaticDisplay(staticItemName: string | null | undefined): DisplayDetails {
-        const empty: DisplayDetails = { displayName: null, description: null, icon: null, iconPath: null };
+        const empty: DisplayDetails = {
+            displayName: null,
+            description: null,
+            flavorText: null,
+            icon: null,
+            iconPath: null,
+        };
         if (!staticItemName || staticItemName === 'None') return empty;
         const staticItem = staticByName.get(staticItemName);
         if (!staticItem) return empty;
@@ -732,6 +954,7 @@ async function main(): Promise<void> {
         return {
             displayName: parseNsLocText(itemable.DisplayName),
             description: parseNsLocText(itemable.Description),
+            flavorText: parseNsLocText(itemable.FlavorText),
             icon,
             iconPath: toIconPath(icon),
         };
@@ -1017,6 +1240,7 @@ async function main(): Promise<void> {
                 value: null,
                 method: 'purchase_only',
                 talentName: null,
+                talentDisplayName: null,
                 talentTree: null,
                 stationSources: [],
                 flags: [],
@@ -1076,6 +1300,12 @@ async function main(): Promise<void> {
         }
 
         const mission = isMissionFromTags(manualTagNames(staticByName.get(staticItemName ?? '')));
+        const locks = resolveLocks({
+            recipe,
+            talentName: recipe.Requirement?.RowName,
+            workshop: workshopByTemplate.get(templateName ?? '')?.row ?? null,
+            staticItemName,
+        });
 
         catalog.push({
             id: recipe.Name,
@@ -1095,10 +1325,12 @@ async function main(): Promise<void> {
             modifier,
             equipGrantedStats,
             ...(mission ? { mission: true } : {}),
+            locks,
             tier: {
                 value: tierResolved.value,
                 method: tierResolved.method,
                 talentName: tierResolved.talentName,
+                talentDisplayName: tierResolved.talentDisplayName,
                 talentTree: tierResolved.talentTree,
                 stationSources: tierResolved.stationSources,
             },
@@ -1129,6 +1361,10 @@ async function main(): Promise<void> {
         if (details.staticItemName) referencedStaticIds.add(details.staticItemName);
 
         const mission = isMissionFromTags(manualTagNames(staticByName.get(details.staticItemName ?? '')));
+        const locks = resolveLocks({
+            workshop: entry.row,
+            staticItemName: details.staticItemName,
+        });
 
         catalog.push({
             id: entry.row.Name,
@@ -1150,10 +1386,12 @@ async function main(): Promise<void> {
             modifier: details.modifier,
             equipGrantedStats: details.equipGrantedStats,
             ...(mission ? { mission: true } : {}),
+            locks,
             tier: {
                 value: null,
                 method: 'purchase_only',
                 talentName: null,
+                talentDisplayName: null,
                 talentTree: null,
                 stationSources: [],
             },
@@ -1192,6 +1430,7 @@ async function main(): Promise<void> {
         coveredConsumableStaticIds.add(staticRow.Name);
 
         const mission = isMissionFromTags(manualTagNames(staticRow));
+        const locks = resolveLocks({ staticItemName: staticRow.Name });
 
         catalog.push({
             id: staticRow.Name,
@@ -1213,10 +1452,12 @@ async function main(): Promise<void> {
             modifier: details.modifier,
             equipGrantedStats: [],
             ...(mission ? { mission: true } : {}),
+            locks,
             tier: {
                 value: 0,
                 method: 'default_unlocked',
                 talentName: null,
+                talentDisplayName: null,
                 talentTree: null,
                 stationSources: [],
             },
@@ -1249,7 +1490,23 @@ async function main(): Promise<void> {
         }
     }
 
-    // Item display dictionary for every referenced static id (raw mats + outputs).
+    // Acquisition paths per static id (include unlocked / null-lock recipes so union-of-DLC is avoided).
+    const pathsByStaticId = new Map<string, Array<CatalogLocks | null>>();
+    const pushPathForStatic = (staticId: string | null | undefined, locks: CatalogLocks | null) => {
+        if (!staticId || staticId === 'None') return;
+        const list = pathsByStaticId.get(staticId) ?? [];
+        list.push(locks);
+        pathsByStaticId.set(staticId, list);
+    };
+    for (const row of catalog) {
+        const outputIds =
+            row.outputs.length > 0
+                ? row.outputs.map((output) => output.id)
+                : row.staticItemName
+                  ? [row.staticItemName]
+                  : [];
+        for (const outputId of outputIds) pushPathForStatic(outputId, row.locks);
+    }
     const items: Record<string, CatalogItem> = {};
     const itemsOut: Record<string, Record<string, unknown>> = {};
     let gatherFirstCount = 0;
@@ -1260,14 +1517,22 @@ async function main(): Promise<void> {
         const gatherFirst = isGatherFirstFromTags(manualTagNames(staticByName.get(staticId)));
         const mission = isMissionFromTags(manualTagNames(staticByName.get(staticId)));
         if (gatherFirst) gatherFirstCount += 1;
+        // Item-level locks only when every acquisition path is gated (and share that gate).
+        // gatherFirst ⇒ world gather is an unlocked path — ignore conversion-recipe DLC unions.
+        // Per-recipe locks stay on recipes[] for DLC-only alternate crafts.
+        const recipePaths = gatherFirst ? [] : (pathsByStaticId.get(staticId) ?? []);
+        const pathLocks = intersectPathLocks(recipePaths);
+        const itemLocks = mergeLocks(resolveLocks({ staticItemName: staticId }), pathLocks);
         const item: CatalogItem = {
             id: staticId,
             displayName: display.displayName ?? (isResource ? staticId.replace(/_/g, ' ') : null),
             description: display.description,
+            flavorText: display.flavorText,
             iconPath: display.iconPath,
             recipeIds: lookupByStatic[staticId] ?? [],
             ...(gatherFirst ? { gatherFirst: true } : {}),
             ...(mission ? { mission: true } : {}),
+            locks: itemLocks,
         };
         items[staticId] = item;
         itemsOut[staticId] = emitObject({ ...item });

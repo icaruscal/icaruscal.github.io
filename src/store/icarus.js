@@ -131,10 +131,14 @@ export const useIcarusStore = defineStore('icarus', {
             recipeData: {},
             recipeOptions: [],
             foodConsumables: [],
+            /** Full `data-catalog.json` for item detail / reverse lookups. */
+            dataCatalog: null,
             isLoadingRecipes: false,
             gameVersion: null,
 
             recipeSearch: '',
+            /** Static item id (or recipe id) open in the item detail modal. */
+            itemDetailId: null,
         };
     },
     getters: {
@@ -454,6 +458,7 @@ export const useIcarusStore = defineStore('icarus', {
             this.stations = stations ?? {};
             this.recipeData = recipeData;
             this.foodConsumables = buildFoodConsumables(catalog);
+            this.dataCatalog = catalog;
             // Use Set to deduplicate: aliased entries (e.g. "Refined_Wood" / "Wood_Refined")
             // share the same object reference so Set collapses them to one search result.
             this.recipeOptions = [...new Set(Object.values(recipeData))];
@@ -462,6 +467,13 @@ export const useIcarusStore = defineStore('icarus', {
 
             console.log({ itemStaticData, itemTableData, stations, recipeData, foodConsumables: this.foodConsumables.length, meta: catalog.meta, gameVersion: this.gameVersion });
             console.log(`Processed data in ${performance.now() - startTime}ms`);
+        },
+        openItemDetail(itemOrRecipeId) {
+            if (!itemOrRecipeId) return;
+            this.itemDetailId = itemOrRecipeId;
+        },
+        closeItemDetail() {
+            this.itemDetailId = null;
         },
     },
 });

@@ -52,7 +52,10 @@
                     :class="{ selected: variant.id === selectedRecipeId }"
                     @click="onSelect(variant.id)"
                 >
-                    <div class="variant-title">{{ variant.title }}</div>
+                    <div class="variant-title">
+                        <span>{{ variant.title }}</span>
+                        <item-lock-badge :locks="variant.locks" :recipe-id="variant.id" size="sm" />
+                    </div>
                     <div class="variant-summary">{{ variant.summary }}</div>
                 </button>
             </div>
@@ -67,13 +70,16 @@ import { useIcarusStore } from '@/store/icarus';
 import {
     formatRecipeVariantLabel,
     getCraftRecipeIdsForItem,
+    normalizeLocks,
     resolveItemRecipe,
 } from '@/utility/icarusData';
+import ItemLockBadge from '@/pages/icarus/components/ItemLockBadge.vue';
 
 export default {
     name: 'RecipeVariantPicker',
     components: {
         AngleDown,
+        ItemLockBadge,
     },
     props: {
         itemId: {
@@ -121,6 +127,7 @@ export default {
                     id: recipeId,
                     title: recipe?.label ?? recipeId,
                     summary: formatRecipeVariantLabel(recipe, this.recipeContext),
+                    locks: normalizeLocks(recipe?.locks),
                 };
             });
         },
@@ -221,6 +228,9 @@ export default {
 }
 
 .variant-title {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
     font-weight: 600;
     font-size: 0.82rem;
 }

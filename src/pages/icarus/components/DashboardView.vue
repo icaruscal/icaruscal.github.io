@@ -43,7 +43,10 @@
                     :class="{ completed: item.completed }"
                 >
                     <div class="root-item-progress">{{ item.current }}/{{ item.required }}</div>
-                    <div class="root-item-label">{{ item.label }}</div>
+                    <div class="root-item-label flex align-items-center">
+                        <span>{{ item.label }}</span>
+                        <item-lock-badge :item-id="item.id" size="sm" />
+                    </div>
                     <div class="root-item-percent">{{ item.percent }}%</div>
                 </div>
             </div>
@@ -55,9 +58,13 @@
 <script>
 import { mapActions, mapGetters } from 'pinia';
 import { useIcarusStore } from '@/store/icarus';
+import ItemLockBadge from '@/pages/icarus/components/ItemLockBadge.vue';
 
 export default {
     name: 'DashboardView',
+    components: {
+        ItemLockBadge,
+    },
     computed: {
         ...mapGetters(useIcarusStore, ['tabProgressSummaries', 'overallProgress']),
     },
