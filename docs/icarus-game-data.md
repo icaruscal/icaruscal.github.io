@@ -22,6 +22,8 @@ for Windows `D:\IC_Export`). Data tables live under
   `<IcarusInstall>/Icarus/Config/version.json` to the export root. That file is synced into
   `data/icarus-game/version.json` and shown in the site header as `v{Major}.{Minor}.{Patch}`
   (hover tooltip: full `v…-rel-{FeatureLevel}` build string + `extractedAt` date from export).
+  `yarn build-data-catalog` / `yarn prepare-data-catalog` also set `catalogHash` on that file
+  (content hash of the minified catalog) for client cache-busting.
 
 ### Data table format
 
@@ -137,8 +139,11 @@ Known gaps:
 |---|---|---|
 | Pretty (dev / git) | `data/icarus-game/data-catalog.json` | `yarn build-data-catalog` (always) |
 | Minified (app / deploy) | `public/icarus-game/Data/data-catalog.json` | same command, or `yarn prepare-data-catalog` / `yarn build` |
+| Game + catalog cache key | `data/icarus-game/version.json` (+ public copy) | same; `catalogHash` = first 12 hex of SHA-256(minified catalog) |
 
 Minified files under `public/...` are gitignored; Vite’s `dataCatalogPlugin` regenerates them on build and serves the pretty file during `yarn dev` at `/icarus-game/Data/data-catalog.json`. GitHub Pages gzip-compresses the minified `.json` on the fly.
+
+`meta` omits per-build / machine-local fields (`generatedAt`, `exportPath`, `dataRoot`) so `catalogHash` stays stable when gameplay content is unchanged. The app loads `version.json` with `cache: 'no-store'`, then fetches `data-catalog.json?v=${catalogHash}`.
 
 **Purpose:** one pre-joined JSON for the crafting calculator (and item browsing). The app can stop
 fetching / client-joining `D_ProcessorRecipes`, `D_ItemTemplate`, `D_ItemsStatic`, `D_Itemable`
@@ -173,7 +178,6 @@ there is no `staticItemName` (or values differ). Raw Unreal `icon`, `lookup`, an
 ```jsonc
 {
   "meta": {
-    "generatedAt": "...",
     "recipeCount": 2538,
     "craftCount": 2164,
     "itemCount": 2504,
@@ -355,9 +359,12 @@ Snapshot from the 2026-07 export: **2538** recipes (2164 craft, 40 shop, 334 wor
 
 ## 6. Misc facts worth remembering
 
-- The web app loads `/icarus-game/Data/data-catalog.json` only (`src/store/icarus.js` → `processCatalogData`).
+- The web app loads `/icarus-game/Data/version.json` first (for game version + `catalogHash`), then
+  `/icarus-game/Data/data-catalog.json?v=<catalogHash>` (`src/store/icarus.js` → `processCatalogData`).
   Raw `D_*.json` tables are not shipped under `public/`; read them from the Ue4Export when rebuilding the catalog
   or syncing icons (`yarn update-game-assets` uses export `Traits/D_Itemable.json`).
+  `yarn update-game-assets` preserves an existing `catalogHash` when refreshing version from the export;
+  re-run `yarn build-data-catalog` or `yarn prepare-data-catalog` after catalog changes.
 - Weather has its own unrelated `Tier` fields (`Weather/D_WeatherEvents.json`) — do not confuse with tech tiers.
 - `D_TalentRanks` (Novice/Apprentice/Journeyman/Master) is about talent point investment, not tech tiers.
 - Feature gating: rows may carry `Metadata.RequiredFeatureLevel` (e.g. `DangerousHorizons`, `GreatHunts`, `NewFrontiers`).

@@ -522,9 +522,25 @@ const FOOD_WATER_STAT_RE = /FoodRecovery|WaterRecovery/;
 
 const getStatValue = (stats = [], key) => stats.find((stat) => stat.key === key)?.value ?? null;
 
+const isFoodOrDrink = (instantStats = []) => instantStats.some((stat) => FOOD_WATER_STAT_RE.test(stat.key));
+
 /**
- * Edible food/drink rows from the catalog (instant Food or Water recovery).
- * Includes craft, gather, shop, and workshop sources.
+ * Whether a catalog recipe is a useful consumable for the Explore page:
+ * food/drink recovery, other instant recovery, granted buffs, or a consumable modifier
+ * (including pills/vaccines whose modifier has description but empty grantedStats).
+ */
+const isExploreConsumable = (recipe = {}) => {
+    const instantStats = recipe.instantStats ?? [];
+    const grantedStats = recipe.modifier?.grantedStats ?? [];
+    if (instantStats.length > 0 || grantedStats.length > 0) {
+        return true;
+    }
+    return Boolean(recipe.consumableName && recipe.modifier);
+};
+
+/**
+ * Consumable rows from the catalog for Food/Medicine Explore.
+ * Includes craft, gather, shop, workshop, and mission sources.
  */
 export function buildFoodConsumables(catalog = {}) {
     const items = catalog.items ?? {};
@@ -532,18 +548,22 @@ export function buildFoodConsumables(catalog = {}) {
     const foods = [];
 
     for (const recipe of catalog.recipes ?? []) {
-        const instantStats = recipe.instantStats ?? [];
-        if (!instantStats.some((stat) => FOOD_WATER_STAT_RE.test(stat.key))) {
+        if (!isExploreConsumable(recipe)) {
             continue;
         }
 
+        const instantStats = recipe.instantStats ?? [];
         const item = recipe.staticItemName ? items[recipe.staticItemName] : null;
         const grantedStats = recipe.modifier?.grantedStats ?? [];
         const allStats = [...instantStats, ...grantedStats];
         const foodRecovery = getStatValue(instantStats, 'BaseFoodRecovery_+') ?? 0;
         const waterRecovery = getStatValue(instantStats, 'BaseWaterRecovery_+') ?? 0;
+        const healthRecovery = getStatValue(instantStats, 'BaseHealthRecovery_+') ?? 0;
+        const staminaRecovery = getStatValue(instantStats, 'BaseStaminaRecovery_+') ?? 0;
+        const oxygenRecovery = getStatValue(instantStats, 'BaseOxygenRecovery_+') ?? 0;
         const lifetimeSeconds = recipe.modifier?.lifetimeSeconds ?? null;
         const stationLabels = (recipe.stations ?? []).map((id) => stations[id]?.displayName ?? stations[id]?.recipeSetDisplayName ?? id);
+        const isFood = isFoodOrDrink(instantStats);
 
         foods.push({
             id: recipe.id,
@@ -553,6 +573,8 @@ export function buildFoodConsumables(catalog = {}) {
             iconPath: recipe.iconPath ?? item?.iconPath ?? '',
             acquisition: recipe.acquisition ?? 'craft',
             mission: Boolean(recipe.mission || item?.mission || recipe.acquisition === 'mission'),
+            category: isFood ? 'food' : 'medicine',
+            isFood,
             tier: recipe.tier?.value ?? null,
             stations: recipe.stations ?? [],
             stationLabels,
@@ -561,7 +583,10 @@ export function buildFoodConsumables(catalog = {}) {
             allStats,
             foodRecovery,
             waterRecovery,
-            hasBuff: grantedStats.length > 0,
+            healthRecovery,
+            staminaRecovery,
+            oxygenRecovery,
+            hasBuff: grantedStats.length > 0 || Boolean(recipe.modifier),
             hasNegativeStat: allStats.some((stat) => typeof stat.value === 'number' && stat.value < 0),
             hasPositiveBuff: grantedStats.some((stat) => typeof stat.value === 'number' && stat.value > 0 && stat.key !== 'BaseFoodStomachSlots_+'),
             lifetimeSeconds,

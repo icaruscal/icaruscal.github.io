@@ -1,9 +1,9 @@
 <template>
     <div class="food-explore p-2 pt-3">
         <div class="explore-header mb-3 mx-2">
-            <h1 class="explore-title m-0">Food Explorer</h1>
+            <h1 class="explore-title m-0">Consumable Explorer</h1>
             <p class="explore-subtitle mt-1 mb-0">
-                Browse craftable and gatherable food &amp; drink — instant recovery, buffs, and debuffs.
+                Browse food, drink, and medicines — instant recovery, buffs, and debuffs.
             </p>
         </div>
 
@@ -14,6 +14,14 @@
                         <div class="filter-block">
                             <label class="filter-label">Search</label>
                             <n-input v-model:value="filters.search" placeholder="Name, buff, description…" clearable />
+                        </div>
+
+                        <div class="filter-block">
+                            <label class="filter-label">Type</label>
+                            <div class="toggle-grid">
+                                <n-checkbox v-model:checked="filters.categories.food">Food &amp; drink</n-checkbox>
+                                <n-checkbox v-model:checked="filters.categories.medicine">Medicine &amp; other</n-checkbox>
+                            </div>
                         </div>
 
                         <div class="filter-block">
@@ -134,7 +142,7 @@
 
                 <section class="results-panel">
                     <div class="results-toolbar flex align-items-center justify-content-between mb-2 gap-2">
-                        <n-text depth="3">{{ filteredFoods.length }} of {{ foodConsumables.length }} foods</n-text>
+                        <n-text depth="3">{{ filteredFoods.length }} of {{ foodConsumables.length }} consumables</n-text>
                         <div class="toolbar-actions flex align-items-center gap-2">
                             <n-select
                                 v-if="viewMode === 'cards'"
@@ -214,6 +222,9 @@
                                         </n-dropdown>
                                     </div>
                                     <div class="food-tags flex flex-wrap">
+                                        <n-tag size="small" :bordered="false" :type="categoryTagType(food.category)">
+                                            {{ categoryLabel(food.category) }}
+                                        </n-tag>
                                         <n-tag size="small" :bordered="false" :type="acquisitionTagType(food.acquisition)">
                                             {{ acquisitionLabel(food.acquisition) }}
                                         </n-tag>
@@ -231,6 +242,9 @@
                             <div class="stat-row recovery">
                                 <span v-if="food.foodRecovery" class="stat-pill food">+{{ food.foodRecovery }} Food</span>
                                 <span v-if="food.waterRecovery" class="stat-pill water">+{{ food.waterRecovery }} Water</span>
+                                <span v-if="food.healthRecovery" class="stat-pill health">+{{ food.healthRecovery }} Health</span>
+                                <span v-if="food.staminaRecovery" class="stat-pill stamina">+{{ food.staminaRecovery }} Stamina</span>
+                                <span v-if="food.oxygenRecovery" class="stat-pill oxygen">+{{ food.oxygenRecovery }} Oxygen</span>
                                 <span
                                     v-for="stat in otherInstantStats(food)"
                                     :key="`i-${stat.key}`"
@@ -239,6 +253,10 @@
                                 >
                                     {{ stat.display || `${stat.key} ${stat.value}` }}
                                 </span>
+                            </div>
+
+                            <div v-if="food.modifierDescription && !food.grantedStats.length" class="buff-desc">
+                                {{ food.modifierDescription }}
                             </div>
 
                             <ul v-if="food.grantedStats.length" class="buff-list">
@@ -272,6 +290,7 @@ import { GAME_ASSETS_URL } from '@/constants/common';
 
 const DEFAULT_FILTERS = () => ({
     search: '',
+    categories: { food: true, medicine: true },
     sources: { craft: true, gather: true, mission: true, shop: true, workshop: true },
     tier: [0, 5],
     food: [0, 400],
@@ -394,6 +413,9 @@ export default {
             const buffKeys = this.filters.buffKeys ?? [];
 
             return this.foodConsumables.filter((food) => {
+                const category = food.category === 'medicine' ? 'medicine' : 'food';
+                if (!this.filters.categories[category]) return false;
+
                 if (!selectedSources.includes(food.acquisition)) return false;
 
                 const tier = food.tier ?? 0;
@@ -575,9 +597,14 @@ export default {
                     title: 'Source',
                     key: 'acquisition',
                     sorter: 'default',
-                    width: 120,
+                    width: 160,
                     render: (row) =>
                         h('div', { class: 'table-source-tags' }, [
+                            h(
+                                NTag,
+                                { size: 'small', bordered: false, type: this.categoryTagType(row.category) },
+                                { default: () => this.categoryLabel(row.category) }
+                            ),
                             h(
                                 NTag,
                                 { size: 'small', bordered: false, type: this.acquisitionTagType(row.acquisition) },
@@ -625,6 +652,9 @@ export default {
                     render: (row) => {
                         const stats = (row.grantedStats || []).filter((stat) => !SKIP_BUFF_COLUMN_KEYS.has(stat.key));
                         if (!stats.length) {
+                            if (row.modifierDescription) {
+                                return h('span', { class: 'table-buff-text' }, row.modifierDescription);
+                            }
                             return h('span', { class: 'table-muted' }, '—');
                         }
                         return h(
@@ -776,6 +806,12 @@ export default {
         foodTooltip(food) {
             return [food.description, food.modifierDescription].filter(Boolean).join('\n') || '';
         },
+        categoryLabel(category) {
+            return category === 'medicine' ? 'Medicine' : 'Food';
+        },
+        categoryTagType(category) {
+            return category === 'medicine' ? 'info' : 'success';
+        },
         acquisitionLabel(acquisition) {
             return (
                 { craft: 'Craft', gather: 'Gather', mission: 'Mission', shop: 'Shop', workshop: 'Workshop' }[acquisition] ??
@@ -789,7 +825,9 @@ export default {
             );
         },
         otherInstantStats(food) {
-            return food.instantStats.filter((stat) => !/FoodRecovery|WaterRecovery/.test(stat.key));
+            return food.instantStats.filter(
+                (stat) => !/FoodRecovery|WaterRecovery|HealthRecovery|StaminaRecovery|OxygenRecovery/.test(stat.key)
+            );
         },
         statClass(value) {
             if (typeof value !== 'number') return '';
@@ -977,6 +1015,21 @@ export default {
         background: rgba(70, 140, 200, 0.15);
     }
 
+    &.health {
+        color: #f0a0a0;
+        background: rgba(200, 80, 80, 0.15);
+    }
+
+    &.stamina {
+        color: #e6d48a;
+        background: rgba(180, 150, 60, 0.15);
+    }
+
+    &.oxygen {
+        color: #a0d8f0;
+        background: rgba(80, 160, 200, 0.15);
+    }
+
     &.is-neg {
         color: #f0a0a0;
     }
@@ -984,6 +1037,13 @@ export default {
     &.is-pos {
         color: #a8e6a3;
     }
+}
+
+.buff-desc {
+    margin-top: 0.55rem;
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.55);
+    line-height: 1.35;
 }
 
 .buff-list {

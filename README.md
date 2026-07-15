@@ -42,9 +42,9 @@ The app loads a single combined JSON (`data-catalog.json`), not the raw Ue4Expor
 ```
 yarn build-data-catalog <path/to/IC_Export> [prettyOutFile]
 ```
-Writes a **pretty** file to `data/icarus-game/data-catalog.json` and a **minified** copy to `public/icarus-game/Data/data-catalog.json`. Also copies `version.json` from the export root when present.
+Writes a **pretty** file to `data/icarus-game/data-catalog.json` and a **minified** copy to `public/icarus-game/Data/data-catalog.json`. Also copies `version.json` from the export root when present and sets `catalogHash` (SHA-256 prefix of the minified catalog) for cache-busting.
 
-`yarn build` / `yarn gh` re-minify from the pretty file via the Vite plugin (`yarn prepare-data-catalog`). During `yarn dev`, the pretty `data/` files are served at `/icarus-game/Data/data-catalog.json` and `/icarus-game/Data/version.json`. The header shows the game version from that JSON.
+`yarn build` / `yarn gh` re-minify from the pretty file via the Vite plugin (`yarn prepare-data-catalog`). During `yarn dev`, the pretty `data/` files are served at `/icarus-game/Data/data-catalog.json` and `/icarus-game/Data/version.json`. The header shows the game version from that JSON; the store loads the catalog with `?v=${catalogHash}`.
 
 Each recipe has an `acquisition` field: `craft`, `shop`, or `workshop`. See [docs/icarus-game-data.md](./docs/icarus-game-data.md).
 

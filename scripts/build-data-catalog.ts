@@ -20,7 +20,7 @@
  */
 import { promises as fs } from 'node:fs';
 import * as path from 'node:path';
-import { stampExtractedAt } from './version-json.mjs';
+import { hashCatalogJson, stampExtractedAt } from './version-json.mjs';
 
 type RowRef = { RowName?: string; DataTableName?: string };
 type DataTable<T extends { Name: string }> = { Rows?: T[]; Defaults?: Record<string, unknown> };
@@ -1386,11 +1386,9 @@ async function main(): Promise<void> {
     const rawMaterialCount = Object.values(items).filter((item) => item.recipeIds.length === 0).length;
     const recipesOut = catalog.map((recipe) => emitRecipe(recipe, items));
 
+    // Omit generatedAt / exportPath / dataRoot so content hash is stable across rebuilds/machines.
     const output = {
         meta: {
-            generatedAt: new Date().toISOString(),
-            exportPath: path.resolve(exportArg),
-            dataRoot,
             recipeCount: catalog.length,
             craftCount: craftRecipes.length,
             gatherCount: gatherRecipes.length,
@@ -1425,6 +1423,7 @@ async function main(): Promise<void> {
     const minPath = path.resolve(process.cwd(), 'public', 'icarus-game', 'Data', 'data-catalog.json');
     const prettyJson = JSON.stringify(output, null, 2);
     const minJson = JSON.stringify(output);
+    const catalogHash = hashCatalogJson(minJson);
 
     await fs.mkdir(path.dirname(prettyPath), { recursive: true });
     await fs.mkdir(path.dirname(minPath), { recursive: true });
@@ -1444,15 +1443,21 @@ async function main(): Promise<void> {
             break;
         }
     }
+    const prettyVersionPath = path.join(path.dirname(prettyPath), 'version.json');
+    const publicVersionPath = path.join(path.dirname(minPath), 'version.json');
     if (versionSrc) {
-        const prettyVersionPath = path.join(path.dirname(prettyPath), 'version.json');
-        const publicVersionPath = path.join(path.dirname(minPath), 'version.json');
-        const versionJson = stampExtractedAt(await fs.readFile(versionSrc, 'utf8'));
+        const versionJson = stampExtractedAt(await fs.readFile(versionSrc, 'utf8'), new Date(), { catalogHash });
         await fs.writeFile(prettyVersionPath, versionJson, 'utf8');
         await fs.writeFile(publicVersionPath, versionJson, 'utf8');
-        console.log(`Game version: ${versionSrc} → ${prettyVersionPath}`);
+        console.log(`Game version: ${versionSrc} → ${prettyVersionPath} (catalogHash=${catalogHash})`);
+    } else if (await exists(prettyVersionPath)) {
+        const versionJson = stampExtractedAt(await fs.readFile(prettyVersionPath, 'utf8'), new Date(), { catalogHash });
+        await fs.writeFile(prettyVersionPath, versionJson, 'utf8');
+        await fs.writeFile(publicVersionPath, versionJson, 'utf8');
+        console.warn('No version.json next to export; updated catalogHash on existing data/icarus-game/version.json');
     } else {
         console.warn('No version.json next to export (run export.bat to copy Icarus/Config/version.json)');
+        console.warn(`Catalog hash ${catalogHash} was not written — create version.json then re-run or yarn prepare-data-catalog`);
     }
 
     const formatBytes = (n: number) =>

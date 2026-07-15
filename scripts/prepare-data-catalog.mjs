@@ -1,12 +1,13 @@
 /**
  * Minify data/icarus-game/data-catalog.json → public/icarus-game/Data/data-catalog.json
- * and copy version.json next to it.
+ * and copy version.json next to it (with catalogHash for cache-busting).
  * used by Vite builds when the pretty catalog already exists (no re-export needed).
  * Prefer `yarn build-data-catalog` after a game data export — it writes both.
  */
-import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync, statSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync, statSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { hashCatalogJson, stripVolatileCatalogMeta, withCatalogHash } from './version-json.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const prettyPath = resolve(root, 'data/icarus-game/data-catalog.json');
@@ -28,19 +29,31 @@ function main() {
         process.exit(1);
     }
 
-    const minified = JSON.stringify(JSON.parse(readFileSync(prettyPath, 'utf8')));
+    const catalog = JSON.parse(readFileSync(prettyPath, 'utf8'));
+    const stripped = stripVolatileCatalogMeta(catalog);
+    const prettyJson = `${JSON.stringify(catalog, null, 2)}\n`;
+    const minified = JSON.stringify(catalog);
+    const catalogHash = hashCatalogJson(minified);
+
     mkdirSync(publicDir, { recursive: true });
+    if (stripped) {
+        writeFileSync(prettyPath, prettyJson, 'utf8');
+        console.log('Stripped volatile meta (generatedAt / exportPath / dataRoot) from pretty catalog');
+    }
     writeFileSync(minPath, minified, 'utf8');
 
     console.log(`Data catalog → ${minPath}`);
     console.log(`  pretty:   ${formatBytes(statSync(prettyPath).size)}`);
     console.log(`  minified: ${formatBytes(Buffer.byteLength(minified))}`);
+    console.log(`  catalogHash: ${catalogHash}`);
 
     if (existsSync(prettyVersionPath)) {
-        copyFileSync(prettyVersionPath, publicVersionPath);
-        console.log(`Game version → ${publicVersionPath}`);
+        const versionJson = withCatalogHash(readFileSync(prettyVersionPath, 'utf8'), catalogHash);
+        writeFileSync(prettyVersionPath, versionJson, 'utf8');
+        writeFileSync(publicVersionPath, versionJson, 'utf8');
+        console.log(`Game version → ${publicVersionPath} (catalogHash=${catalogHash})`);
     } else {
-        console.warn(`Missing ${prettyVersionPath} (header will not show a game version)`);
+        console.warn(`Missing ${prettyVersionPath} (header will not show a game version; catalogHash not stored)`);
     }
 }
 

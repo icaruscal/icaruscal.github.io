@@ -414,30 +414,32 @@ export const useIcarusStore = defineStore('icarus', {
 
         // * recipe data
         async loadRecipeData() {
-            const dateTime = new Date().getTime();
             this.isLoadingRecipes = true;
 
-            const [catalogResponse, versionResponse] = await Promise.all([
-                fetch(`/icarus-game/Data/data-catalog.json?v=${dateTime}`, {
-                    method: 'GET',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                }),
-                fetch(`/icarus-game/Data/version.json?v=${dateTime}`, {
-                    method: 'GET',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                }),
-            ]);
-            const catalog = await catalogResponse.json();
+            // Small manifest: never cache so catalogHash stays fresh after deploys.
+            const versionResponse = await fetch('/icarus-game/Data/version.json', {
+                method: 'GET',
+                cache: 'no-store',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            });
+
             if (versionResponse.ok) {
                 this.gameVersion = await versionResponse.json();
             } else {
                 console.warn('Could not load game version.json', versionResponse.status);
                 this.gameVersion = null;
             }
+
+            const catalogCacheKey = this.gameVersion?.catalogHash || String(Date.now());
+            const catalogResponse = await fetch(`/icarus-game/Data/data-catalog.json?v=${catalogCacheKey}`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            });
+            const catalog = await catalogResponse.json();
 
             const startTime = performance.now();
             const { recipeData, itemStaticData, itemTableData, stations } = processCatalogData(catalog);
