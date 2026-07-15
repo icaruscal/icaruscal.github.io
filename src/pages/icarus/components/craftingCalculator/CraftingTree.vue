@@ -72,8 +72,10 @@
                 :path="tree.id"
                 :progress="progress"
                 :collapsed-paths="collapsedPaths"
+                :recipe-preferences="recipePreferences"
                 :color-enabled="colorEnabled"
                 @toggle-collapse="toggleCollapse"
+                @recipe-preference-change="$emit('recipe-preference-change')"
             />
         </div>
     </div>
@@ -108,7 +110,12 @@ export default {
             type: Object,
             default: () => ({}),
         },
+        recipePreferences: {
+            type: Object,
+            default: () => ({}),
+        },
     },
+    emits: ['recipe-preference-change'],
     computed: {
         ...mapGetters(useIcarusStore, ['treeLevelColors']),
         colorEnabled() {

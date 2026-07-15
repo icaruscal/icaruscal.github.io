@@ -22,6 +22,7 @@ const generateNewTab = () =>
         items: [],
         treeProgress: {},
         collapsedPaths: {},
+        recipePreferences: {},
     });
 const generateDashboardTab = () =>
     reactive({
@@ -32,6 +33,7 @@ const generateDashboardTab = () =>
         items: [],
         treeProgress: {},
         collapsedPaths: {},
+        recipePreferences: {},
     });
 const tabIdsEqual = (a, b) => a === b || String(a) === String(b);
 const findTabIndex = (id, tabs) => tabs.findIndex((tab) => tabIdsEqual(tab.id, id));
@@ -43,6 +45,9 @@ const normalizeTab = (tab) => {
     }
     if (!tab.collapsedPaths) {
         tab.collapsedPaths = {};
+    }
+    if (!tab.recipePreferences) {
+        tab.recipePreferences = {};
     }
     if (!Array.isArray(tab.items)) {
         tab.items = [];

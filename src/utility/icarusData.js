@@ -190,7 +190,12 @@ export function processCatalogData(catalog = {}) {
     const itemStaticData = {};
     const itemTableData = {};
     for (const [id, item] of Object.entries(items)) {
-        itemStaticData[id] = { id, itemTableId: id };
+        itemStaticData[id] = {
+            id,
+            itemTableId: id,
+            recipeIds: item.recipeIds ?? [],
+            gatherFirst: Boolean(item.gatherFirst),
+        };
         itemTableData[id] = {
             id,
             displayName: item.displayName ?? null,
@@ -208,7 +213,12 @@ export function processCatalogData(catalog = {}) {
             };
         }
         if (!itemStaticData[id]) {
-            itemStaticData[id] = { id, itemTableId: id };
+            itemStaticData[id] = {
+                id,
+                itemTableId: id,
+                recipeIds: [],
+                gatherFirst: false,
+            };
         }
     }
 
@@ -298,6 +308,100 @@ export function processCatalogData(catalog = {}) {
         itemTableData,
         stations,
     };
+}
+
+const isSelfishRecipe = (recipe) => (recipe?.inputs || []).some((input) => input.id === recipe.id);
+
+/** Whether a craft recipe produces the given static item id. */
+export function recipeProducesStaticItem(recipe, staticId) {
+    if (!recipe || !staticId) return false;
+    if (recipe.itemStaticId === staticId) return true;
+    if ((recipe.outputs || []).some((out) => out.id === staticId)) return true;
+    return false;
+}
+
+/**
+ * Craft recipe ids that can produce `itemId` (static item or a specific recipe id).
+ * Skips gather-first terminals and selfish conversion recipes.
+ */
+export function getCraftRecipeIdsForItem(itemId, { recipeData = {}, itemStaticData = {} } = {}) {
+    if (!itemId) return [];
+
+    const meta = itemStaticData[itemId];
+    if (meta?.gatherFirst) return [];
+
+    const filterIds = (ids, staticId) =>
+        [...new Set(ids)].filter((recipeId) => {
+            const recipe = recipeData[recipeId];
+            if (!recipe || isSelfishRecipe(recipe)) return false;
+            if (staticId) return recipeProducesStaticItem(recipe, staticId);
+            return true;
+        });
+
+    if (meta?.recipeIds?.length) {
+        return filterIds(meta.recipeIds, itemId);
+    }
+
+    const direct = recipeData[itemId];
+    if (!direct || isSelfishRecipe(direct)) return [];
+
+    const staticId = direct.itemStaticId;
+    if (staticId && itemStaticData[staticId]?.recipeIds?.length) {
+        if (itemStaticData[staticId].gatherFirst) return [];
+        const siblings = filterIds(itemStaticData[staticId].recipeIds, staticId);
+        if (siblings.length > 0) return siblings;
+    }
+
+    return [direct.id];
+}
+
+/** Output count of `recipe` toward static / recipe `itemId`. */
+export function getRecipeOutputCountForItem(recipe, itemId) {
+    if (!recipe) return 1;
+    const match = (recipe.outputs || []).find((out) => out.id === itemId);
+    if (match) return match.count ?? 1;
+    if (recipe.itemStaticId === itemId || recipe.id === itemId) {
+        return recipe.outputQuantity || 1;
+    }
+    return recipe.outputQuantity || 1;
+}
+
+/**
+ * Resolve which craft recipe to use for an item in the tree.
+ * Pass `preferredRecipeId` for a path-/instance-specific choice.
+ */
+export function resolveItemRecipe(itemId, { recipeData = {}, itemStaticData = {} } = {}, { preferredRecipeId = null, forcedRecipeId = null } = {}) {
+    if (forcedRecipeId && recipeData[forcedRecipeId]) {
+        return recipeData[forcedRecipeId];
+    }
+
+    const recipeIds = getCraftRecipeIdsForItem(itemId, { recipeData, itemStaticData });
+    if (recipeIds.length === 0) {
+        return null;
+    }
+
+    const chosen =
+        (preferredRecipeId && recipeIds.includes(preferredRecipeId) && preferredRecipeId) ||
+        (recipeIds.includes(itemId) && itemId) ||
+        recipeIds[0];
+
+    return recipeData[chosen] ?? null;
+}
+
+/** Short label summarizing a recipe’s inputs for variant pickers. */
+export function formatRecipeVariantLabel(recipe, { itemTableData = {}, recipeData = {}, itemStaticData = {} } = {}) {
+    if (!recipe) return '';
+    const parts = (recipe.inputs || []).map((input) => {
+        const label =
+            recipeData[input.id]?.label ??
+            itemTableData[itemStaticData[input.id]?.itemTableId]?.displayName ??
+            itemTableData[input.id]?.displayName ??
+            input.id.replace(/_/g, ' ');
+        return input.quantity > 1 ? `${input.quantity}× ${label}` : label;
+    });
+    const outputCount = recipe.outputQuantity || 1;
+    const body = parts.length > 0 ? parts.join(' + ') : recipe.label || recipe.id;
+    return outputCount > 1 ? `${body} → ${outputCount}` : body;
 }
 
 /** Resolve a RecipeSet / station id to a player-facing label. */

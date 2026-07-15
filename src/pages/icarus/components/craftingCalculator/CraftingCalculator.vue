@@ -30,12 +30,17 @@
                         </div>
                         <div class="flex-grow-1">
                             <div class="flex align-items-center pb-1">
-                                <div class="flex-shrink">
+                                <div class="flex-shrink flex align-items-center">
                                     <item-modifier-tooltip :recipe="recipeData[item.id]">
                                         <div class="label text-overflow-ellipsis" :data-item-id="item.id">
                                             {{ recipeData[item.id]?.label }}
                                         </div>
                                     </item-modifier-tooltip>
+                                    <recipe-variant-picker
+                                        :item-id="item.id"
+                                        :preferred-recipe-id="recipePreferences[item.id] || null"
+                                        @change="(recipeId) => onRecipePreferenceChange(item.id, recipeId)"
+                                    />
                                 </div>
                             </div>
                             <div class="flex align-items-center flex-grow-1">
@@ -46,7 +51,11 @@
                                     :max="100000"
                                     @update:model-value="onQuantityUpdate(item, $event)"
                                 />
-                                <component-source-picker :component-id="item.id" @change="triggerCalc()"></component-source-picker>
+                                <component-source-picker
+                                    :component-id="item.id"
+                                    :preferred-recipe-id="recipePreferences[item.id] || null"
+                                    @change="triggerCalc()"
+                                ></component-source-picker>
                                 <n-tooltip trigger="hover">
                                     <template #trigger>
                                         <n-button class="hover-button ml-auto" secondary type="error" size="small" @click="removeListItem(item)">
@@ -64,7 +73,13 @@
             </div>
 
             <div class="mt-4">
-                <crafting-tree :trees="requirementTrees" :progress="treeProgress" :collapsed-paths="collapsedPaths" />
+                <crafting-tree
+                    :trees="requirementTrees"
+                    :progress="treeProgress"
+                    :collapsed-paths="collapsedPaths"
+                    :recipe-preferences="recipePreferences"
+                    @recipe-preference-change="triggerCalc"
+                />
             </div>
 
             <div v-if="terminalMaterials.length > 0" class="mt-4">
@@ -127,8 +142,15 @@ import ComponentSourcePicker from './ComponentSourcePicker.vue';
 import CraftingTree from './CraftingTree.vue';
 import ItemModifierTooltip from './ItemModifierTooltip.vue';
 import QuantityStepper from './QuantityStepper.vue';
+import RecipeVariantPicker from './RecipeVariantPicker.vue';
 import { useIcarusStore } from '@/store/icarus';
-import { getStationCraftRecipeId, getStationLabel } from '@/utility/icarusData';
+import {
+    getCraftRecipeIdsForItem,
+    getRecipeOutputCountForItem,
+    getStationCraftRecipeId,
+    getStationLabel,
+    resolveItemRecipe,
+} from '@/utility/icarusData';
 import { GAME_ASSETS_URL } from '@/constants/common';
 
 export default {
@@ -138,6 +160,7 @@ export default {
         CraftingTree,
         ItemModifierTooltip,
         QuantityStepper,
+        RecipeVariantPicker,
         SortAlphaDown,
         Times,
     },
@@ -164,6 +187,9 @@ export default {
                 if (tab && !tab.collapsedPaths) {
                     tab.collapsedPaths = {};
                 }
+                if (tab && !tab.recipePreferences) {
+                    tab.recipePreferences = {};
+                }
             },
         },
         'tab.items': {
@@ -186,6 +212,9 @@ export default {
         },
         collapsedPaths() {
             return this.tab.collapsedPaths ?? {};
+        },
+        recipePreferences() {
+            return this.tab.recipePreferences ?? {};
         },
         terminalMaterials() {
             const totals = new Map();
@@ -274,6 +303,13 @@ export default {
         removeListItem(item) {
             this.removeItem(item.id, this.tab);
         },
+        onRecipePreferenceChange(path, recipeId) {
+            if (!this.tab.recipePreferences) {
+                this.tab.recipePreferences = {};
+            }
+            this.tab.recipePreferences[path] = recipeId;
+            this.triggerCalc();
+        },
         triggerCalc: debounce(function () {
             this.calculateRequiredItems();
         }, 100),
@@ -283,6 +319,7 @@ export default {
             const itemStaticData = this.itemStaticData;
             const itemTableData = this.itemTableData;
             const stationsCatalog = this.stations;
+            const recipePreferences = this.tab.recipePreferences ?? {};
             const requiredCraftingStations = new Set();
 
             const getComponentLabel = (componentId) =>
@@ -290,15 +327,22 @@ export default {
                 itemTableData[itemStaticData[componentId]?.itemTableId]?.displayName ??
                 componentId.replace(/_/g, ' ');
 
+            const recipeContext = {
+                recipeData,
+                itemStaticData,
+                itemTableData,
+            };
             const stationContext = {
                 stations: stationsCatalog,
                 recipeData,
                 itemTableData,
             };
 
-            const buildRequirementNode = (itemId, requestedQuantity, stations = new Set(), activePath = new Set()) => {
+            const buildRequirementNode = (itemId, requestedQuantity, stations = new Set(), activePath = new Set(), path = itemId) => {
                 const label = getComponentLabel(itemId);
-                const hasRecipe = Boolean(recipeData[itemId]);
+                const preferredRecipeId = recipePreferences[path] ?? null;
+                const recipe = resolveItemRecipe(itemId, recipeContext, { preferredRecipeId });
+                const hasRecipe = Boolean(recipe);
 
                 const node = {
                     id: itemId,
@@ -306,15 +350,16 @@ export default {
                     label,
                     isRaw: !hasRecipe,
                     children: [],
+                    alternateRecipeIds: getCraftRecipeIdsForItem(itemId, recipeContext),
+                    preferredRecipeId,
                 };
 
                 if (activePath.has(itemId) || !hasRecipe) {
                     return node;
                 }
 
-                const recipe = recipeData[itemId];
                 node.recipeId = recipe.id;
-                node.outputQuantity = recipe.outputQuantity || 1;
+                node.outputQuantity = getRecipeOutputCountForItem(recipe, itemId);
                 node.preferredSource = recipe.preferredSource ?? null;
 
                 if (node.preferredSource) {
@@ -328,18 +373,25 @@ export default {
                 (recipe.inputs || []).forEach((input) => {
                     const inputQuantity = input.quantity * multiplier;
                     // Self-input conversion recipes (Frozen_Wood ← Frozen_Wood) are terminal mats.
-                    const isSelfInput = input.id === recipe.id;
-                    const childHasRecipe = !isSelfInput && Boolean(recipeData[input.id]);
+                    const isSelfInput = input.id === recipe.id || input.id === itemId;
+                    const childPath = `${path}/${input.id}`;
+                    const childPreferred = recipePreferences[childPath] ?? null;
+                    const childRecipe = !isSelfInput
+                        ? resolveItemRecipe(input.id, recipeContext, { preferredRecipeId: childPreferred })
+                        : null;
+                    const childHasRecipe = Boolean(childRecipe);
                     const child = {
                         id: input.id,
                         quantity: inputQuantity,
                         label: getComponentLabel(input.id),
                         isRaw: !childHasRecipe,
+                        alternateRecipeIds: getCraftRecipeIdsForItem(input.id, recipeContext),
+                        preferredRecipeId: childPreferred,
                     };
                     node.children.push(child);
 
                     if (childHasRecipe && !nextPath.has(input.id)) {
-                        child.expanded = buildRequirementNode(input.id, inputQuantity, stations, nextPath);
+                        child.expanded = buildRequirementNode(input.id, inputQuantity, stations, nextPath, childPath);
                     }
                 });
 
@@ -348,7 +400,7 @@ export default {
 
             const primaryStations = new Set();
             const primaryTrees = selectedItems.map((item) =>
-                buildRequirementNode(item.id, item.quantity ?? 1, primaryStations)
+                buildRequirementNode(item.id, item.quantity ?? 1, primaryStations, new Set(), item.id)
             );
             primaryStations.forEach((station) => requiredCraftingStations.add(station));
 

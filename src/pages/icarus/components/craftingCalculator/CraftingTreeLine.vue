@@ -64,7 +64,15 @@
             <span class="progress-required">{{ requiredCount }}</span>
             <span class="progress-remaining">({{ remainingCount }})</span>
         </div>
-        <div class="label" :data-item-id="node.id">{{ node.label }}</div>
+        <div class="label flex align-items-center" :data-item-id="node.id">
+            <span>{{ node.label }}</span>
+            <recipe-variant-picker
+                v-if="!node.isRaw"
+                :item-id="node.id"
+                :preferred-recipe-id="recipePreferences[path] || null"
+                @change="onRecipePreferenceChange"
+            />
+        </div>
         <div v-if="stations.length > 0" class="stations flex align-items-center flex-wrap">
             <div
                 v-for="station in stations"
@@ -104,9 +112,10 @@
 import { mapActions, mapState } from 'pinia';
 import { ChevronDown, ChevronRight, ExternalLinkAlt, Hammer, MapMarkerAlt, Plus } from '@vicons/fa';
 import { useIcarusStore } from '@/store/icarus';
-import { getStationCraftRecipeId, getStationLabel } from '@/utility/icarusData';
+import { getStationCraftRecipeId, getStationLabel, resolveItemRecipe } from '@/utility/icarusData';
 import { colorForName, TREE_MUTED_COLOR } from './treeLevelColors';
 import QuantityStepper from './QuantityStepper.vue';
+import RecipeVariantPicker from './RecipeVariantPicker.vue';
 
 export default {
     name: 'CraftingTreeLine',
@@ -118,6 +127,7 @@ export default {
         MapMarkerAlt,
         Plus,
         QuantityStepper,
+        RecipeVariantPicker,
     },
     props: {
         node: {
@@ -148,13 +158,18 @@ export default {
             type: Boolean,
             default: true,
         },
+        recipePreferences: {
+            type: Object,
+            default: () => ({}),
+        },
     },
-    emits: ['toggle-collapse'],
+    emits: ['toggle-collapse', 'recipe-preference-change'],
     computed: {
         ...mapState(useIcarusStore, {
             recipeData: 'recipeData',
             stationCatalog: 'stations',
             itemTableData: 'itemTableData',
+            itemStaticData: 'itemStaticData',
         }),
         levelColor() {
             if (!this.colorEnabled) {
@@ -197,7 +212,18 @@ export default {
             if (this.node.isRaw) {
                 return null;
             }
+            if (this.node.recipeId && this.recipeData[this.node.recipeId]) {
+                return this.recipeData[this.node.recipeId];
+            }
             return (
+                resolveItemRecipe(
+                    this.node.id,
+                    {
+                        recipeData: this.recipeData,
+                        itemStaticData: this.itemStaticData,
+                    },
+                    { preferredRecipeId: this.recipePreferences[this.path] || null }
+                ) ??
                 this.recipeData[this.node.id] ??
                 Object.values(this.recipeData).find(
                     (recipe) => recipe.outputItemId === this.node.id || recipe.itemStaticId === this.node.id
@@ -247,6 +273,10 @@ export default {
     },
     methods: {
         ...mapActions(useIcarusStore, ['addItem', 'openItemInNewTab']),
+        onRecipePreferenceChange(recipeId) {
+            this.recipePreferences[this.path] = recipeId;
+            this.$emit('recipe-preference-change');
+        },
         ensureEntry(path = this.path) {
             if (!this.progress[path]) {
                 this.progress[path] = {

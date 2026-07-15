@@ -24,7 +24,7 @@
 <script>
 import { mapState } from 'pinia';
 import { useIcarusStore } from '@/store/icarus';
-import { getStationLabel } from '@/utility/icarusData';
+import { getStationLabel, resolveItemRecipe } from '@/utility/icarusData';
 
 export default {
     name: 'CraftingToolComponentSourcePicker',
@@ -34,13 +34,27 @@ export default {
             type: String,
             required: true,
         },
+        preferredRecipeId: {
+            type: String,
+            default: null,
+        },
     },
     computed: {
-        ...mapState(useIcarusStore, ['recipeData', 'stations', 'itemTableData']),
+        ...mapState(useIcarusStore, ['recipeData', 'stations', 'itemTableData', 'itemStaticData']),
         componentRecipe() {
             return (
+                resolveItemRecipe(
+                    this.componentId,
+                    {
+                        recipeData: this.recipeData,
+                        itemStaticData: this.itemStaticData,
+                    },
+                    { preferredRecipeId: this.preferredRecipeId }
+                ) ??
                 this.recipeData[this.componentId] ??
-                Object.values(this.recipeData).find((recipe) => recipe.outputItemId === this.componentId || recipe.itemStaticId === this.componentId)
+                Object.values(this.recipeData).find(
+                    (recipe) => recipe.outputItemId === this.componentId || recipe.itemStaticId === this.componentId
+                )
             );
         },
     },

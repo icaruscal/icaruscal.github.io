@@ -8,7 +8,9 @@
             :has-children="hasChildren"
             :is-collapsed="isCollapsed"
             :color-enabled="colorEnabled"
+            :recipe-preferences="recipePreferences"
             @toggle-collapse="$emit('toggle-collapse', path)"
+            @recipe-preference-change="$emit('recipe-preference-change')"
         />
         <div v-if="hasChildren && !isCollapsed" class="tree-children">
             <crafting-tree-node
@@ -19,8 +21,10 @@
                 :progress="progress"
                 :depth="depth + 1"
                 :collapsed-paths="collapsedPaths"
+                :recipe-preferences="recipePreferences"
                 :color-enabled="colorEnabled"
                 @toggle-collapse="$emit('toggle-collapse', $event)"
+                @recipe-preference-change="$emit('recipe-preference-change')"
             />
         </div>
     </div>
@@ -56,12 +60,16 @@ export default {
             type: Object,
             default: () => ({}),
         },
+        recipePreferences: {
+            type: Object,
+            default: () => ({}),
+        },
         colorEnabled: {
             type: Boolean,
             default: true,
         },
     },
-    emits: ['toggle-collapse'],
+    emits: ['toggle-collapse', 'recipe-preference-change'],
     computed: {
         levelColor() {
             if (!this.colorEnabled) {
