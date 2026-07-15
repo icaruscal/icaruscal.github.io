@@ -11,7 +11,7 @@
         "update-game-assets": "node ./scripts/scan-assets.mjs",
         "build-data-catalog": "tsx ./scripts/build-data-catalog.ts",
         "prepare-data-catalog": "node ./scripts/prepare-data-catalog.mjs",
-        "gh": "yarn build && yarn clean-dist-assets && yarn deploy"
+        "gh": "yarn build && yarn clean-dist-assets && cp dist/index.html dist/404.html && yarn deploy"
     },
     "dependencies": {
         "@vueform/multiselect": "^2.6.11",

@@ -1,0 +1,1119 @@
+<template>
+    <div class="food-explore p-2 pt-3">
+        <div class="explore-header mb-3 mx-2">
+            <h1 class="explore-title m-0">Food Explorer</h1>
+            <p class="explore-subtitle mt-1 mb-0">
+                Browse craftable and gatherable food &amp; drink — instant recovery, buffs, and debuffs.
+            </p>
+        </div>
+
+        <n-spin :show="isLoadingRecipes">
+            <div class="explore-layout mx-2">
+                <aside class="filters-panel">
+                    <n-card size="small" title="Filters" content-style="padding-top: 0.5rem;">
+                        <div class="filter-block">
+                            <label class="filter-label">Search</label>
+                            <n-input v-model:value="filters.search" placeholder="Name, buff, description…" clearable />
+                        </div>
+
+                        <div class="filter-block">
+                            <label class="filter-label">Source</label>
+                            <div class="toggle-grid">
+                                <n-checkbox v-model:checked="filters.sources.craft">Craft</n-checkbox>
+                                <n-checkbox v-model:checked="filters.sources.gather">Gather</n-checkbox>
+                                <n-checkbox v-model:checked="filters.sources.mission">Mission</n-checkbox>
+                                <n-checkbox v-model:checked="filters.sources.shop">Shop</n-checkbox>
+                                <n-checkbox v-model:checked="filters.sources.workshop">Workshop</n-checkbox>
+                            </div>
+                        </div>
+
+                        <div class="filter-block">
+                            <div class="filter-label-row">
+                                <label class="filter-label">Tier</label>
+                                <span class="filter-range-value">{{ filters.tier[0] }} – {{ filters.tier[1] }}</span>
+                            </div>
+                            <n-slider v-model:value="filters.tier" range :min="0" :max="5" :step="1" />
+                        </div>
+
+                        <div class="filter-block">
+                            <div class="filter-label-row">
+                                <label class="filter-label">Food recovery</label>
+                                <span class="filter-range-value">{{ filters.food[0] }} – {{ filters.food[1] }}</span>
+                            </div>
+                            <n-slider v-model:value="filters.food" range :min="foodBounds.min" :max="foodBounds.max" :step="5" />
+                        </div>
+
+                        <div class="filter-block">
+                            <div class="filter-label-row">
+                                <label class="filter-label">Water recovery</label>
+                                <span class="filter-range-value">{{ filters.water[0] }} – {{ filters.water[1] }}</span>
+                            </div>
+                            <n-slider v-model:value="filters.water" range :min="waterBounds.min" :max="waterBounds.max" :step="5" />
+                        </div>
+
+                        <div class="filter-block">
+                            <div class="filter-label-row">
+                                <label class="filter-label">Buff duration (min)</label>
+                                <span class="filter-range-value">
+                                    {{ filters.duration[0] }} – {{ filters.duration[1] === durationBounds.max ? '∞' : filters.duration[1] }}
+                                </span>
+                            </div>
+                            <n-slider
+                                v-model:value="filters.duration"
+                                range
+                                :min="durationBounds.min"
+                                :max="durationBounds.max"
+                                :step="5"
+                                :disabled="!filters.hasBuffOnly"
+                            />
+                        </div>
+
+                        <div class="filter-block">
+                            <div class="filter-label-row">
+                                <label class="filter-label">Buff effects</label>
+                                <n-button-group v-if="filters.buffKeys.length > 1" size="tiny">
+                                    <n-button
+                                        :type="filters.buffMatchMode === 'and' ? 'primary' : 'default'"
+                                        secondary
+                                        @click="filters.buffMatchMode = 'and'"
+                                    >
+                                        And
+                                    </n-button>
+                                    <n-button
+                                        :type="filters.buffMatchMode === 'or' ? 'primary' : 'default'"
+                                        secondary
+                                        @click="filters.buffMatchMode = 'or'"
+                                    >
+                                        Or
+                                    </n-button>
+                                </n-button-group>
+                            </div>
+                            <n-select
+                                v-model:value="filters.buffKeys"
+                                multiple
+                                filterable
+                                clearable
+                                placeholder="Any buff…"
+                                :options="foodBuffStatOptions"
+                                :max-tag-count="2"
+                            />
+                            <div v-if="filters.buffKeys.length > 1" class="buff-match-hint">
+                                {{ filters.buffMatchMode === 'or' ? 'Match any selected buff' : 'Match all selected buffs' }}
+                            </div>
+                            <div v-if="selectedBuffLimitFilters.length" class="buff-limit-filters">
+                                <div v-for="buff in selectedBuffLimitFilters" :key="buff.key" class="buff-limit-block">
+                                    <div class="filter-label-row">
+                                        <label class="filter-label">{{ buff.label }}</label>
+                                        <span class="filter-range-value">{{ formatBuffLimitDisplay(buff) }}</span>
+                                    </div>
+                                    <n-slider
+                                        v-model:value="filters.buffLimits[buff.key]"
+                                        range
+                                        :min="buff.bounds.min"
+                                        :max="buff.bounds.max"
+                                        :step="buff.step"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="filter-block toggles">
+                            <div class="toggle-row">
+                                <span>Has lasting buff</span>
+                                <n-switch v-model:value="filters.hasBuffOnly" size="small" />
+                            </div>
+                            <div class="toggle-row">
+                                <span>Has negative stats</span>
+                                <n-switch v-model:value="filters.hasNegativeOnly" size="small" />
+                            </div>
+                        </div>
+
+                        <n-button class="mt-2" block secondary @click="resetFilters">Reset filters</n-button>
+                    </n-card>
+                </aside>
+
+                <section class="results-panel">
+                    <div class="results-toolbar flex align-items-center justify-content-between mb-2 gap-2">
+                        <n-text depth="3">{{ filteredFoods.length }} of {{ foodConsumables.length }} foods</n-text>
+                        <div class="toolbar-actions flex align-items-center gap-2">
+                            <n-select
+                                v-if="viewMode === 'cards'"
+                                v-model:value="sortBy"
+                                class="sort-select"
+                                size="small"
+                                :options="sortOptions"
+                            />
+                            <n-button-group size="small">
+                                <n-button :type="viewMode === 'cards' ? 'primary' : 'default'" secondary @click="viewMode = 'cards'">
+                                    Cards
+                                </n-button>
+                                <n-button :type="viewMode === 'table' ? 'primary' : 'default'" secondary @click="viewMode = 'table'">
+                                    Table
+                                </n-button>
+                            </n-button-group>
+                        </div>
+                    </div>
+
+                    <div v-if="filteredFoods.length === 0" class="empty-state">No foods match these filters.</div>
+
+                    <n-data-table
+                        v-else-if="viewMode === 'table'"
+                        class="food-table"
+                        size="small"
+                        :bordered="false"
+                        :single-line="false"
+                        :columns="tableColumns"
+                        :data="filteredFoods"
+                        :row-key="(row) => row.id"
+                        :scroll-x="tableScrollX"
+                    />
+
+                    <div v-else class="food-grid">
+                        <article v-for="food in sortedFoods" :key="food.id" class="food-card">
+                            <div class="food-card-top flex">
+                                <n-image
+                                    class="food-icon"
+                                    width="48"
+                                    :src="`${gameAssetsUrl}/ItemIcons/${food.iconPath}.png`"
+                                    :fallback-src="`${gameAssetsUrl}/Images/question-mark.png`"
+                                    :preview-disabled="true"
+                                />
+                                <div class="food-meta flex-1">
+                                    <div class="food-name-row flex align-items-center">
+                                        <n-tooltip v-if="foodTooltip(food)" trigger="hover" placement="top-start">
+                                            <template #trigger>
+                                                <div class="food-name food-name--hoverable">{{ food.label }}</div>
+                                            </template>
+                                            <div class="name-tooltip">
+                                                <div v-if="food.description">{{ food.description }}</div>
+                                                <div v-if="food.modifierDescription" :class="{ 'mt-1': food.description }">
+                                                    {{ food.modifierDescription }}
+                                                </div>
+                                            </div>
+                                        </n-tooltip>
+                                        <div v-else class="food-name">{{ food.label }}</div>
+                                        <n-dropdown
+                                            v-if="craftRecipeId(food)"
+                                            trigger="click"
+                                            placement="bottom-start"
+                                            :options="addToCalculatorOptions"
+                                            @select="(key) => onAddToCalculator(key, food)"
+                                        >
+                                            <n-button
+                                                class="add-calc-btn"
+                                                size="tiny"
+                                                quaternary
+                                                circle
+                                                type="primary"
+                                                @click.stop
+                                            >
+                                                <n-icon size="12">
+                                                    <Plus />
+                                                </n-icon>
+                                            </n-button>
+                                        </n-dropdown>
+                                    </div>
+                                    <div class="food-tags flex flex-wrap">
+                                        <n-tag size="small" :bordered="false" :type="acquisitionTagType(food.acquisition)">
+                                            {{ acquisitionLabel(food.acquisition) }}
+                                        </n-tag>
+                                        <n-tag v-if="food.mission && food.acquisition !== 'mission'" size="small" :bordered="false" type="primary">
+                                            Mission
+                                        </n-tag>
+                                        <n-tag v-if="food.tier != null" size="small" :bordered="false">T{{ food.tier }}</n-tag>
+                                        <n-tag v-if="food.lifetimeMinutes != null" size="small" :bordered="false" type="info">
+                                            {{ food.lifetimeMinutes }}m buff
+                                        </n-tag>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="stat-row recovery">
+                                <span v-if="food.foodRecovery" class="stat-pill food">+{{ food.foodRecovery }} Food</span>
+                                <span v-if="food.waterRecovery" class="stat-pill water">+{{ food.waterRecovery }} Water</span>
+                                <span
+                                    v-for="stat in otherInstantStats(food)"
+                                    :key="`i-${stat.key}`"
+                                    class="stat-pill"
+                                    :class="statClass(stat.value)"
+                                >
+                                    {{ stat.display || `${stat.key} ${stat.value}` }}
+                                </span>
+                            </div>
+
+                            <ul v-if="food.grantedStats.length" class="buff-list">
+                                <li
+                                    v-for="stat in food.grantedStats"
+                                    :key="stat.key"
+                                    :class="['buff-stat', statClass(stat.value)]"
+                                >
+                                    {{ stat.display || `${stat.key}: ${stat.value}` }}
+                                </li>
+                            </ul>
+
+                            <div v-if="food.stationLabels.length" class="stations">
+                                {{ food.stationLabels.join(' · ') }}
+                            </div>
+                        </article>
+                    </div>
+                </section>
+            </div>
+        </n-spin>
+    </div>
+</template>
+
+<script>
+import { h } from 'vue';
+import { NButton, NDropdown, NIcon, NImage, NTag, NTooltip } from 'naive-ui';
+import { Plus } from '@vicons/fa';
+import { mapState, mapGetters, mapActions } from 'pinia';
+import { useIcarusStore } from '@/store/icarus';
+import { GAME_ASSETS_URL } from '@/constants/common';
+
+const DEFAULT_FILTERS = () => ({
+    search: '',
+    sources: { craft: true, gather: true, mission: true, shop: true, workshop: true },
+    tier: [0, 5],
+    food: [0, 400],
+    water: [0, 400],
+    duration: [0, 400],
+    buffKeys: [],
+    buffLimits: {},
+    buffMatchMode: 'and',
+    hasBuffOnly: false,
+    hasNegativeOnly: false,
+});
+
+const compareNullableNumber = (a, b, direction = 1) => {
+    const left = a == null ? Number.NEGATIVE_INFINITY : a;
+    const right = b == null ? Number.NEGATIVE_INFINITY : b;
+    if (left === right) return 0;
+    return left < right ? -direction : direction;
+};
+
+/** Stomach slot cost is on almost every buff food — skip as its own column / filter limit. */
+const SKIP_BUFF_COLUMN_KEYS = new Set(['BaseFoodStomachSlots_+']);
+
+const shortStatLabel = (display, key) => {
+    const base = (display || key || '').replace(/^[+-]?\d+%?\s*/, '').trim();
+    return base || key;
+};
+
+const formatStatCellValue = (key, value) => {
+    if (value == null || Number.isNaN(value)) return null;
+    if (key.endsWith('_?')) return value ? '✓' : null;
+    const isPct = key.includes('%');
+    const sign = value > 0 ? '+' : '';
+    return `${sign}${value}${isPct ? '%' : ''}`;
+};
+
+const getGrantedStat = (food, key) => (food.grantedStats || []).find((stat) => stat.key === key) ?? null;
+
+const getBuffValueBounds = (foods, key) => {
+    const values = [];
+    for (const food of foods) {
+        const stat = getGrantedStat(food, key);
+        if (stat && typeof stat.value === 'number') {
+            values.push(stat.value);
+        }
+    }
+    if (values.length === 0) {
+        return { min: 0, max: 1 };
+    }
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+    return { min, max: min === max ? min + 1 : max };
+};
+
+export default {
+    name: 'FoodExplore',
+    components: {
+        Plus,
+    },
+    data() {
+        return {
+            gameAssetsUrl: GAME_ASSETS_URL,
+            filters: DEFAULT_FILTERS(),
+            viewMode: 'cards',
+            sortBy: 'name',
+            sortOptions: [
+                { label: 'Name', value: 'name' },
+                { label: 'Food (high → low)', value: 'foodDesc' },
+                { label: 'Water (high → low)', value: 'waterDesc' },
+                { label: 'Buff duration', value: 'durationDesc' },
+                { label: 'Tier', value: 'tierAsc' },
+            ],
+            boundsReady: false,
+        };
+    },
+    computed: {
+        ...mapState(useIcarusStore, ['foodConsumables', 'isLoadingRecipes', 'recipeData']),
+        ...mapGetters(useIcarusStore, ['foodBuffStatOptions', 'planningTabs']),
+        addToCalculatorOptions() {
+            const tabChildren = this.planningTabs.map((tab) => ({
+                label: tab.title || 'Planning',
+                key: `tab:${tab.id}`,
+            }));
+            const options = [];
+            if (tabChildren.length > 0) {
+                options.push({
+                    type: 'group',
+                    label: 'Add to existing tab',
+                    key: 'existing-group',
+                    children: tabChildren,
+                });
+                options.push({ type: 'divider', key: 'd1' });
+            }
+            options.push({
+                label: 'Add to new tab',
+                key: 'new-tab',
+            });
+            return options;
+        },
+        foodBounds() {
+            const values = this.foodConsumables.map((f) => f.foodRecovery);
+            return { min: 0, max: Math.max(50, ...values, 0) };
+        },
+        waterBounds() {
+            const values = this.foodConsumables.map((f) => f.waterRecovery);
+            return { min: 0, max: Math.max(50, ...values, 0) };
+        },
+        durationBounds() {
+            const values = this.foodConsumables.map((f) => f.lifetimeMinutes).filter((v) => v != null);
+            return { min: 0, max: Math.max(30, ...values, 0) };
+        },
+        filteredFoods() {
+            const search = this.filters.search.trim().toLowerCase();
+            const selectedSources = Object.entries(this.filters.sources)
+                .filter(([, on]) => on)
+                .map(([key]) => key);
+            const [tierMin, tierMax] = this.filters.tier;
+            const [foodMin, foodMax] = this.filters.food;
+            const [waterMin, waterMax] = this.filters.water;
+            const [durMin, durMax] = this.filters.duration;
+            const buffKeys = this.filters.buffKeys ?? [];
+
+            return this.foodConsumables.filter((food) => {
+                if (!selectedSources.includes(food.acquisition)) return false;
+
+                const tier = food.tier ?? 0;
+                if (tier < tierMin || tier > tierMax) return false;
+                if (food.foodRecovery < foodMin || food.foodRecovery > foodMax) return false;
+                if (food.waterRecovery < waterMin || food.waterRecovery > waterMax) return false;
+
+                if (this.filters.hasBuffOnly && !food.hasBuff) return false;
+                if (this.filters.hasNegativeOnly && !food.hasNegativeStat) return false;
+
+                if (this.filters.hasBuffOnly && food.lifetimeMinutes != null) {
+                    const cappedMax = durMax >= this.durationBounds.max;
+                    if (food.lifetimeMinutes < durMin || (!cappedMax && food.lifetimeMinutes > durMax)) {
+                        return false;
+                    }
+                }
+
+                if (buffKeys.length > 0) {
+                    const matchesBuff = (key) => {
+                        const stat = getGrantedStat(food, key);
+                        if (!stat) return false;
+                        const bounds = getBuffValueBounds(this.foodConsumables, key);
+                        const range = this.filters.buffLimits[key] ?? [bounds.min, bounds.max];
+                        const value = stat.value ?? 0;
+                        return value >= range[0] && value <= range[1];
+                    };
+                    const matchMode = this.filters.buffMatchMode === 'or' ? 'or' : 'and';
+                    const ok = matchMode === 'or' ? buffKeys.some(matchesBuff) : buffKeys.every(matchesBuff);
+                    if (!ok) return false;
+                }
+
+                if (search) {
+                    const haystack = [
+                        food.label,
+                        food.description,
+                        food.modifierName,
+                        food.modifierDescription,
+                        ...food.allStats.map((s) => s.display),
+                        ...food.stationLabels,
+                    ]
+                        .filter(Boolean)
+                        .join(' ')
+                        .toLowerCase();
+                    if (!haystack.includes(search)) return false;
+                }
+
+                return true;
+            });
+        },
+        sortedFoods() {
+            const list = [...this.filteredFoods];
+            switch (this.sortBy) {
+                case 'foodDesc':
+                    list.sort((a, b) => b.foodRecovery - a.foodRecovery || a.label.localeCompare(b.label));
+                    break;
+                case 'waterDesc':
+                    list.sort((a, b) => b.waterRecovery - a.waterRecovery || a.label.localeCompare(b.label));
+                    break;
+                case 'durationDesc':
+                    list.sort((a, b) => (b.lifetimeMinutes ?? -1) - (a.lifetimeMinutes ?? -1) || a.label.localeCompare(b.label));
+                    break;
+                case 'tierAsc':
+                    list.sort((a, b) => (a.tier ?? 99) - (b.tier ?? 99) || a.label.localeCompare(b.label));
+                    break;
+                default:
+                    list.sort((a, b) => a.label.localeCompare(b.label));
+            }
+            return list;
+        },
+        selectedBuffLimitFilters() {
+            const labelByKey = new Map(this.foodBuffStatOptions.map((opt) => [opt.value, opt.label]));
+            return (this.filters.buffKeys ?? [])
+                .filter((key) => !SKIP_BUFF_COLUMN_KEYS.has(key))
+                .map((key) => {
+                    const bounds = getBuffValueBounds(this.foodConsumables, key);
+                    const span = bounds.max - bounds.min;
+                    return {
+                        key,
+                        label: labelByKey.get(key) || shortStatLabel(null, key),
+                        bounds,
+                        step: span > 50 ? 5 : 1,
+                    };
+                });
+        },
+        /** Per-effect value columns only for selected Buff effects. */
+        selectedBuffColumns() {
+            const labelByKey = new Map(this.foodBuffStatOptions.map((opt) => [opt.value, opt.label]));
+            return (this.filters.buffKeys ?? [])
+                .filter((key) => !SKIP_BUFF_COLUMN_KEYS.has(key))
+                .map((key) => ({
+                    key,
+                    label: labelByKey.get(key) || shortStatLabel(null, key),
+                }));
+        },
+        tableScrollX() {
+            const fixed = 52 + 200 + 120 + 70 + 80 + 80 + 90 + 260 + 140;
+            return fixed + this.selectedBuffColumns.length * 108;
+        },
+        tableColumns() {
+            const gameAssetsUrl = this.gameAssetsUrl;
+            const baseColumns = [
+                {
+                    title: '',
+                    key: 'icon',
+                    width: 52,
+                    fixed: 'left',
+                    render: (row) =>
+                        h(NImage, {
+                            width: 32,
+                            src: `${gameAssetsUrl}/ItemIcons/${row.iconPath}.png`,
+                            fallbackSrc: `${gameAssetsUrl}/Images/question-mark.png`,
+                            previewDisabled: true,
+                        }),
+                },
+                {
+                    title: 'Name',
+                    key: 'label',
+                    sorter: 'default',
+                    width: 200,
+                    ellipsis: { tooltip: false },
+                    fixed: 'left',
+                    render: (row) => {
+                        const tip = this.foodTooltip(row);
+                        const recipeId = this.craftRecipeId(row);
+                        const nameNode = h('span', { class: tip ? 'food-name food-name--hoverable' : 'food-name' }, row.label);
+                        const labeled = tip
+                            ? h(
+                                  NTooltip,
+                                  { trigger: 'hover', placement: 'top-start' },
+                                  {
+                                      trigger: () => nameNode,
+                                      default: () =>
+                                          h('div', { class: 'name-tooltip' }, [
+                                              row.description ? h('div', null, row.description) : null,
+                                              row.modifierDescription
+                                                  ? h('div', { class: row.description ? 'mt-1' : undefined }, row.modifierDescription)
+                                                  : null,
+                                          ]),
+                                  }
+                              )
+                            : nameNode;
+
+                        const children = [labeled];
+                        if (recipeId) {
+                            children.push(
+                                h(
+                                    NDropdown,
+                                    {
+                                        trigger: 'click',
+                                        placement: 'bottom-start',
+                                        options: this.addToCalculatorOptions,
+                                        onSelect: (key) => this.onAddToCalculator(key, row),
+                                    },
+                                    {
+                                        default: () =>
+                                            h(
+                                                NButton,
+                                                {
+                                                    class: 'add-calc-btn',
+                                                    size: 'tiny',
+                                                    quaternary: true,
+                                                    circle: true,
+                                                    type: 'primary',
+                                                    onClick: (e) => e.stopPropagation(),
+                                                },
+                                                {
+                                                    default: () => h(NIcon, { size: 12 }, { default: () => h(Plus) }),
+                                                }
+                                            ),
+                                    }
+                                )
+                            );
+                        }
+
+                        return h('div', { class: 'food-name-row' }, children);
+                    },
+                },
+                {
+                    title: 'Source',
+                    key: 'acquisition',
+                    sorter: 'default',
+                    width: 120,
+                    render: (row) =>
+                        h('div', { class: 'table-source-tags' }, [
+                            h(
+                                NTag,
+                                { size: 'small', bordered: false, type: this.acquisitionTagType(row.acquisition) },
+                                { default: () => this.acquisitionLabel(row.acquisition) }
+                            ),
+                            row.mission && row.acquisition !== 'mission'
+                                ? h(NTag, { size: 'small', bordered: false, type: 'primary' }, { default: () => 'Mission' })
+                                : null,
+                        ]),
+                },
+                {
+                    title: 'Tier',
+                    key: 'tier',
+                    sorter: (a, b) => compareNullableNumber(a.tier, b.tier),
+                    width: 70,
+                    render: (row) => (row.tier != null ? `T${row.tier}` : '—'),
+                },
+                {
+                    title: 'Food',
+                    key: 'foodRecovery',
+                    sorter: (a, b) => a.foodRecovery - b.foodRecovery,
+                    width: 80,
+                    render: (row) => (row.foodRecovery ? `+${row.foodRecovery}` : '—'),
+                },
+                {
+                    title: 'Water',
+                    key: 'waterRecovery',
+                    sorter: (a, b) => a.waterRecovery - b.waterRecovery,
+                    width: 80,
+                    render: (row) => (row.waterRecovery ? `+${row.waterRecovery}` : '—'),
+                },
+                {
+                    title: 'Duration',
+                    key: 'lifetimeMinutes',
+                    sorter: (a, b) => compareNullableNumber(a.lifetimeMinutes, b.lifetimeMinutes),
+                    width: 90,
+                    render: (row) => (row.lifetimeMinutes != null ? `${row.lifetimeMinutes}m` : '—'),
+                },
+                {
+                    title: 'Buffs / Debuffs',
+                    key: 'grantedStatsText',
+                    width: 260,
+                    ellipsis: { tooltip: true },
+                    sorter: (a, b) => a.grantedStats.length - b.grantedStats.length,
+                    render: (row) => {
+                        const stats = (row.grantedStats || []).filter((stat) => !SKIP_BUFF_COLUMN_KEYS.has(stat.key));
+                        if (!stats.length) {
+                            return h('span', { class: 'table-muted' }, '—');
+                        }
+                        return h(
+                            'div',
+                            { class: 'table-buff-text' },
+                            stats.map((stat, index) =>
+                                h('span', { class: this.statClass(stat.value) }, [
+                                    index > 0 ? h('span', { class: 'table-buff-sep' }, ' · ') : null,
+                                    stat.display || formatStatCellValue(stat.key, stat.value) || stat.key,
+                                ])
+                            )
+                        );
+                    },
+                },
+            ];
+
+            const buffColumns = this.selectedBuffColumns.map(({ key, label }) => ({
+                title: () =>
+                    h(
+                        NTooltip,
+                        { trigger: 'hover', placement: 'top' },
+                        {
+                            trigger: () => h('span', { class: 'buff-col-title' }, label),
+                            default: () => label,
+                        }
+                    ),
+                key: `buff:${key}`,
+                width: 108,
+                ellipsis: { tooltip: true },
+                sorter: (a, b) => {
+                    const left = getGrantedStat(a, key)?.value ?? null;
+                    const right = getGrantedStat(b, key)?.value ?? null;
+                    return compareNullableNumber(left, right);
+                },
+                render: (row) => {
+                    const stat = getGrantedStat(row, key);
+                    if (!stat) {
+                        return h('span', { class: 'table-muted' }, '—');
+                    }
+                    const text = formatStatCellValue(stat.key, stat.value) ?? '—';
+                    return h(
+                        NTooltip,
+                        { trigger: 'hover', placement: 'top' },
+                        {
+                            trigger: () => h('span', { class: ['buff-cell', this.statClass(stat.value)] }, text),
+                            default: () => stat.display || text,
+                        }
+                    );
+                },
+            }));
+
+            const stationColumn = {
+                title: 'Stations',
+                key: 'stationLabels',
+                width: 140,
+                ellipsis: { tooltip: true },
+                sorter: (a, b) => (a.stationLabels[0] || '').localeCompare(b.stationLabels[0] || ''),
+                render: (row) =>
+                    row.stationLabels.length
+                        ? h('span', { class: 'table-stations' }, row.stationLabels.join(', '))
+                        : h('span', { class: 'table-muted' }, '—'),
+            };
+
+            return [...baseColumns, ...buffColumns, stationColumn];
+        },
+    },
+    watch: {
+        foodConsumables: {
+            immediate: true,
+            handler(list) {
+                if (!list.length || this.boundsReady) return;
+                this.filters.food = [this.foodBounds.min, this.foodBounds.max];
+                this.filters.water = [this.waterBounds.min, this.waterBounds.max];
+                this.filters.duration = [this.durationBounds.min, this.durationBounds.max];
+                this.boundsReady = true;
+            },
+        },
+        'filters.buffKeys': {
+            handler(keys) {
+                this.syncBuffLimits(keys ?? []);
+            },
+        },
+    },
+    methods: {
+        ...mapActions(useIcarusStore, ['addItemToTab', 'openItemInNewTab']),
+        resetFilters() {
+            this.filters = DEFAULT_FILTERS();
+            this.filters.food = [this.foodBounds.min, this.foodBounds.max];
+            this.filters.water = [this.waterBounds.min, this.waterBounds.max];
+            this.filters.duration = [this.durationBounds.min, this.durationBounds.max];
+            this.boundsReady = true;
+        },
+        craftRecipeId(food) {
+            if (!food || food.acquisition !== 'craft') {
+                return null;
+            }
+            if (this.recipeData[food.id]) {
+                return food.id;
+            }
+            if (food.staticItemName && this.recipeData[food.staticItemName]) {
+                return food.staticItemName;
+            }
+            return null;
+        },
+        onAddToCalculator(key, food) {
+            const recipeId = this.craftRecipeId(food);
+            if (!recipeId) {
+                return;
+            }
+            if (key === 'new-tab') {
+                this.openItemInNewTab(recipeId);
+                return;
+            }
+            if (typeof key === 'string' && key.startsWith('tab:')) {
+                const tabId = key.slice(4);
+                // Tab ids may be numbers (from Date.now) — coerce when possible
+                const numericId = Number(tabId);
+                this.addItemToTab(recipeId, Number.isNaN(numericId) ? tabId : numericId);
+            }
+        },
+        syncBuffLimits(keys) {
+            const next = { ...this.filters.buffLimits };
+            const selected = new Set(keys);
+            for (const key of Object.keys(next)) {
+                if (!selected.has(key)) {
+                    delete next[key];
+                }
+            }
+            for (const key of keys) {
+                const bounds = getBuffValueBounds(this.foodConsumables, key);
+                const existing = next[key];
+                if (!existing || existing.length !== 2) {
+                    next[key] = [bounds.min, bounds.max];
+                } else {
+                    next[key] = [
+                        Math.max(bounds.min, Math.min(existing[0], bounds.max)),
+                        Math.max(bounds.min, Math.min(existing[1], bounds.max)),
+                    ];
+                }
+            }
+            this.filters.buffLimits = next;
+        },
+        formatBuffLimitDisplay(buff) {
+            const range = this.filters.buffLimits[buff.key] ?? [buff.bounds.min, buff.bounds.max];
+            const left = formatStatCellValue(buff.key, range[0]) ?? range[0];
+            const right = formatStatCellValue(buff.key, range[1]) ?? range[1];
+            return `${left} – ${right}`;
+        },
+        foodTooltip(food) {
+            return [food.description, food.modifierDescription].filter(Boolean).join('\n') || '';
+        },
+        acquisitionLabel(acquisition) {
+            return (
+                { craft: 'Craft', gather: 'Gather', mission: 'Mission', shop: 'Shop', workshop: 'Workshop' }[acquisition] ??
+                acquisition
+            );
+        },
+        acquisitionTagType(acquisition) {
+            return (
+                { craft: 'success', gather: 'warning', mission: 'primary', shop: 'info', workshop: 'error' }[acquisition] ??
+                'default'
+            );
+        },
+        otherInstantStats(food) {
+            return food.instantStats.filter((stat) => !/FoodRecovery|WaterRecovery/.test(stat.key));
+        },
+        statClass(value) {
+            if (typeof value !== 'number') return '';
+            if (value < 0) return 'is-neg';
+            if (value > 0) return 'is-pos';
+            return '';
+        },
+    },
+};
+</script>
+
+<style scoped lang="scss">
+.food-explore {
+    max-width: 100rem;
+    margin: 0 auto;
+}
+
+.explore-title {
+    font-size: 1.35rem;
+    font-weight: 700;
+}
+
+.explore-subtitle {
+    color: rgba(255, 255, 255, 0.55);
+    font-size: 0.9rem;
+}
+
+.explore-layout {
+    display: grid;
+    grid-template-columns: minmax(16rem, 20rem) minmax(0, 1fr);
+    gap: 1rem;
+    align-items: start;
+}
+
+.filters-panel {
+    position: sticky;
+    top: 3.25rem;
+}
+
+.filter-block {
+    margin-bottom: 1rem;
+}
+
+.filter-label {
+    display: block;
+    margin-bottom: 0.35rem;
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.65);
+}
+
+.filter-label-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 0.15rem;
+
+    .filter-label {
+        margin-bottom: 0;
+    }
+}
+
+.filter-range-value {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.45);
+    font-variant-numeric: tabular-nums;
+}
+
+.toggle-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.35rem 0.75rem;
+}
+
+.buff-match-hint {
+    margin-top: 0.35rem;
+    font-size: 0.72rem;
+    color: rgba(255, 255, 255, 0.45);
+}
+
+.buff-limit-filters {
+    margin-top: 0.75rem;
+    padding-top: 0.65rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.buff-limit-block {
+    margin-bottom: 0.75rem;
+
+    &:last-child {
+        margin-bottom: 0;
+    }
+}
+
+.toggles .toggle-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.55rem;
+    font-size: 0.85rem;
+}
+
+.sort-select {
+    width: 12rem;
+}
+
+.empty-state {
+    padding: 2rem;
+    text-align: center;
+    color: rgba(255, 255, 255, 0.45);
+    font-style: italic;
+}
+
+.food-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));
+    gap: 0.75rem;
+}
+
+.food-card {
+    padding: 0.85rem;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 6px;
+}
+
+.food-icon {
+    margin-right: 0.75rem;
+    flex-shrink: 0;
+}
+
+.food-name {
+    font-weight: 650;
+    line-height: 1.25;
+    margin-bottom: 0;
+
+    &--hoverable {
+        cursor: help;
+        border-bottom: 1px dotted rgba(255, 255, 255, 0.35);
+        width: fit-content;
+    }
+}
+
+.food-name-row {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    margin-bottom: 0.35rem;
+    min-width: 0;
+
+    .food-name {
+        margin-bottom: 0;
+        min-width: 0;
+    }
+}
+
+.add-calc-btn {
+    flex-shrink: 0;
+}
+
+.food-tags {
+    gap: 0.3rem;
+}
+
+.stat-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    margin-top: 0.65rem;
+}
+
+.stat-pill {
+    font-size: 0.75rem;
+    padding: 0.15rem 0.45rem;
+    border-radius: 3px;
+    background: rgba(255, 255, 255, 0.06);
+
+    &.food {
+        color: #a8e6a3;
+        background: rgba(99, 180, 90, 0.15);
+    }
+
+    &.water {
+        color: #8ec8f0;
+        background: rgba(70, 140, 200, 0.15);
+    }
+
+    &.is-neg {
+        color: #f0a0a0;
+    }
+
+    &.is-pos {
+        color: #a8e6a3;
+    }
+}
+
+.buff-list {
+    margin: 0.5rem 0 0;
+    padding-left: 1.1rem;
+    font-size: 0.8rem;
+    line-height: 1.45;
+
+    .is-pos {
+        color: #a8e6a3;
+    }
+
+    .is-neg {
+        color: #f0a0a0;
+    }
+}
+
+.stations {
+    margin-top: 0.55rem;
+    font-size: 0.72rem;
+    color: rgba(255, 255, 255, 0.4);
+}
+
+.food-table {
+    :deep(.n-data-table-th) {
+        white-space: nowrap;
+    }
+
+    :deep(.food-name) {
+        margin-bottom: 0;
+    }
+
+    :deep(.food-name-row) {
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+        margin-bottom: 0;
+    }
+
+    :deep(.add-calc-btn) {
+        flex-shrink: 0;
+    }
+
+    :deep(.buff-col-title) {
+        display: inline-block;
+        max-width: 5.5rem;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        vertical-align: bottom;
+        font-size: 0.75rem;
+        line-height: 1.2;
+        white-space: normal;
+    }
+
+    :deep(.buff-cell) {
+        font-variant-numeric: tabular-nums;
+        font-size: 0.8rem;
+        font-weight: 600;
+
+        &.is-pos {
+            color: #a8e6a3;
+        }
+
+        &.is-neg {
+            color: #f0a0a0;
+        }
+    }
+
+    :deep(.table-buff-text) {
+        font-size: 0.78rem;
+        line-height: 1.35;
+        white-space: normal;
+
+        .is-pos {
+            color: #a8e6a3;
+        }
+
+        .is-neg {
+            color: #f0a0a0;
+        }
+    }
+
+    :deep(.table-buff-sep) {
+        color: rgba(255, 255, 255, 0.35);
+    }
+
+    :deep(.table-buff-list) {
+        margin: 0;
+        padding-left: 1rem;
+        font-size: 0.78rem;
+        line-height: 1.4;
+
+        .is-pos {
+            color: #a8e6a3;
+        }
+
+        .is-neg {
+            color: #f0a0a0;
+        }
+    }
+
+    :deep(.table-stations) {
+        font-size: 0.78rem;
+        color: rgba(255, 255, 255, 0.55);
+    }
+
+    :deep(.table-source-tags) {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.3rem;
+        align-items: center;
+    }
+
+    :deep(.table-muted) {
+        color: rgba(255, 255, 255, 0.35);
+    }
+}
+
+.name-tooltip {
+    max-width: 20rem;
+    line-height: 1.4;
+}
+
+@media (max-width: 900px) {
+    .explore-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .filters-panel {
+        position: static;
+    }
+}
+</style>

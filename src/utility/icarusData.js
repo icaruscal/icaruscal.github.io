@@ -517,3 +517,61 @@ function postProcessData(recipeData = {}) {
     }
     return recipeData;
 }
+
+const FOOD_WATER_STAT_RE = /FoodRecovery|WaterRecovery/;
+
+const getStatValue = (stats = [], key) => stats.find((stat) => stat.key === key)?.value ?? null;
+
+/**
+ * Edible food/drink rows from the catalog (instant Food or Water recovery).
+ * Includes craft, gather, shop, and workshop sources.
+ */
+export function buildFoodConsumables(catalog = {}) {
+    const items = catalog.items ?? {};
+    const stations = catalog.stations ?? {};
+    const foods = [];
+
+    for (const recipe of catalog.recipes ?? []) {
+        const instantStats = recipe.instantStats ?? [];
+        if (!instantStats.some((stat) => FOOD_WATER_STAT_RE.test(stat.key))) {
+            continue;
+        }
+
+        const item = recipe.staticItemName ? items[recipe.staticItemName] : null;
+        const grantedStats = recipe.modifier?.grantedStats ?? [];
+        const allStats = [...instantStats, ...grantedStats];
+        const foodRecovery = getStatValue(instantStats, 'BaseFoodRecovery_+') ?? 0;
+        const waterRecovery = getStatValue(instantStats, 'BaseWaterRecovery_+') ?? 0;
+        const lifetimeSeconds = recipe.modifier?.lifetimeSeconds ?? null;
+        const stationLabels = (recipe.stations ?? []).map((id) => stations[id]?.displayName ?? stations[id]?.recipeSetDisplayName ?? id);
+
+        foods.push({
+            id: recipe.id,
+            staticItemName: recipe.staticItemName ?? null,
+            label: getItemLabel(recipe.id, { displayName: recipe.displayName ?? item?.displayName }),
+            description: recipe.description ?? item?.description ?? null,
+            iconPath: recipe.iconPath ?? item?.iconPath ?? '',
+            acquisition: recipe.acquisition ?? 'craft',
+            mission: Boolean(recipe.mission || item?.mission || recipe.acquisition === 'mission'),
+            tier: recipe.tier?.value ?? null,
+            stations: recipe.stations ?? [],
+            stationLabels,
+            instantStats,
+            grantedStats,
+            allStats,
+            foodRecovery,
+            waterRecovery,
+            hasBuff: grantedStats.length > 0,
+            hasNegativeStat: allStats.some((stat) => typeof stat.value === 'number' && stat.value < 0),
+            hasPositiveBuff: grantedStats.some((stat) => typeof stat.value === 'number' && stat.value > 0 && stat.key !== 'BaseFoodStomachSlots_+'),
+            lifetimeSeconds,
+            lifetimeMinutes: lifetimeSeconds != null ? Math.round(lifetimeSeconds / 60) : null,
+            modifierName: recipe.modifier?.displayName ?? recipe.modifier?.name ?? null,
+            modifierDescription: recipe.modifier?.description ?? null,
+            grantedStatKeys: grantedStats.map((stat) => stat.key),
+        });
+    }
+
+    foods.sort((a, b) => a.label.localeCompare(b.label));
+    return foods;
+}

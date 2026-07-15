@@ -1,16 +1,18 @@
 {
   "meta": {
-    "generatedAt": "2026-07-15T06:33:47.094Z",
+    "generatedAt": "2026-07-15T07:35:33.240Z",
     "exportPath": "/mnt/d/IC_Export",
     "dataRoot": "/mnt/d/IC_Export/data",
-    "recipeCount": 2538,
+    "recipeCount": 2584,
     "craftCount": 2164,
-    "withGrantedStatsCount": 363,
+    "gatherCount": 44,
+    "missionCount": 23,
+    "withGrantedStatsCount": 409,
     "purchasableCount": 374,
     "shopCount": 40,
     "workshopCount": 334,
-    "itemCount": 2504,
-    "rawMaterialCount": 626,
+    "itemCount": 2521,
+    "rawMaterialCount": 643,
     "gatherFirstCount": 27,
     "stationCount": 68,
     "unknownTierCount": 59,
@@ -26,10 +28,10 @@
       "missing_static_item": 10
     },
     "notes": {
-      "usage": "Load recipes (filter acquisition===craft) for the calculator. Resolve ingredient/output display via items[staticItemName] (or items[ingredientId]). Multi-output recipes set items[*].recipeIds for every Outputs entry and include recipes[].outputs with per-output counts (use that count when the tree targets a secondary product). ResourceInputs become ingredients with table \"Resource\" (e.g. Water). Resolve station labels via stations[id].displayName (Processing remaps RecipeSet→deployable when ids differ, e.g. Cleaning_Device→T3_Cleaning_Device). Use stations[id].craftRecipeId to craft the station. Walk trees with items[id].recipeIds; missing/empty recipeIds = raw; items with gatherFirst=true are world-gather primary (Ore/Wood/…) — treat as terminal even when recipeIds lists conversion recipes (Quarrite armor → ore, Pyritic crust, Frozen_Ore). First id is a reasonable default when multiple recipes share an output. Absent null/[] fields are defaults.",
+      "usage": "Load recipes (filter acquisition===craft) for the calculator. Resolve ingredient/output display via items[staticItemName] (or items[ingredientId]). Multi-output recipes set items[*].recipeIds for every Outputs entry and include recipes[].outputs with per-output counts (use that count when the tree targets a secondary product). ResourceInputs become ingredients with table \"Resource\" (e.g. Water). Resolve station labels via stations[id].displayName (Processing remaps RecipeSet→deployable when ids differ, e.g. Cleaning_Device→T3_Cleaning_Device). Use stations[id].craftRecipeId to craft the station. Walk trees with items[id].recipeIds; missing/empty recipeIds = raw; items with gatherFirst=true are world-gather primary (Ore/Wood/…) — treat as terminal even when recipeIds lists conversion recipes (Quarrite armor → ore, Pyritic crust, Frozen_Ore). First id is a reasonable default when multiple recipes share an output. Absent null/[] fields are defaults. Food Explore: recipes with instant Food/Water recovery (includes acquisition===gather for world edibles; acquisition===mission / mission:true for FactionMission.* items).",
       "tier0": "Tier 0 means available without a Blueprint_T* unlock (default / Character crafting).",
       "stationDeduction": "If a recipe has no Requirement, tier is the minimum tier among its RecipeSets stations.",
-      "acquisition": "'craft' = normal recipe; 'shop' = bought in-world with currency (see purchase.shop); 'workshop' = orbital workshop item (see purchase.workshop). Purchase-only items have no tier/station.",
+      "acquisition": "'craft' = normal recipe; 'gather' = world edible with Consumable but no craft/shop/workshop recipe; 'mission' = FactionMission-tagged edible with no craft recipe (often shares a display name with a craftable variant); 'shop' = bought in-world with currency (see purchase.shop); 'workshop' = orbital workshop item (see purchase.workshop). Purchase-only items have no tier/station. mission:true marks FactionMission.* items on any acquisition.",
       "iconPath": "Ready for `${gameAssetsUrl}/ItemIcons/${iconPath}.png`. Omitting iconPath means none / outside Item_Icons.",
       "review": "meta.reviewQueueCount / flagSummary. Filter recipes whose flags intersect REVIEW_FLAGS for a review list."
     }
@@ -125,6 +127,42 @@
       ],
       "tier": {
         "method": "purchase_only"
+      }
+    },
+    {
+      "id": "Agave",
+      "acquisition": "gather",
+      "staticItemName": "Agave",
+      "outputCount": 1,
+      "consumableName": "Raw_Food",
+      "instantStats": [
+        {
+          "key": "BaseFoodRecovery_+",
+          "value": 20,
+          "display": "+20 Food when Consumed"
+        }
+      ],
+      "modifier": {
+        "name": "Raw_Food",
+        "displayName": "Raw Food",
+        "description": "Slight health boost.",
+        "lifetimeSeconds": 60,
+        "grantedStats": [
+          {
+            "key": "BaseFoodStomachSlots_+",
+            "value": 1,
+            "display": "Consumes 1 Space in Stomach"
+          },
+          {
+            "key": "BaseMaximumHealth_+",
+            "value": 30,
+            "display": "+30 Maximum Health"
+          }
+        ]
+      },
+      "tier": {
+        "value": 0,
+        "method": "default_unlocked"
       }
     },
     {
@@ -1030,6 +1068,42 @@
       }
     },
     {
+      "id": "Avocado",
+      "acquisition": "gather",
+      "staticItemName": "Avocado",
+      "outputCount": 1,
+      "consumableName": "Raw_Food",
+      "instantStats": [
+        {
+          "key": "BaseFoodRecovery_+",
+          "value": 20,
+          "display": "+20 Food when Consumed"
+        }
+      ],
+      "modifier": {
+        "name": "Raw_Food",
+        "displayName": "Raw Food",
+        "description": "Slight health boost.",
+        "lifetimeSeconds": 60,
+        "grantedStats": [
+          {
+            "key": "BaseFoodStomachSlots_+",
+            "value": 1,
+            "display": "Consumes 1 Space in Stomach"
+          },
+          {
+            "key": "BaseMaximumHealth_+",
+            "value": 30,
+            "display": "+30 Maximum Health"
+          }
+        ]
+      },
+      "tier": {
+        "value": 0,
+        "method": "default_unlocked"
+      }
+    },
+    {
       "id": "Bacon_Sandwich",
       "acquisition": "craft",
       "templateName": "Bacon_Sandwhich",
@@ -1123,6 +1197,47 @@
       "flags": [
         "multi_station_tiers"
       ]
+    },
+    {
+      "id": "Banana",
+      "acquisition": "gather",
+      "staticItemName": "Banana",
+      "outputCount": 1,
+      "consumableName": "Food_Banana",
+      "instantStats": [
+        {
+          "key": "BaseFoodRecovery_+",
+          "value": 10,
+          "display": "+10 Food when Consumed"
+        }
+      ],
+      "modifier": {
+        "name": "Banana",
+        "displayName": "Banana",
+        "description": "Boosts stamina for a short time.",
+        "lifetimeSeconds": 600,
+        "grantedStats": [
+          {
+            "key": "BaseFoodStomachSlots_+",
+            "value": 1,
+            "display": "Consumes 1 Space in Stomach"
+          },
+          {
+            "key": "BaseMaximumStamina_+",
+            "value": 100,
+            "display": "+100 Maximum Stamina"
+          },
+          {
+            "key": "BaseFoodConsumption_+%",
+            "value": -10,
+            "display": "-10% Food Consumption"
+          }
+        ]
+      },
+      "tier": {
+        "value": 0,
+        "method": "default_unlocked"
+      }
     },
     {
       "id": "Food_Banana_Bread",
@@ -3181,6 +3296,42 @@
       }
     },
     {
+      "id": "Carrot",
+      "acquisition": "gather",
+      "staticItemName": "Carrot",
+      "outputCount": 1,
+      "consumableName": "Raw_Food",
+      "instantStats": [
+        {
+          "key": "BaseFoodRecovery_+",
+          "value": 20,
+          "display": "+20 Food when Consumed"
+        }
+      ],
+      "modifier": {
+        "name": "Raw_Food",
+        "displayName": "Raw Food",
+        "description": "Slight health boost.",
+        "lifetimeSeconds": 60,
+        "grantedStats": [
+          {
+            "key": "BaseFoodStomachSlots_+",
+            "value": 1,
+            "display": "Consumes 1 Space in Stomach"
+          },
+          {
+            "key": "BaseMaximumHealth_+",
+            "value": 30,
+            "display": "+30 Maximum Health"
+          }
+        ]
+      },
+      "tier": {
+        "value": 0,
+        "method": "default_unlocked"
+      }
+    },
+    {
       "id": "Carrot_Cake",
       "acquisition": "craft",
       "templateName": "Carrot_Cake",
@@ -3294,6 +3445,72 @@
             "talentName": "Electric_Stove"
           }
         ]
+      }
+    },
+    {
+      "id": "Carrot_Cake_Piece",
+      "acquisition": "gather",
+      "staticItemName": "Carrot_Cake_Piece",
+      "outputCount": 1,
+      "consumableName": "Carrot_Cake_Piece",
+      "instantStats": [
+        {
+          "key": "BaseFoodRecovery_+",
+          "value": 200,
+          "display": "+200 Food when Consumed"
+        }
+      ],
+      "modifier": {
+        "name": "Carrot_Cake_Piece",
+        "displayName": "Carrot Cake Piece",
+        "description": "A rich cake, good for ranged combat.",
+        "lifetimeSeconds": 1200,
+        "grantedStats": [
+          {
+            "key": "BaseFoodStomachSlots_+",
+            "value": 1,
+            "display": "Consumes 1 Space in Stomach"
+          },
+          {
+            "key": "BaseMaximumHealth_+",
+            "value": 100,
+            "display": "+100 Maximum Health"
+          },
+          {
+            "key": "BaseMaximumStamina_+",
+            "value": 100,
+            "display": "+100 Maximum Stamina"
+          },
+          {
+            "key": "BaseExperience_+%",
+            "value": 25,
+            "display": "+25% Experience Gained"
+          },
+          {
+            "key": "BaseChargeSpeed_+%",
+            "value": 30,
+            "display": "+30% Charge Speed"
+          },
+          {
+            "key": "BaseReloadSpeed_+%",
+            "value": 30,
+            "display": "+30% Reload Speed"
+          },
+          {
+            "key": "BaseHealthRegen_+%",
+            "value": 50,
+            "display": "+50% Health Regeneration"
+          },
+          {
+            "key": "BaseProjectileDamage_+%",
+            "value": 30,
+            "display": "+30% Projectile Damage"
+          }
+        ]
+      },
+      "tier": {
+        "value": 0,
+        "method": "default_unlocked"
       }
     },
     {
@@ -4134,6 +4351,67 @@
       }
     },
     {
+      "id": "Chocolate_Cake_Piece",
+      "acquisition": "gather",
+      "staticItemName": "Chocolate_Cake_Piece",
+      "outputCount": 1,
+      "consumableName": "Chocolate_Cake_Piece",
+      "instantStats": [
+        {
+          "key": "BaseFoodRecovery_+",
+          "value": 200,
+          "display": "+200 Food when Consumed"
+        }
+      ],
+      "modifier": {
+        "name": "Chocolate_Cake_Piece",
+        "displayName": "Chocolate Cake Piece",
+        "description": "A decadent cake, good for health and regen.",
+        "lifetimeSeconds": 1200,
+        "grantedStats": [
+          {
+            "key": "BaseFoodStomachSlots_+",
+            "value": 1,
+            "display": "Consumes 1 Space in Stomach"
+          },
+          {
+            "key": "BaseMaximumHealth_+",
+            "value": 300,
+            "display": "+300 Maximum Health"
+          },
+          {
+            "key": "BaseMaximumStamina_+",
+            "value": 200,
+            "display": "+200 Maximum Stamina"
+          },
+          {
+            "key": "BaseExperience_+%",
+            "value": 25,
+            "display": "+25% Experience Gained"
+          },
+          {
+            "key": "BaseStaminaRegen_+%",
+            "value": 200,
+            "display": "+200% Stamina Regeneration"
+          },
+          {
+            "key": "BaseHealthRegen_+%",
+            "value": 200,
+            "display": "+200% Health Regeneration"
+          },
+          {
+            "key": "BaseFoodConsumption_+%",
+            "value": -15,
+            "display": "-15% Food Consumption"
+          }
+        ]
+      },
+      "tier": {
+        "value": 0,
+        "method": "default_unlocked"
+      }
+    },
+    {
       "id": "Smoked_Soft_Meat",
       "acquisition": "craft",
       "templateName": "Smoked_Soft_Meat",
@@ -4331,6 +4609,67 @@
             "talentName": "Electric_Stove"
           }
         ]
+      }
+    },
+    {
+      "id": "Coconut_Cake_Piece",
+      "acquisition": "gather",
+      "staticItemName": "Coconut_Cake_Piece",
+      "outputCount": 1,
+      "consumableName": "Coconut_Cake_Piece",
+      "instantStats": [
+        {
+          "key": "BaseFoodRecovery_+",
+          "value": 200,
+          "display": "+200 Food when Consumed"
+        }
+      ],
+      "modifier": {
+        "name": "Coconut_Cake_Piece",
+        "displayName": "Coconut Cake Piece",
+        "description": "A light cake good for crafting and using tools. ",
+        "lifetimeSeconds": 1200,
+        "grantedStats": [
+          {
+            "key": "BaseFoodStomachSlots_+",
+            "value": 1,
+            "display": "Consumes 1 Space in Stomach"
+          },
+          {
+            "key": "BaseMaximumHealth_+",
+            "value": 250,
+            "display": "+250 Maximum Health"
+          },
+          {
+            "key": "BaseMaximumStamina_+",
+            "value": 250,
+            "display": "+250 Maximum Stamina"
+          },
+          {
+            "key": "BaseExperience_+%",
+            "value": 25,
+            "display": "+25% Experience Gained"
+          },
+          {
+            "key": "BaseToolStaminaActionCost_+%",
+            "value": -40,
+            "display": "-40% Stamina Consumed by Tool Actions"
+          },
+          {
+            "key": "BaseHealthRegen_+%",
+            "value": 50,
+            "display": "+50% Health Regeneration"
+          },
+          {
+            "key": "BaseCraftingSpeed_+%",
+            "value": 50,
+            "display": "+50% Crafting Speed"
+          }
+        ]
+      },
+      "tier": {
+        "value": 0,
+        "method": "default_unlocked"
       }
     },
     {
@@ -4726,6 +5065,62 @@
       "flags": [
         "multi_station_tiers"
       ]
+    },
+    {
+      "id": "Fatty_Tbone_Cooked",
+      "acquisition": "gather",
+      "staticItemName": "Fatty_Tbone_Cooked",
+      "outputCount": 1,
+      "consumableName": "Cooked_Fatty_TBone",
+      "instantStats": [
+        {
+          "key": "BaseFoodRecovery_+",
+          "value": 150,
+          "display": "+150 Food when Consumed"
+        },
+        {
+          "key": "BaseHealthRecovery_+",
+          "value": 30,
+          "display": "+30 Health when Consumed"
+        }
+      ],
+      "modifier": {
+        "name": "Cooked_Fatty_TBone",
+        "displayName": "Cooked Fatty T-Bone",
+        "description": "Boosts your stamina, health and meat harvested.",
+        "lifetimeSeconds": 600,
+        "grantedStats": [
+          {
+            "key": "BaseFoodStomachSlots_+",
+            "value": 1,
+            "display": "Consumes 1 Space in Stomach"
+          },
+          {
+            "key": "BaseMaximumStamina_+",
+            "value": 100,
+            "display": "+100 Maximum Stamina"
+          },
+          {
+            "key": "BaseMaximumHealth_+",
+            "value": 150,
+            "display": "+150 Maximum Health"
+          },
+          {
+            "key": "BaseMeatHarvestedFromAnimals_+%",
+            "value": 40,
+            "display": "+40% Yield from Butchering Animals"
+          },
+          {
+            "key": "BaseExperience_+%",
+            "value": 5,
+            "display": "+5% Experience Gained"
+          }
+        ]
+      },
+      "tier": {
+        "value": 0,
+        "method": "default_unlocked"
+      }
     },
     {
       "id": "Cooked_Gamey_Meat",
@@ -5728,6 +6123,42 @@
       ]
     },
     {
+      "id": "Corn",
+      "acquisition": "gather",
+      "staticItemName": "Corn",
+      "outputCount": 1,
+      "consumableName": "Raw_Food",
+      "instantStats": [
+        {
+          "key": "BaseFoodRecovery_+",
+          "value": 20,
+          "display": "+20 Food when Consumed"
+        }
+      ],
+      "modifier": {
+        "name": "Raw_Food",
+        "displayName": "Raw Food",
+        "description": "Slight health boost.",
+        "lifetimeSeconds": 60,
+        "grantedStats": [
+          {
+            "key": "BaseFoodStomachSlots_+",
+            "value": 1,
+            "display": "Consumes 1 Space in Stomach"
+          },
+          {
+            "key": "BaseMaximumHealth_+",
+            "value": 30,
+            "display": "+30 Maximum Health"
+          }
+        ]
+      },
+      "tier": {
+        "value": 0,
+        "method": "default_unlocked"
+      }
+    },
+    {
       "id": "Food_Creamed_Corn",
       "acquisition": "craft",
       "templateName": "Creamed_Corn",
@@ -6151,6 +6582,57 @@
         "method": "recipe_requirement",
         "talentName": "CreatureComforts",
         "talentTree": "Blueprint_T2_Crafting"
+      }
+    },
+    {
+      "id": "Food_Crumbed_Fish_Fillet",
+      "acquisition": "gather",
+      "staticItemName": "Food_Crumbed_Fish_Fillet",
+      "outputCount": 1,
+      "consumableName": "Crumbed_Fish_Fillet",
+      "instantStats": [
+        {
+          "key": "BaseFoodRecovery_+",
+          "value": 150,
+          "display": "+150 Food when Consumed"
+        }
+      ],
+      "modifier": {
+        "name": "Crumbed_Fish",
+        "displayName": "Crumbed Fish",
+        "description": "Boosts health and stamina.",
+        "lifetimeSeconds": 1200,
+        "grantedStats": [
+          {
+            "key": "BaseFoodStomachSlots_+",
+            "value": 1,
+            "display": "Consumes 1 Space in Stomach"
+          },
+          {
+            "key": "BaseMaximumHealth_+",
+            "value": 150,
+            "display": "+150 Maximum Health"
+          },
+          {
+            "key": "BaseMaximumStamina_+",
+            "value": 75,
+            "display": "+75 Maximum Stamina"
+          },
+          {
+            "key": "BaseStaminaRegen_+%",
+            "value": 15,
+            "display": "+15% Stamina Regeneration"
+          },
+          {
+            "key": "BaseExperience_+%",
+            "value": 10,
+            "display": "+10% Experience Gained"
+          }
+        ]
+      },
+      "tier": {
+        "value": 0,
+        "method": "default_unlocked"
       }
     },
     {
@@ -7063,6 +7545,57 @@
         "partial_station_tier_gaps",
         "missing_station_talent"
       ]
+    },
+    {
+      "id": "Fatty_Tbone_Dried",
+      "acquisition": "gather",
+      "staticItemName": "Fatty_Tbone_Dried",
+      "outputCount": 1,
+      "consumableName": "Dried_Fatty_Tbone",
+      "instantStats": [
+        {
+          "key": "BaseFoodRecovery_+",
+          "value": 150,
+          "display": "+150 Food when Consumed"
+        },
+        {
+          "key": "BaseHealthRecovery_+",
+          "value": 30,
+          "display": "+30 Health when Consumed"
+        }
+      ],
+      "modifier": {
+        "name": "Dried_Fatty_Tbone",
+        "displayName": "Dried Fatty T-Bone",
+        "description": "Boosts health, meat yield from animals, and slows hunger",
+        "lifetimeSeconds": 1200,
+        "grantedStats": [
+          {
+            "key": "BaseFoodStomachSlots_+",
+            "value": 1,
+            "display": "Consumes 1 Space in Stomach"
+          },
+          {
+            "key": "BaseMaximumHealth_+",
+            "value": 75,
+            "display": "+75 Maximum Health"
+          },
+          {
+            "key": "BaseMeatHarvestedFromAnimals_+%",
+            "value": 25,
+            "display": "+25% Yield from Butchering Animals"
+          },
+          {
+            "key": "BaseFoodConsumption_+%",
+            "value": -25,
+            "display": "-25% Food Consumption"
+          }
+        ]
+      },
+      "tier": {
+        "value": 0,
+        "method": "default_unlocked"
+      }
     },
     {
       "id": "Dried_Freshwater_Fillet",
@@ -8361,6 +8894,52 @@
             "tier": 0
           }
         ]
+      }
+    },
+    {
+      "id": "Food_Fish_Dish",
+      "acquisition": "gather",
+      "staticItemName": "Food_Fish_Dish",
+      "outputCount": 1,
+      "consumableName": "Fish_Dish",
+      "instantStats": [
+        {
+          "key": "BaseFoodRecovery_+",
+          "value": 100,
+          "display": "+100 Food when Consumed"
+        }
+      ],
+      "modifier": {
+        "name": "Fish_Dish",
+        "displayName": "Fish Curry",
+        "description": "Large health boost.",
+        "lifetimeSeconds": 900,
+        "grantedStats": [
+          {
+            "key": "BaseFoodStomachSlots_+",
+            "value": 1,
+            "display": "Consumes 1 Space in Stomach"
+          },
+          {
+            "key": "BaseMaximumHealth_+",
+            "value": 225,
+            "display": "+225 Maximum Health"
+          },
+          {
+            "key": "BaseHealthRegen_+%",
+            "value": 10,
+            "display": "+10% Health Regeneration"
+          },
+          {
+            "key": "BaseStaminaRegen_+%",
+            "value": 10,
+            "display": "+10% Stamina Regeneration"
+          }
+        ]
+      },
+      "tier": {
+        "value": 0,
+        "method": "default_unlocked"
       }
     },
     {
@@ -9992,6 +10571,42 @@
       }
     },
     {
+      "id": "Garlic",
+      "acquisition": "gather",
+      "staticItemName": "Garlic",
+      "outputCount": 1,
+      "consumableName": "Raw_Food",
+      "instantStats": [
+        {
+          "key": "BaseFoodRecovery_+",
+          "value": 20,
+          "display": "+20 Food when Consumed"
+        }
+      ],
+      "modifier": {
+        "name": "Raw_Food",
+        "displayName": "Raw Food",
+        "description": "Slight health boost.",
+        "lifetimeSeconds": 60,
+        "grantedStats": [
+          {
+            "key": "BaseFoodStomachSlots_+",
+            "value": 1,
+            "display": "Consumes 1 Space in Stomach"
+          },
+          {
+            "key": "BaseMaximumHealth_+",
+            "value": 30,
+            "display": "+30 Maximum Health"
+          }
+        ]
+      },
+      "tier": {
+        "value": 0,
+        "method": "default_unlocked"
+      }
+    },
+    {
       "id": "Food_Garlic_Bread",
       "acquisition": "craft",
       "templateName": "Garlic_Bread",
@@ -10675,6 +11290,42 @@
         "partial_station_tier_gaps",
         "missing_station_talent"
       ]
+    },
+    {
+      "id": "Thermos_WildTea",
+      "acquisition": "gather",
+      "staticItemName": "Thermos_WildTea",
+      "outputCount": 1,
+      "consumableName": "Thermos_WildTea_Drink",
+      "instantStats": [
+        {
+          "key": "BaseWaterRecovery_+",
+          "value": 300,
+          "display": "+300 Water when Consumed"
+        }
+      ],
+      "modifier": {
+        "name": "Thermos_WildTea_Modifier",
+        "displayName": "Gorse Tea",
+        "description": "Keeps you warm, slows thirst.",
+        "lifetimeSeconds": 900,
+        "grantedStats": [
+          {
+            "key": "BaseWaterConsumption_+%",
+            "value": -25,
+            "display": "-25% Water Consumption"
+          },
+          {
+            "key": "BaseInternalTemperatureModification_+",
+            "value": 1000,
+            "display": "+1000C to Temperature"
+          }
+        ]
+      },
+      "tier": {
+        "value": 0,
+        "method": "default_unlocked"
+      }
     },
     {
       "id": "Food_Grilled_Feshwater_Fillet",
@@ -11815,6 +12466,88 @@
       ]
     },
     {
+      "id": "Honey_Tea",
+      "acquisition": "gather",
+      "staticItemName": "Honey_Tea",
+      "outputCount": 1,
+      "consumableName": "Thermos_Honey_Tea",
+      "instantStats": [
+        {
+          "key": "BaseWaterRecovery_+",
+          "value": 300,
+          "display": "+300 Water when Consumed"
+        }
+      ],
+      "modifier": {
+        "name": "Thermos_HoneyTea",
+        "displayName": "Honey Tea",
+        "description": "Keeps you warm, reduces parasitic and bacterial infection durations.",
+        "lifetimeSeconds": 1200,
+        "grantedStats": [
+          {
+            "key": "BaseInternalTemperatureModification_+",
+            "value": 1000,
+            "display": "+1000C to Temperature"
+          },
+          {
+            "key": "BaseParasiticModifierDuration_+%",
+            "value": -25,
+            "display": "-25% Parasitic Afflictions Duration"
+          },
+          {
+            "key": "BaseBacterialModifierDuration_+%",
+            "value": -25,
+            "display": "-25% Bacterial Afflictions Duration"
+          },
+          {
+            "key": "BaseFoodModifierDuration_+%",
+            "value": 20,
+            "display": "+20% Food Effects Duration"
+          }
+        ]
+      },
+      "tier": {
+        "value": 0,
+        "method": "default_unlocked"
+      }
+    },
+    {
+      "id": "Honeycomb",
+      "acquisition": "gather",
+      "staticItemName": "Honeycomb",
+      "outputCount": 1,
+      "consumableName": "Raw_Food",
+      "instantStats": [
+        {
+          "key": "BaseFoodRecovery_+",
+          "value": 20,
+          "display": "+20 Food when Consumed"
+        }
+      ],
+      "modifier": {
+        "name": "Raw_Food",
+        "displayName": "Raw Food",
+        "description": "Slight health boost.",
+        "lifetimeSeconds": 60,
+        "grantedStats": [
+          {
+            "key": "BaseFoodStomachSlots_+",
+            "value": 1,
+            "display": "Consumes 1 Space in Stomach"
+          },
+          {
+            "key": "BaseMaximumHealth_+",
+            "value": 30,
+            "display": "+30 Maximum Health"
+          }
+        ]
+      },
+      "tier": {
+        "value": 0,
+        "method": "default_unlocked"
+      }
+    },
+    {
       "id": "Honey_Bar",
       "acquisition": "craft",
       "templateName": "Honey_Bar",
@@ -11885,6 +12618,150 @@
             "tier": 0
           }
         ]
+      }
+    },
+    {
+      "id": "Thermos_Cocoa",
+      "acquisition": "gather",
+      "staticItemName": "Thermos_Cocoa",
+      "outputCount": 1,
+      "consumableName": "Thermos_Cocoa_Drink",
+      "instantStats": [
+        {
+          "key": "BaseWaterRecovery_+",
+          "value": 300,
+          "display": "+300 Water when Consumed"
+        }
+      ],
+      "modifier": {
+        "name": "Thermos_Cocoa_Modifier",
+        "displayName": "Hot Cocoa",
+        "description": "Keeps you warm, slows hunger.",
+        "lifetimeSeconds": 900,
+        "grantedStats": [
+          {
+            "key": "BaseFoodConsumption_+%",
+            "value": -25,
+            "display": "-25% Food Consumption"
+          },
+          {
+            "key": "BaseInternalTemperatureModification_+",
+            "value": 1000,
+            "display": "+1000C to Temperature"
+          }
+        ]
+      },
+      "tier": {
+        "value": 0,
+        "method": "default_unlocked"
+      }
+    },
+    {
+      "id": "Thermos_Coffee",
+      "acquisition": "gather",
+      "staticItemName": "Thermos_Coffee",
+      "outputCount": 1,
+      "consumableName": "Thermos_Coffee_Drink",
+      "instantStats": [
+        {
+          "key": "BaseWaterRecovery_+",
+          "value": 300,
+          "display": "+300 Water when Consumed"
+        }
+      ],
+      "modifier": {
+        "name": "Thermos_Coffee_Modifier",
+        "displayName": "Hot Coffee",
+        "description": "Keeps you warm, boosts energy.",
+        "lifetimeSeconds": 900,
+        "grantedStats": [
+          {
+            "key": "BaseInternalTemperatureModification_+",
+            "value": 1000,
+            "display": "+1000C to Temperature"
+          },
+          {
+            "key": "BaseMaximumStamina_+%",
+            "value": 10,
+            "display": "+10% Maximum Stamina"
+          },
+          {
+            "key": "BaseStaminaRegen_+%",
+            "value": 10,
+            "display": "+10% Stamina Regeneration"
+          }
+        ]
+      },
+      "tier": {
+        "value": 0,
+        "method": "default_unlocked"
+      }
+    },
+    {
+      "id": "Thermos_GreenTea",
+      "acquisition": "gather",
+      "staticItemName": "Thermos_GreenTea",
+      "outputCount": 1,
+      "consumableName": "Thermos_GreenTea_Drink",
+      "instantStats": [
+        {
+          "key": "BaseWaterRecovery_+",
+          "value": 300,
+          "display": "+300 Water when Consumed"
+        }
+      ],
+      "modifier": {
+        "name": "Thermos_GreenTea_Modifier",
+        "displayName": "Hot Tea",
+        "description": "Keeps you warm, boosts health regeneration.",
+        "lifetimeSeconds": 900,
+        "grantedStats": [
+          {
+            "key": "BaseHealthRegen_+%",
+            "value": 25,
+            "display": "+25% Health Regeneration"
+          },
+          {
+            "key": "BaseInternalTemperatureModification_+",
+            "value": 1000,
+            "display": "+1000C to Temperature"
+          }
+        ]
+      },
+      "tier": {
+        "value": 0,
+        "method": "default_unlocked"
+      }
+    },
+    {
+      "id": "Thermos_IceWater",
+      "acquisition": "gather",
+      "staticItemName": "Thermos_IceWater",
+      "outputCount": 1,
+      "consumableName": "Thermos_IceWater",
+      "instantStats": [
+        {
+          "key": "BaseWaterRecovery_+",
+          "value": 100,
+          "display": "+100 Water when Consumed"
+        }
+      ],
+      "modifier": {
+        "name": "Thermos_IceWater",
+        "displayName": "Ice Cool Water",
+        "description": "Refreshing ice cold water keeps you cooler for longer.",
+        "lifetimeSeconds": 600,
+        "grantedStats": [
+          {
+            "key": "BaseInternalTemperatureModification_+",
+            "value": -1500,
+            "display": "-1500C to Temperature"
+          }
+        ]
+      },
+      "tier": {
+        "value": 0,
+        "method": "default_unlocked"
       }
     },
     {
@@ -12131,6 +13008,52 @@
       }
     },
     {
+      "id": "Kiwi_Fruit",
+      "acquisition": "gather",
+      "staticItemName": "Kiwi_Fruit",
+      "outputCount": 1,
+      "consumableName": "Food_Kiwi_Fruit",
+      "instantStats": [
+        {
+          "key": "BaseFoodRecovery_+",
+          "value": 50,
+          "display": "+50 Food when Consumed"
+        },
+        {
+          "key": "BaseWaterRecovery_+",
+          "value": 60,
+          "display": "+60 Water when Consumed"
+        }
+      ],
+      "modifier": {
+        "name": "Kiwi_Fruit",
+        "displayName": "Kiwi Fruit",
+        "description": "Provides Stamina and Cave Sickness Resistance.",
+        "lifetimeSeconds": 600,
+        "grantedStats": [
+          {
+            "key": "BaseFoodStomachSlots_+",
+            "value": 1,
+            "display": "Consumes 1 Space in Stomach"
+          },
+          {
+            "key": "BaseMaximumStamina_+",
+            "value": 50,
+            "display": "+50 Maximum Stamina"
+          },
+          {
+            "key": "BasePneumoniaResistance_%",
+            "value": 5,
+            "display": "+5% chance to Resist Cave Sickness"
+          }
+        ]
+      },
+      "tier": {
+        "value": 0,
+        "method": "default_unlocked"
+      }
+    },
+    {
       "id": "Kiwifruit_Jam",
       "acquisition": "craft",
       "templateName": "Kiwifruit_Jam",
@@ -12289,6 +13212,42 @@
             "talentName": "Advanced_Kitchen_Bench"
           }
         ]
+      }
+    },
+    {
+      "id": "Kumara",
+      "acquisition": "gather",
+      "staticItemName": "Kumara",
+      "outputCount": 1,
+      "consumableName": "Raw_Food",
+      "instantStats": [
+        {
+          "key": "BaseFoodRecovery_+",
+          "value": 20,
+          "display": "+20 Food when Consumed"
+        }
+      ],
+      "modifier": {
+        "name": "Raw_Food",
+        "displayName": "Raw Food",
+        "description": "Slight health boost.",
+        "lifetimeSeconds": 60,
+        "grantedStats": [
+          {
+            "key": "BaseFoodStomachSlots_+",
+            "value": 1,
+            "display": "Consumes 1 Space in Stomach"
+          },
+          {
+            "key": "BaseMaximumHealth_+",
+            "value": 30,
+            "display": "+30 Maximum Health"
+          }
+        ]
+      },
+      "tier": {
+        "value": 0,
+        "method": "default_unlocked"
       }
     },
     {
@@ -12919,6 +13878,52 @@
       }
     },
     {
+      "id": "Coconut_mature",
+      "acquisition": "gather",
+      "staticItemName": "Coconut_mature",
+      "outputCount": 1,
+      "consumableName": "Food_Coconut_Mature",
+      "instantStats": [
+        {
+          "key": "BaseFoodRecovery_+",
+          "value": 10,
+          "display": "+10 Food when Consumed"
+        },
+        {
+          "key": "BaseWaterRecovery_+",
+          "value": 2,
+          "display": "+2 Water when Consumed"
+        }
+      ],
+      "modifier": {
+        "name": "Coconut_Mature",
+        "displayName": "Mature Coconut",
+        "description": "Boosts health for a short time.",
+        "lifetimeSeconds": 600,
+        "grantedStats": [
+          {
+            "key": "BaseFoodStomachSlots_+",
+            "value": 1,
+            "display": "Consumes 1 Space in Stomach"
+          },
+          {
+            "key": "BaseMaximumHealth_+",
+            "value": 50,
+            "display": "+50 Maximum Health"
+          },
+          {
+            "key": "BaseFoodConsumption_+%",
+            "value": -10,
+            "display": "-10% Food Consumption"
+          }
+        ]
+      },
+      "tier": {
+        "value": 0,
+        "method": "default_unlocked"
+      }
+    },
+    {
       "id": "Meat_Pie",
       "acquisition": "craft",
       "templateName": "Meat_Pie",
@@ -13494,6 +14499,42 @@
       }
     },
     {
+      "id": "Mushroom",
+      "acquisition": "gather",
+      "staticItemName": "Mushroom",
+      "outputCount": 1,
+      "consumableName": "Raw_Food",
+      "instantStats": [
+        {
+          "key": "BaseFoodRecovery_+",
+          "value": 20,
+          "display": "+20 Food when Consumed"
+        }
+      ],
+      "modifier": {
+        "name": "Raw_Food",
+        "displayName": "Raw Food",
+        "description": "Slight health boost.",
+        "lifetimeSeconds": 60,
+        "grantedStats": [
+          {
+            "key": "BaseFoodStomachSlots_+",
+            "value": 1,
+            "display": "Consumes 1 Space in Stomach"
+          },
+          {
+            "key": "BaseMaximumHealth_+",
+            "value": 30,
+            "display": "+30 Maximum Health"
+          }
+        ]
+      },
+      "tier": {
+        "value": 0,
+        "method": "default_unlocked"
+      }
+    },
+    {
       "id": "Food_Mushroom_Omlette",
       "acquisition": "craft",
       "templateName": "Mushroom_Omlette",
@@ -13909,6 +14950,42 @@
         "method": "recipe_requirement",
         "talentName": "AnimalFeedPack",
         "talentTree": "Blueprint_T2_Crafting"
+      }
+    },
+    {
+      "id": "Onion",
+      "acquisition": "gather",
+      "staticItemName": "Onion",
+      "outputCount": 1,
+      "consumableName": "Raw_Food",
+      "instantStats": [
+        {
+          "key": "BaseFoodRecovery_+",
+          "value": 20,
+          "display": "+20 Food when Consumed"
+        }
+      ],
+      "modifier": {
+        "name": "Raw_Food",
+        "displayName": "Raw Food",
+        "description": "Slight health boost.",
+        "lifetimeSeconds": 60,
+        "grantedStats": [
+          {
+            "key": "BaseFoodStomachSlots_+",
+            "value": 1,
+            "display": "Consumes 1 Space in Stomach"
+          },
+          {
+            "key": "BaseMaximumHealth_+",
+            "value": 30,
+            "display": "+30 Maximum Health"
+          }
+        ]
+      },
+      "tier": {
+        "value": 0,
+        "method": "default_unlocked"
       }
     },
     {
@@ -15261,6 +16338,42 @@
       }
     },
     {
+      "id": "Potato",
+      "acquisition": "gather",
+      "staticItemName": "Potato",
+      "outputCount": 1,
+      "consumableName": "Raw_Food",
+      "instantStats": [
+        {
+          "key": "BaseFoodRecovery_+",
+          "value": 20,
+          "display": "+20 Food when Consumed"
+        }
+      ],
+      "modifier": {
+        "name": "Raw_Food",
+        "displayName": "Raw Food",
+        "description": "Slight health boost.",
+        "lifetimeSeconds": 60,
+        "grantedStats": [
+          {
+            "key": "BaseFoodStomachSlots_+",
+            "value": 1,
+            "display": "Consumes 1 Space in Stomach"
+          },
+          {
+            "key": "BaseMaximumHealth_+",
+            "value": 30,
+            "display": "+30 Maximum Health"
+          }
+        ]
+      },
+      "tier": {
+        "value": 0,
+        "method": "default_unlocked"
+      }
+    },
+    {
       "id": "Food_Potato_Carrot_Fries",
       "acquisition": "craft",
       "templateName": "Potato_Carrot_Fries",
@@ -15440,6 +16553,47 @@
       "flags": [
         "multi_station_tiers"
       ]
+    },
+    {
+      "id": "PricklyPear",
+      "acquisition": "gather",
+      "staticItemName": "PricklyPear",
+      "outputCount": 1,
+      "consumableName": "Raw_WetFood",
+      "instantStats": [
+        {
+          "key": "BaseFoodRecovery_+",
+          "value": 10,
+          "display": "+10 Food when Consumed"
+        },
+        {
+          "key": "BaseWaterRecovery_+",
+          "value": 10,
+          "display": "+10 Water when Consumed"
+        }
+      ],
+      "modifier": {
+        "name": "Raw_Food",
+        "displayName": "Raw Food",
+        "description": "Slight health boost.",
+        "lifetimeSeconds": 60,
+        "grantedStats": [
+          {
+            "key": "BaseFoodStomachSlots_+",
+            "value": 1,
+            "display": "Consumes 1 Space in Stomach"
+          },
+          {
+            "key": "BaseMaximumHealth_+",
+            "value": 30,
+            "display": "+30 Maximum Health"
+          }
+        ]
+      },
+      "tier": {
+        "value": 0,
+        "method": "default_unlocked"
+      }
     },
     {
       "id": "Food_PricklyPear_Jelly",
@@ -15906,6 +17060,42 @@
         "method": "recipe_requirement",
         "talentName": "Speeder_Kit",
         "talentTree": "Blueprint_T5_Manufacturer"
+      }
+    },
+    {
+      "id": "Pumpkin",
+      "acquisition": "gather",
+      "staticItemName": "Pumpkin",
+      "outputCount": 1,
+      "consumableName": "Raw_Food",
+      "instantStats": [
+        {
+          "key": "BaseFoodRecovery_+",
+          "value": 20,
+          "display": "+20 Food when Consumed"
+        }
+      ],
+      "modifier": {
+        "name": "Raw_Food",
+        "displayName": "Raw Food",
+        "description": "Slight health boost.",
+        "lifetimeSeconds": 60,
+        "grantedStats": [
+          {
+            "key": "BaseFoodStomachSlots_+",
+            "value": 1,
+            "display": "Consumes 1 Space in Stomach"
+          },
+          {
+            "key": "BaseMaximumHealth_+",
+            "value": 30,
+            "display": "+30 Maximum Health"
+          }
+        ]
+      },
+      "tier": {
+        "value": 0,
+        "method": "default_unlocked"
       }
     },
     {
@@ -16612,6 +17802,42 @@
         "partial_station_tier_gaps",
         "missing_requirement_talent"
       ]
+    },
+    {
+      "id": "Fatty_Tbone",
+      "acquisition": "gather",
+      "staticItemName": "Fatty_Tbone",
+      "outputCount": 1,
+      "consumableName": "Raw_Meat",
+      "instantStats": [
+        {
+          "key": "BaseFoodRecovery_+",
+          "value": 20,
+          "display": "+20 Food when Consumed"
+        }
+      ],
+      "tier": {
+        "value": 0,
+        "method": "default_unlocked"
+      }
+    },
+    {
+      "id": "Raw_Fish",
+      "acquisition": "gather",
+      "staticItemName": "Raw_Fish",
+      "outputCount": 1,
+      "consumableName": "Raw_Fish",
+      "instantStats": [
+        {
+          "key": "BaseFoodRecovery_+",
+          "value": 15,
+          "display": "+15 Food when Consumed"
+        }
+      ],
+      "tier": {
+        "value": 0,
+        "method": "default_unlocked"
+      }
     },
     {
       "id": "Butcher_Meat_Ram",
@@ -20102,6 +21328,46 @@
       }
     },
     {
+      "id": "DebugViking",
+      "acquisition": "gather",
+      "staticItemName": "DebugViking",
+      "outputCount": 1,
+      "consumableName": "VK1",
+      "instantStats": [
+        {
+          "key": "BaseFoodRecovery_+",
+          "value": 10,
+          "display": "+10 Food when Consumed"
+        }
+      ],
+      "modifier": {
+        "name": "Berry",
+        "displayName": "Berry",
+        "description": "Boosts stamina for a short time.",
+        "grantedStats": [
+          {
+            "key": "BaseFoodStomachSlots_+",
+            "value": 1,
+            "display": "Consumes 1 Space in Stomach"
+          },
+          {
+            "key": "BaseMaximumStamina_+",
+            "value": 50,
+            "display": "+50 Maximum Stamina"
+          },
+          {
+            "key": "BaseWaterConsumption_+%",
+            "value": -10,
+            "display": "-10% Water Consumption"
+          }
+        ]
+      },
+      "tier": {
+        "value": 0,
+        "method": "default_unlocked"
+      }
+    },
+    {
       "id": "Carcass_Scorpion",
       "acquisition": "craft",
       "templateName": "Soft_Meat",
@@ -20212,6 +21478,24 @@
         "partial_station_tier_gaps",
         "missing_requirement_talent"
       ]
+    },
+    {
+      "id": "Stringy_Meat",
+      "acquisition": "gather",
+      "staticItemName": "Stringy_Meat",
+      "outputCount": 1,
+      "consumableName": "Raw_Meat",
+      "instantStats": [
+        {
+          "key": "BaseFoodRecovery_+",
+          "value": 20,
+          "display": "+20 Food when Consumed"
+        }
+      ],
+      "tier": {
+        "value": 0,
+        "method": "default_unlocked"
+      }
     },
     {
       "id": "Carcass_Kea",
@@ -20567,6 +21851,42 @@
       }
     },
     {
+      "id": "Rhubarb",
+      "acquisition": "gather",
+      "staticItemName": "Rhubarb",
+      "outputCount": 1,
+      "consumableName": "Raw_Food",
+      "instantStats": [
+        {
+          "key": "BaseFoodRecovery_+",
+          "value": 20,
+          "display": "+20 Food when Consumed"
+        }
+      ],
+      "modifier": {
+        "name": "Raw_Food",
+        "displayName": "Raw Food",
+        "description": "Slight health boost.",
+        "lifetimeSeconds": 60,
+        "grantedStats": [
+          {
+            "key": "BaseFoodStomachSlots_+",
+            "value": 1,
+            "display": "Consumes 1 Space in Stomach"
+          },
+          {
+            "key": "BaseMaximumHealth_+",
+            "value": 30,
+            "display": "+30 Maximum Health"
+          }
+        ]
+      },
+      "tier": {
+        "value": 0,
+        "method": "default_unlocked"
+      }
+    },
+    {
       "id": "Food_Rhubarb_Stew",
       "acquisition": "craft",
       "templateName": "Rhubarb_Stew",
@@ -20725,6 +22045,52 @@
         "method": "recipe_requirement",
         "talentName": "Ice_Mammoth_Module",
         "talentTree": "Blueprint_T4_Fabricator"
+      }
+    },
+    {
+      "id": "Coconut_mid",
+      "acquisition": "gather",
+      "staticItemName": "Coconut_mid",
+      "outputCount": 1,
+      "consumableName": "Food_Coconut_Mid",
+      "instantStats": [
+        {
+          "key": "BaseFoodRecovery_+",
+          "value": 8,
+          "display": "+8 Food when Consumed"
+        },
+        {
+          "key": "BaseWaterRecovery_+",
+          "value": 8,
+          "display": "+8 Water when Consumed"
+        }
+      ],
+      "modifier": {
+        "name": "Coconut_Mid",
+        "displayName": "Ripe Coconut",
+        "description": "Boosts health for a short time.",
+        "lifetimeSeconds": 600,
+        "grantedStats": [
+          {
+            "key": "BaseFoodStomachSlots_+",
+            "value": 1,
+            "display": "Consumes 1 Space in Stomach"
+          },
+          {
+            "key": "BaseMaximumHealth_+",
+            "value": 75,
+            "display": "+75 Maximum Health"
+          },
+          {
+            "key": "BaseFoodConsumption_+%",
+            "value": -10,
+            "display": "-10% Food Consumption"
+          }
+        ]
+      },
+      "tier": {
+        "value": 0,
+        "method": "default_unlocked"
       }
     },
     {
@@ -21853,6 +23219,80 @@
       ]
     },
     {
+      "id": "Food_Animal_Feed_Speed",
+      "acquisition": "mission",
+      "staticItemName": "Food_Animal_Feed_Speed",
+      "outputCount": 1,
+      "consumableName": "Food_Animal_Feed_Speed",
+      "instantStats": [
+        {
+          "key": "BaseFoodRecovery_+",
+          "value": 100,
+          "display": "+100 Food when Consumed"
+        }
+      ],
+      "modifier": {
+        "name": "Animal_Feed_Speed",
+        "displayName": "Animal Feed (Speed)",
+        "description": "Buffs Animals Speed",
+        "lifetimeSeconds": 900,
+        "grantedStats": [
+          {
+            "key": "BaseFoodStomachSlots_+",
+            "value": 1,
+            "display": "Consumes 1 Space in Stomach"
+          },
+          {
+            "key": "BaseMovementSpeed_+%",
+            "value": 25,
+            "display": "+25% Movement Speed"
+          }
+        ]
+      },
+      "mission": true,
+      "tier": {
+        "value": 0,
+        "method": "default_unlocked"
+      }
+    },
+    {
+      "id": "Food_Animal_Feed_CarryWeight",
+      "acquisition": "mission",
+      "staticItemName": "Food_Animal_Feed_CarryWeight",
+      "outputCount": 1,
+      "consumableName": "Food_Animal_Feed_CarryWeight",
+      "instantStats": [
+        {
+          "key": "BaseFoodRecovery_+",
+          "value": 100,
+          "display": "+100 Food when Consumed"
+        }
+      ],
+      "modifier": {
+        "name": "Animal_Feed_CarryWeight",
+        "displayName": "Animal Feed (Carry Weight)",
+        "description": "Buffs Animals Carry Weight",
+        "lifetimeSeconds": 900,
+        "grantedStats": [
+          {
+            "key": "BaseFoodStomachSlots_+",
+            "value": 1,
+            "display": "Consumes 1 Space in Stomach"
+          },
+          {
+            "key": "BaseWeightCapacity_+",
+            "value": 100,
+            "display": "+100kg Weight Capacity"
+          }
+        ]
+      },
+      "mission": true,
+      "tier": {
+        "value": 0,
+        "method": "default_unlocked"
+      }
+    },
+    {
       "id": "Seed_Bread",
       "acquisition": "craft",
       "templateName": "Seed_Bread",
@@ -22659,6 +24099,42 @@
       }
     },
     {
+      "id": "Bean",
+      "acquisition": "gather",
+      "staticItemName": "Bean",
+      "outputCount": 1,
+      "consumableName": "Raw_Food",
+      "instantStats": [
+        {
+          "key": "BaseFoodRecovery_+",
+          "value": 20,
+          "display": "+20 Food when Consumed"
+        }
+      ],
+      "modifier": {
+        "name": "Raw_Food",
+        "displayName": "Raw Food",
+        "description": "Slight health boost.",
+        "lifetimeSeconds": 60,
+        "grantedStats": [
+          {
+            "key": "BaseFoodStomachSlots_+",
+            "value": 1,
+            "display": "Consumes 1 Space in Stomach"
+          },
+          {
+            "key": "BaseMaximumHealth_+",
+            "value": 30,
+            "display": "+30 Maximum Health"
+          }
+        ]
+      },
+      "tier": {
+        "value": 0,
+        "method": "default_unlocked"
+      }
+    },
+    {
       "id": "Food_Fried_Soy_Beans",
       "acquisition": "craft",
       "templateName": "Fried_Soy_Beans",
@@ -22815,6 +24291,85 @@
       }
     },
     {
+      "id": "Spoiled_Meat",
+      "acquisition": "gather",
+      "staticItemName": "Spoiled_Meat",
+      "outputCount": 1,
+      "consumableName": "Spoiled_Food",
+      "instantStats": [
+        {
+          "key": "BaseFoodRecovery_+",
+          "value": 15,
+          "display": "+15 Food when Consumed"
+        },
+        {
+          "key": "BaseHealthRecovery_+",
+          "value": -20,
+          "display": "-20 Health when Consumed"
+        }
+      ],
+      "modifier": {
+        "name": "Spoiled_Meat",
+        "displayName": "Spoiled Meat",
+        "description": "Boosts your stamina, health and regeneration.",
+        "lifetimeSeconds": 300,
+        "grantedStats": [
+          {
+            "key": "BaseFoodStomachSlots_+",
+            "value": 1,
+            "display": "Consumes 1 Space in Stomach"
+          },
+          {
+            "key": "BaseMaximumStamina_+",
+            "value": 25,
+            "display": "+25 Maximum Stamina"
+          },
+          {
+            "key": "BaseMaximumHealth_+",
+            "value": 25,
+            "display": "+25 Maximum Health"
+          },
+          {
+            "key": "BaseHealthRegenPerMinute_+",
+            "value": 10,
+            "display": "+10 Health Regeneration per Minute"
+          },
+          {
+            "key": "BaseStaminaRegen_+%",
+            "value": 10,
+            "display": "+10% Stamina Regeneration"
+          }
+        ]
+      },
+      "tier": {
+        "value": 0,
+        "method": "default_unlocked"
+      }
+    },
+    {
+      "id": "Sponge",
+      "acquisition": "gather",
+      "staticItemName": "Sponge",
+      "outputCount": 1,
+      "consumableName": "Drink_Sponge",
+      "instantStats": [
+        {
+          "key": "BaseWaterRecovery_+",
+          "value": 25,
+          "display": "+25 Water when Consumed"
+        },
+        {
+          "key": "BaseUnitsConsumed_+",
+          "value": 100,
+          "display": "+100 Units on use"
+        }
+      ],
+      "tier": {
+        "value": 0,
+        "method": "default_unlocked"
+      }
+    },
+    {
       "id": "Animal_Feed_Carrot",
       "acquisition": "craft",
       "templateName": "Food_Animal_Feed_Carrot",
@@ -22871,6 +24426,42 @@
         "method": "recipe_requirement",
         "talentName": "AnimalFeedPack",
         "talentTree": "Blueprint_T2_Crafting"
+      }
+    },
+    {
+      "id": "Squash",
+      "acquisition": "gather",
+      "staticItemName": "Squash",
+      "outputCount": 1,
+      "consumableName": "Raw_Food",
+      "instantStats": [
+        {
+          "key": "BaseFoodRecovery_+",
+          "value": 20,
+          "display": "+20 Food when Consumed"
+        }
+      ],
+      "modifier": {
+        "name": "Raw_Food",
+        "displayName": "Raw Food",
+        "description": "Slight health boost.",
+        "lifetimeSeconds": 60,
+        "grantedStats": [
+          {
+            "key": "BaseFoodStomachSlots_+",
+            "value": 1,
+            "display": "Consumes 1 Space in Stomach"
+          },
+          {
+            "key": "BaseMaximumHealth_+",
+            "value": 30,
+            "display": "+30 Maximum Health"
+          }
+        ]
+      },
+      "tier": {
+        "value": 0,
+        "method": "default_unlocked"
       }
     },
     {
@@ -23315,6 +24906,42 @@
       "flags": [
         "multi_station_tiers"
       ]
+    },
+    {
+      "id": "Strawberry",
+      "acquisition": "gather",
+      "staticItemName": "Strawberry",
+      "outputCount": 1,
+      "consumableName": "Raw_Food",
+      "instantStats": [
+        {
+          "key": "BaseFoodRecovery_+",
+          "value": 20,
+          "display": "+20 Food when Consumed"
+        }
+      ],
+      "modifier": {
+        "name": "Raw_Food",
+        "displayName": "Raw Food",
+        "description": "Slight health boost.",
+        "lifetimeSeconds": 60,
+        "grantedStats": [
+          {
+            "key": "BaseFoodStomachSlots_+",
+            "value": 1,
+            "display": "Consumes 1 Space in Stomach"
+          },
+          {
+            "key": "BaseMaximumHealth_+",
+            "value": 30,
+            "display": "+30 Maximum Health"
+          }
+        ]
+      },
+      "tier": {
+        "value": 0,
+        "method": "default_unlocked"
+      }
     },
     {
       "id": "Strawberry_Candy",
@@ -24304,6 +25931,47 @@
       ]
     },
     {
+      "id": "Tomato",
+      "acquisition": "gather",
+      "staticItemName": "Tomato",
+      "outputCount": 1,
+      "consumableName": "Tomato",
+      "instantStats": [
+        {
+          "key": "BaseFoodRecovery_+",
+          "value": 20,
+          "display": "+20 Food when Consumed"
+        },
+        {
+          "key": "BaseWaterRecovery_+",
+          "value": 10,
+          "display": "+10 Water when Consumed"
+        }
+      ],
+      "modifier": {
+        "name": "Raw_Food",
+        "displayName": "Raw Food",
+        "description": "Slight health boost.",
+        "lifetimeSeconds": 60,
+        "grantedStats": [
+          {
+            "key": "BaseFoodStomachSlots_+",
+            "value": 1,
+            "display": "Consumes 1 Space in Stomach"
+          },
+          {
+            "key": "BaseMaximumHealth_+",
+            "value": 30,
+            "display": "+30 Maximum Health"
+          }
+        ]
+      },
+      "tier": {
+        "value": 0,
+        "method": "default_unlocked"
+      }
+    },
+    {
       "id": "Food_Egg_Salad",
       "acquisition": "craft",
       "templateName": "Egg_Salad",
@@ -24479,6 +26147,42 @@
       "flags": [
         "multi_station_tiers"
       ]
+    },
+    {
+      "id": "Truffle",
+      "acquisition": "gather",
+      "staticItemName": "Truffle",
+      "outputCount": 1,
+      "consumableName": "Raw_Food",
+      "instantStats": [
+        {
+          "key": "BaseFoodRecovery_+",
+          "value": 20,
+          "display": "+20 Food when Consumed"
+        }
+      ],
+      "modifier": {
+        "name": "Raw_Food",
+        "displayName": "Raw Food",
+        "description": "Slight health boost.",
+        "lifetimeSeconds": 60,
+        "grantedStats": [
+          {
+            "key": "BaseFoodStomachSlots_+",
+            "value": 1,
+            "display": "Consumes 1 Space in Stomach"
+          },
+          {
+            "key": "BaseMaximumHealth_+",
+            "value": 30,
+            "display": "+30 Maximum Health"
+          }
+        ]
+      },
+      "tier": {
+        "value": 0,
+        "method": "default_unlocked"
+      }
     },
     {
       "id": "Food_Truffle_Focaccia",
@@ -25559,6 +27263,52 @@
       }
     },
     {
+      "id": "Watermelon",
+      "acquisition": "gather",
+      "staticItemName": "Watermelon",
+      "outputCount": 1,
+      "consumableName": "Watermelon",
+      "instantStats": [
+        {
+          "key": "BaseFoodRecovery_+",
+          "value": 50,
+          "display": "+50 Food when Consumed"
+        },
+        {
+          "key": "BaseWaterRecovery_+",
+          "value": 60,
+          "display": "+60 Water when Consumed"
+        }
+      ],
+      "modifier": {
+        "name": "Watermelon",
+        "displayName": "Watermelon",
+        "description": "Boosts stamina and improves water consumption for a short time.",
+        "lifetimeSeconds": 600,
+        "grantedStats": [
+          {
+            "key": "BaseFoodStomachSlots_+",
+            "value": 1,
+            "display": "Consumes 1 Space in Stomach"
+          },
+          {
+            "key": "BaseMaximumStamina_+",
+            "value": 50,
+            "display": "+50 Maximum Stamina"
+          },
+          {
+            "key": "BaseWaterConsumption_+%",
+            "value": -10,
+            "display": "-10% Water Consumption"
+          }
+        ]
+      },
+      "tier": {
+        "value": 0,
+        "method": "default_unlocked"
+      }
+    },
+    {
       "id": "Watermelon_Lollypop",
       "acquisition": "craft",
       "templateName": "Watermelon_Lollypop",
@@ -25727,6 +27477,52 @@
         "partial_station_tier_gaps",
         "missing_station_talent"
       ]
+    },
+    {
+      "id": "Berry",
+      "acquisition": "gather",
+      "staticItemName": "Berry",
+      "outputCount": 1,
+      "consumableName": "Food_Berry",
+      "instantStats": [
+        {
+          "key": "BaseFoodRecovery_+",
+          "value": 4,
+          "display": "+4 Food when Consumed"
+        },
+        {
+          "key": "BaseWaterRecovery_+",
+          "value": 2,
+          "display": "+2 Water when Consumed"
+        }
+      ],
+      "modifier": {
+        "name": "Berry",
+        "displayName": "Berry",
+        "description": "Boosts stamina for a short time.",
+        "lifetimeSeconds": 600,
+        "grantedStats": [
+          {
+            "key": "BaseFoodStomachSlots_+",
+            "value": 1,
+            "display": "Consumes 1 Space in Stomach"
+          },
+          {
+            "key": "BaseMaximumStamina_+",
+            "value": 50,
+            "display": "+50 Maximum Stamina"
+          },
+          {
+            "key": "BaseWaterConsumption_+%",
+            "value": -10,
+            "display": "-10% Water Consumption"
+          }
+        ]
+      },
+      "tier": {
+        "value": 0,
+        "method": "default_unlocked"
+      }
     },
     {
       "id": "Food_Wild_Salad",
@@ -26109,6 +27905,52 @@
       ],
       "tier": {
         "method": "purchase_only"
+      }
+    },
+    {
+      "id": "Coconut_young",
+      "acquisition": "gather",
+      "staticItemName": "Coconut_young",
+      "outputCount": 1,
+      "consumableName": "Food_Coconut",
+      "instantStats": [
+        {
+          "key": "BaseFoodRecovery_+",
+          "value": 2,
+          "display": "+2 Food when Consumed"
+        },
+        {
+          "key": "BaseWaterRecovery_+",
+          "value": 10,
+          "display": "+10 Water when Consumed"
+        }
+      ],
+      "modifier": {
+        "name": "Coconut",
+        "displayName": "Young Coconut",
+        "description": "Boosts health for a short time.",
+        "lifetimeSeconds": 600,
+        "grantedStats": [
+          {
+            "key": "BaseFoodStomachSlots_+",
+            "value": 1,
+            "display": "Consumes 1 Space in Stomach"
+          },
+          {
+            "key": "BaseMaximumHealth_+",
+            "value": 25,
+            "display": "+25 Maximum Health"
+          },
+          {
+            "key": "BaseFoodConsumption_+%",
+            "value": -10,
+            "display": "-10% Food Consumption"
+          }
+        ]
+      },
+      "tier": {
+        "value": 0,
+        "method": "default_unlocked"
       }
     },
     {
@@ -27735,6 +29577,7 @@
         }
       ],
       "outputCount": 1,
+      "mission": true,
       "tier": {
         "value": 0,
         "method": "default_unlocked",
@@ -47249,6 +49092,7 @@
         }
       ],
       "outputCount": 1,
+      "mission": true,
       "tier": {
         "value": 2,
         "method": "station_deduced",
@@ -52432,6 +54276,7 @@
         }
       ],
       "outputCount": 1,
+      "mission": true,
       "tier": {
         "value": 3,
         "method": "station_deduced",
@@ -52540,6 +54385,7 @@
         }
       ],
       "outputCount": 1,
+      "mission": true,
       "tier": {
         "value": 4,
         "method": "station_deduced",
@@ -53166,6 +55012,7 @@
         }
       ],
       "outputCount": 1,
+      "mission": true,
       "tier": {
         "value": 3,
         "method": "station_deduced",
@@ -60524,6 +62371,7 @@
         }
       ],
       "outputCount": 1,
+      "mission": true,
       "tier": {
         "value": 5,
         "method": "station_deduced",
@@ -68685,6 +70533,7 @@
         }
       ],
       "outputCount": 1,
+      "mission": true,
       "tier": {
         "value": 0,
         "method": "default_unlocked",
@@ -72564,6 +74413,7 @@
         }
       ],
       "outputCount": 1,
+      "mission": true,
       "tier": {
         "value": 2,
         "method": "station_deduced",
@@ -75490,6 +77340,7 @@
         }
       ],
       "outputCount": 1,
+      "mission": true,
       "tier": {
         "value": 2,
         "method": "station_deduced",
@@ -75647,6 +77498,7 @@
         }
       ],
       "outputCount": 1,
+      "mission": true,
       "tier": {
         "value": 3,
         "method": "station_deduced",
@@ -75901,6 +77753,7 @@
         }
       ],
       "outputCount": 1,
+      "mission": true,
       "tier": {
         "value": 3,
         "method": "station_deduced",
@@ -76318,6 +78171,7 @@
         }
       ],
       "outputCount": 1,
+      "mission": true,
       "tier": {
         "value": 5,
         "method": "station_deduced",
@@ -77636,6 +79490,7 @@
         }
       ],
       "outputCount": 1,
+      "mission": true,
       "tier": {
         "value": 4,
         "method": "station_deduced",
@@ -84170,6 +86025,7 @@
         }
       ],
       "outputCount": 1,
+      "mission": true,
       "tier": {
         "value": 4,
         "method": "station_deduced",
@@ -95823,6 +97679,7 @@
         }
       ],
       "outputCount": 1,
+      "mission": true,
       "tier": {
         "value": 3,
         "method": "station_deduced",
@@ -96090,6 +97947,7 @@
         }
       ],
       "outputCount": 1,
+      "mission": true,
       "tier": {
         "value": 3,
         "method": "station_deduced",
@@ -102413,6 +104271,7 @@
         }
       ],
       "outputCount": 1,
+      "mission": true,
       "tier": {
         "value": 3,
         "method": "station_deduced",
@@ -103464,6 +105323,7 @@
         }
       ],
       "outputCount": 1,
+      "mission": true,
       "tier": {
         "value": 0,
         "method": "default_unlocked",
@@ -103516,6 +105376,7 @@
         }
       ],
       "outputCount": 1,
+      "mission": true,
       "tier": {
         "value": 3,
         "method": "station_deduced",
@@ -103602,6 +105463,7 @@
         }
       ],
       "outputCount": 1,
+      "mission": true,
       "tier": {
         "value": 3,
         "method": "station_deduced",
@@ -103921,6 +105783,7 @@
         }
       ],
       "outputCount": 1,
+      "mission": true,
       "tier": {
         "value": 3,
         "method": "station_deduced",
@@ -111684,6 +113547,12 @@
         "Carrot_Cake"
       ]
     },
+    "Carrot_Cake_Piece": {
+      "id": "Carrot_Cake_Piece",
+      "displayName": "Carrot Cake Piece",
+      "description": "A piece of carrot cake, made from scratch on Icarus.",
+      "iconPath": "Consumeables/T_ITEM_Carrot_Cake_Piece"
+    },
     "Carved_Bed": {
       "id": "Carved_Bed",
       "displayName": "Carved Wood Bed",
@@ -112348,6 +114217,12 @@
         "Chocolate_Cake"
       ]
     },
+    "Chocolate_Cake_Piece": {
+      "id": "Chocolate_Cake_Piece",
+      "displayName": "Chocolate Cake Piece",
+      "description": "A piece of chocolate cake, made from scratch on Icarus.",
+      "iconPath": "Consumeables/T_ITEM_Chocolate_Cake_Piece"
+    },
     "Clay": {
       "id": "Clay",
       "displayName": "Clay",
@@ -112609,6 +114484,12 @@
       "recipeIds": [
         "Coconut_Cake"
       ]
+    },
+    "Coconut_Cake_Piece": {
+      "id": "Coconut_Cake_Piece",
+      "displayName": "Coconut Cake Piece",
+      "description": "A piece of coconut cake, made from scratch on Icarus.",
+      "iconPath": "Consumeables/T_ITEM_Coconut_Cake_Piece"
     },
     "Coconut_Cookie": {
       "id": "Coconut_Cookie",
@@ -113565,6 +115446,12 @@
         "Cured_Leather_Lure"
       ]
     },
+    "DebugViking": {
+      "id": "DebugViking",
+      "displayName": "Raw Meat",
+      "description": "Meat from a recently killed animal, worth cooking first.",
+      "iconPath": "Consumeables/ITEM_Raw_Meat"
+    },
     "Deep_Freeze": {
       "id": "Deep_Freeze",
       "displayName": "Deep Freeze",
@@ -114469,19 +116356,22 @@
       "id": "FactionMission_Tech1",
       "displayName": "Device Component",
       "description": "Element from an experimental Larkwell Martinez device.",
-      "iconPath": "QuestItems/ITEM_FactionMission_Tech1"
+      "iconPath": "QuestItems/ITEM_FactionMission_Tech1",
+      "mission": true
     },
     "FactionMission_Tech2": {
       "id": "FactionMission_Tech2",
       "displayName": "Device Component",
       "description": "Element from an experimental Larkwell Martinez device.",
-      "iconPath": "QuestItems/ITEM_FactionMission_Tech2"
+      "iconPath": "QuestItems/ITEM_FactionMission_Tech2",
+      "mission": true
     },
     "FactionMission_Tech3": {
       "id": "FactionMission_Tech3",
       "displayName": "Device Component",
       "description": "Element from an experimental Larkwell Martinez device.",
-      "iconPath": "QuestItems/ITEM_FactionMission_Tech3"
+      "iconPath": "QuestItems/ITEM_FactionMission_Tech3",
+      "mission": true
     },
     "FactionMission_TechRecombined": {
       "id": "FactionMission_TechRecombined",
@@ -114490,7 +116380,8 @@
       "iconPath": "QuestItems/ITEM_FactionMission_TechRecombined",
       "recipeIds": [
         "Recombined_Tech"
-      ]
+      ],
+      "mission": true
     },
     "Faction_Mission_Laser": {
       "id": "Faction_Mission_Laser",
@@ -114499,7 +116390,8 @@
       "iconPath": "QuestItems/ITEM_Faction_Mission_Laser",
       "recipeIds": [
         "Mission_Laser"
-      ]
+      ],
+      "mission": true
     },
     "Farmers_Backpack": {
       "id": "Farmers_Backpack",
@@ -114578,6 +116470,18 @@
       "recipeIds": [
         "Carcass_BatDog"
       ]
+    },
+    "Fatty_Tbone_Cooked": {
+      "id": "Fatty_Tbone_Cooked",
+      "displayName": "Cooked Fatty T-Bone",
+      "description": "A fiercely won, delicious steak dinner",
+      "iconPath": "Consumeables/ITEM_Meat_TboneCooked"
+    },
+    "Fatty_Tbone_Dried": {
+      "id": "Fatty_Tbone_Dried",
+      "displayName": "Dried Fatty T-Bone",
+      "description": "A large, fatty piece of dried meat",
+      "iconPath": "Consumeables/ITEM_Meat_TboneDried"
     },
     "Feet_Arms_Attachment_Fall_Resistance_1": {
       "id": "Feet_Arms_Attachment_Fall_Resistance_1",
@@ -115045,6 +116949,13 @@
         "Animal_Feed_Carrot"
       ]
     },
+    "Food_Animal_Feed_CarryWeight": {
+      "id": "Food_Animal_Feed_CarryWeight",
+      "displayName": "Seed Animal Feed",
+      "description": "Nutritionally dense animal feed.",
+      "iconPath": "Consumeables/T_ITEM_Animal_Feed",
+      "mission": true
+    },
     "Food_Animal_Feed_Corn": {
       "id": "Food_Animal_Feed_Corn",
       "displayName": "Endurance Animal Feed",
@@ -115090,6 +117001,13 @@
         "Animal_Feed_Pumpkin"
       ]
     },
+    "Food_Animal_Feed_Speed": {
+      "id": "Food_Animal_Feed_Speed",
+      "displayName": "Seed Animal Feed",
+      "description": "Nutritionally dense animal feed.",
+      "iconPath": "Consumeables/T_ITEM_Animal_Feed",
+      "mission": true
+    },
     "Food_Animal_Feed_Squash": {
       "id": "Food_Animal_Feed_Squash",
       "displayName": "Desert Animal Feed",
@@ -115134,6 +117052,18 @@
       "recipeIds": [
         "Food_Creamed_Corn"
       ]
+    },
+    "Food_Crumbed_Fish_Fillet": {
+      "id": "Food_Crumbed_Fish_Fillet",
+      "displayName": "Crumbed Fish Fillet",
+      "description": "Battered in breadcrumbs, lightly fried, boosts health and stamina.",
+      "iconPath": "Consumeables/ITEM_CrumbedFishFillet"
+    },
+    "Food_Fish_Dish": {
+      "id": "Food_Fish_Dish",
+      "displayName": "Fish curry",
+      "description": "A simple curry with a large health boost.",
+      "iconPath": "Consumeables/ITEM_FishDish"
     },
     "Food_Flatbread": {
       "id": "Food_Flatbread",
@@ -117803,6 +119733,12 @@
         "Honey_Pastry"
       ]
     },
+    "Honey_Tea": {
+      "id": "Honey_Tea",
+      "displayName": "Honey Tea",
+      "description": "A mild honey tea with small health benefits.",
+      "iconPath": "UseableItems/ITEM_Thermos"
+    },
     "Honeycomb": {
       "id": "Honeycomb",
       "displayName": "Honeycomb",
@@ -119747,7 +121683,8 @@
       "iconPath": "Deployables/ITEM_Mission_Communication_Device_T2",
       "recipeIds": [
         "MakeshiftRadio"
-      ]
+      ],
+      "mission": true
     },
     "Mammoth_Head": {
       "id": "Mammoth_Head",
@@ -121629,13 +123566,15 @@
       "id": "Mission_Broken_Prototype_Laser",
       "displayName": "Broken MK-200 Laser Parts",
       "description": "Broken prototype laser, it could be repaired at a crafting bench.",
-      "iconPath": "QuestItems/ITEM_Mission_Broken_Prototype_Laser"
+      "iconPath": "QuestItems/ITEM_Mission_Broken_Prototype_Laser",
+      "mission": true
     },
     "Mission_Broken_Solar_Panel": {
       "id": "Mission_Broken_Solar_Panel",
       "displayName": "Broken Solar Panel",
       "description": "Could be repaired with a bit of patience",
-      "iconPath": "QuestItems/ITEM_Mission_Broken_Solar_Panel"
+      "iconPath": "QuestItems/ITEM_Mission_Broken_Solar_Panel",
+      "mission": true
     },
     "Mission_Buffer": {
       "id": "Mission_Buffer",
@@ -121719,7 +123658,8 @@
       "iconPath": "QuestItems/ITEM_Mission_HighTech_Assembled",
       "recipeIds": [
         "Mission_Drone_Navigation"
-      ]
+      ],
+      "mission": true
     },
     "Mission_Drone_Rotor": {
       "id": "Mission_Drone_Rotor",
@@ -121728,13 +123668,15 @@
       "iconPath": "Resources/T_ITEM_Mission_Drone_Rotor",
       "recipeIds": [
         "Mission_Drone_Rotor"
-      ]
+      ],
+      "mission": true
     },
     "Mission_Empty_Enzyme_Container": {
       "id": "Mission_Empty_Enzyme_Container",
       "displayName": "Empty Enzyme Containment Unit",
       "description": "A container which used to hold stable Enzymes",
-      "iconPath": "QuestItems/ITEM_Bio_Needle"
+      "iconPath": "QuestItems/ITEM_Bio_Needle",
+      "mission": true
     },
     "Mission_Enzyme_Propogation_Unit_Craftable": {
       "id": "Mission_Enzyme_Propogation_Unit_Craftable",
@@ -121743,7 +123685,8 @@
       "iconPath": "Deployables/T_ITEM_Enzyme_Propagation_Unit",
       "recipeIds": [
         "Enzyme_Propagation_Unit"
-      ]
+      ],
+      "mission": true
     },
     "Mission_Enzyme_Virus": {
       "id": "Mission_Enzyme_Virus",
@@ -121770,7 +123713,8 @@
       "iconPath": "QuestItems/ITEM_Mission_Explosive",
       "recipeIds": [
         "Mission_Explosive_Crafted"
-      ]
+      ],
+      "mission": true
     },
     "Mission_Full_Enzyme_Container": {
       "id": "Mission_Full_Enzyme_Container",
@@ -121785,19 +123729,22 @@
       "id": "Mission_HighTech_1",
       "displayName": "Unknown component",
       "description": "A small, minutely detailed object, extremely light to hold.",
-      "iconPath": "QuestItems/ITEM_Mission_HighTech_1"
+      "iconPath": "QuestItems/ITEM_Mission_HighTech_1",
+      "mission": true
     },
     "Mission_HighTech_2": {
       "id": "Mission_HighTech_2",
       "displayName": "Unknown component",
       "description": "A clearly functional item, with no clear function.",
-      "iconPath": "QuestItems/ITEM_Mission_HighTech_2"
+      "iconPath": "QuestItems/ITEM_Mission_HighTech_2",
+      "mission": true
     },
     "Mission_HighTech_3": {
       "id": "Mission_HighTech_3",
       "displayName": "Unknown component",
       "description": "An ornately manufactured device of uncertain materials.",
-      "iconPath": "QuestItems/ITEM_Mission_HighTech_3"
+      "iconPath": "QuestItems/ITEM_Mission_HighTech_3",
+      "mission": true
     },
     "Mission_HighTech_Assembled": {
       "id": "Mission_HighTech_Assembled",
@@ -121806,7 +123753,8 @@
       "iconPath": "QuestItems/ITEM_Mission_HighTech_Assembled",
       "recipeIds": [
         "Recombined_HighTech"
-      ]
+      ],
+      "mission": true
     },
     "Mission_Incubator": {
       "id": "Mission_Incubator",
@@ -121815,25 +123763,29 @@
       "iconPath": "QuestItems/ITEM_Mission_Analyzer_Egg",
       "recipeIds": [
         "Mission_Incubator"
-      ]
+      ],
+      "mission": true
     },
     "Mission_Laser_Part_1": {
       "id": "Mission_Laser_Part_1",
       "displayName": "Heating Device Base",
       "description": "The base for a high-powered heating device",
-      "iconPath": "QuestItems/ITEM_Mission_Laser_Part_1"
+      "iconPath": "QuestItems/ITEM_Mission_Laser_Part_1",
+      "mission": true
     },
     "Mission_Laser_Part_2": {
       "id": "Mission_Laser_Part_2",
       "displayName": "Heating Device Arm",
       "description": "The arm for a high-powered heating device",
-      "iconPath": "QuestItems/ITEM_Mission_Laser_Part_2"
+      "iconPath": "QuestItems/ITEM_Mission_Laser_Part_2",
+      "mission": true
     },
     "Mission_Laser_Part_3": {
       "id": "Mission_Laser_Part_3",
       "displayName": "Heating Device Laser",
       "description": "The laser for a high-powered heating device",
-      "iconPath": "QuestItems/ITEM_Mission_Laser_Part_3"
+      "iconPath": "QuestItems/ITEM_Mission_Laser_Part_3",
+      "mission": true
     },
     "Mission_Liquid_Deployment": {
       "id": "Mission_Liquid_Deployment",
@@ -121886,7 +123838,8 @@
       "iconPath": "QuestItems/ITEM_Mission_Analyzer_Egg",
       "recipeIds": [
         "Organic_Analyzer"
-      ]
+      ],
+      "mission": true
     },
     "Mission_Prototype_Laser": {
       "id": "Mission_Prototype_Laser",
@@ -121922,13 +123875,15 @@
       "iconPath": "Deployables/ITEM_Monitoring_Station",
       "recipeIds": [
         "Mission_STYX_D_Research2_Bomb"
-      ]
+      ],
+      "mission": true
     },
     "Mission_STYX_D_Research2_BombParts": {
       "id": "Mission_STYX_D_Research2_BombParts",
       "displayName": "Monitoring Station Components",
       "description": "A control system for an environmental monitoring device.",
-      "iconPath": "QuestItems/ITEM_MachineParts"
+      "iconPath": "QuestItems/ITEM_MachineParts",
+      "mission": true
     },
     "Mission_STYX_D_Research2_Catalyst": {
       "id": "Mission_STYX_D_Research2_Catalyst",
@@ -121937,7 +123892,8 @@
       "iconPath": "QuestItems/ITEM_Catalyst",
       "recipeIds": [
         "Mission_STYX_D_Research2_Catalyst"
-      ]
+      ],
+      "mission": true
     },
     "Mission_STYX_D_Research2_Containment": {
       "id": "Mission_STYX_D_Research2_Containment",
@@ -121946,7 +123902,8 @@
       "iconPath": "QuestItems/ITEM_AbyssalO_Container",
       "recipeIds": [
         "Mission_STYX_D_Research2_Containment"
-      ]
+      ],
+      "mission": true
     },
     "Mission_Ship_Gyro": {
       "id": "Mission_Ship_Gyro",
@@ -121955,13 +123912,15 @@
       "iconPath": "QuestItems/ITEM_Mission_HighTech_1",
       "recipeIds": [
         "Mission_Gyroscope"
-      ]
+      ],
+      "mission": true
     },
     "Mission_Ship_Gyro_Broken": {
       "id": "Mission_Ship_Gyro_Broken",
       "displayName": "Damaged Gyroscope",
       "description": "This instrument has been damaged almost beyond repair.",
-      "iconPath": "QuestItems/ITEM_Mission_HighTech_1"
+      "iconPath": "QuestItems/ITEM_Mission_HighTech_1",
+      "mission": true
     },
     "Mission_Ship_Navigation": {
       "id": "Mission_Ship_Navigation",
@@ -121970,13 +123929,15 @@
       "iconPath": "QuestItems/ITEM_Mission_HighTech_1",
       "recipeIds": [
         "Mission_Navigation"
-      ]
+      ],
+      "mission": true
     },
     "Mission_Ship_Navigation_Part": {
       "id": "Mission_Ship_Navigation_Part",
       "displayName": "Damaged Guidance System Part",
       "description": "A few electrical parts with frayed wires.",
-      "iconPath": "QuestItems/ITEM_Mission_HighTech_1"
+      "iconPath": "QuestItems/ITEM_Mission_HighTech_1",
+      "mission": true
     },
     "Mission_Ship_Thruster": {
       "id": "Mission_Ship_Thruster",
@@ -121985,13 +123946,15 @@
       "iconPath": "QuestItems/ITEM_Mission_HighTech_1",
       "recipeIds": [
         "Mission_Thruster"
-      ]
+      ],
+      "mission": true
     },
     "Mission_Ship_Thruster_Part": {
       "id": "Mission_Ship_Thruster_Part",
       "displayName": "Damaged Thruster Part",
       "description": "The remains of what was a Ship Thruster.",
-      "iconPath": "QuestItems/ITEM_Mission_HighTech_1"
+      "iconPath": "QuestItems/ITEM_Mission_HighTech_1",
+      "mission": true
     },
     "Mission_Sonic_Disrupter": {
       "id": "Mission_Sonic_Disrupter",
@@ -122000,7 +123963,8 @@
       "iconPath": "QuestItems/ITEM_Mission_Sonic_Disrupter",
       "recipeIds": [
         "Glacier_Expedition_Deployable"
-      ]
+      ],
+      "mission": true
     },
     "Mission_Stasis_Bag": {
       "id": "Mission_Stasis_Bag",
@@ -122009,7 +123973,8 @@
       "iconPath": "UseableItems/T_ITEM_Stasis_Bag_Empty",
       "recipeIds": [
         "Stasis_Bag"
-      ]
+      ],
+      "mission": true
     },
     "Mission_Vesper_Cage": {
       "id": "Mission_Vesper_Cage",
@@ -123903,6 +125868,12 @@
         "Carcass_Chicken",
         "Carcass_Rooster"
       ]
+    },
+    "Raw_Fish": {
+      "id": "Raw_Fish",
+      "displayName": "Raw Fish",
+      "description": "Will nourish, but better if cooked.",
+      "iconPath": "Consumeables/ITEM_Raw_Fish"
     },
     "Raw_Iron_Wood": {
       "id": "Raw_Iron_Wood",
@@ -126896,7 +128867,8 @@
       "iconPath": "Deployables/T_ITEM_Bunker_Prop_2",
       "recipeIds": [
         "Mission_Sonic_Device"
-      ]
+      ],
+      "mission": true
     },
     "Spawn_Blocker_T2": {
       "id": "Spawn_Blocker_T2",
@@ -127835,7 +129807,8 @@
       "iconPath": "Deployables/ITEM_Survey_Transmitter",
       "recipeIds": [
         "SurveyTransmitter_NoSnap"
-      ]
+      ],
+      "mission": true
     },
     "Survival_Backpack": {
       "id": "Survival_Backpack",
@@ -128182,6 +130155,36 @@
         "Thermos"
       ]
     },
+    "Thermos_Cocoa": {
+      "id": "Thermos_Cocoa",
+      "displayName": "Hot Cocoa",
+      "description": "A savory chocolate drink that slows hunger, and warms.",
+      "iconPath": "UseableItems/ITEM_Thermos"
+    },
+    "Thermos_Coffee": {
+      "id": "Thermos_Coffee",
+      "displayName": "Hot Coffee",
+      "description": "Do more.",
+      "iconPath": "UseableItems/ITEM_Thermos"
+    },
+    "Thermos_GreenTea": {
+      "id": "Thermos_GreenTea",
+      "displayName": "Hot Tea",
+      "description": "A nourishing, warming drink that soothes the spirit.",
+      "iconPath": "UseableItems/ITEM_Thermos"
+    },
+    "Thermos_IceWater": {
+      "id": "Thermos_IceWater",
+      "displayName": "Ice Water",
+      "description": "Like a Canteen, but with better thermal protection",
+      "iconPath": "UseableItems/ITEM_Thermos"
+    },
+    "Thermos_WildTea": {
+      "id": "Thermos_WildTea",
+      "displayName": "Gorse Tea",
+      "description": "A slightly bitter, warming beverage that reduces thirst.",
+      "iconPath": "UseableItems/ITEM_Thermos"
+    },
     "Thumper": {
       "id": "Thumper",
       "displayName": "Prototype Thumper",
@@ -128486,7 +130489,8 @@
       "iconPath": "Deployables/ITEM_Survey_Transmitter",
       "recipeIds": [
         "TriangulationBeacon"
-      ]
+      ],
+      "mission": true
     },
     "Trophy_Bench": {
       "id": "Trophy_Bench",

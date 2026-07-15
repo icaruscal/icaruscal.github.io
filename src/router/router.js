@@ -3,10 +3,14 @@ import { createRouter, createWebHistory } from 'vue-router';
 
 const routes = [
     {
-        name: RouteName.ICARUS,
+        name: RouteName.CALCULATOR,
         path: '/',
-        title: 'Icarus',
         component: () => import('@/pages/icarus/Icarus.vue'),
+    },
+    {
+        name: RouteName.EXPLORE,
+        path: '/explore',
+        component: () => import('@/pages/icarus/FoodExplore.vue'),
     },
 ];
 

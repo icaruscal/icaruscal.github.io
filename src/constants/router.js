@@ -1,3 +1,4 @@
 export const RouteName = Object.freeze({
-    ICARUS: 'icarus',
+    CALCULATOR: 'calculator',
+    EXPLORE: 'explore',
 });

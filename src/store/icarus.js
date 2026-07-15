@@ -4,7 +4,7 @@ import { useStorage } from '@vueuse/core';
 import { useFuse } from '@vueuse/integrations/useFuse';
 
 import { LOCAL_STORAGE_PREFIX } from '@/constants/common';
-import { formatGameVersionExtractedAt, formatGameVersionLabel, formatGameVersionShort, generateHighlightedText, processCatalogData } from '@/utility/icarusData';
+import { formatGameVersionExtractedAt, formatGameVersionLabel, formatGameVersionShort, generateHighlightedText, processCatalogData, buildFoodConsumables } from '@/utility/icarusData';
 
 // utility methods
 const DEFAULT_TAB_TITLE = 'Planning';
@@ -125,6 +125,7 @@ export const useIcarusStore = defineStore('icarus', {
 
             recipeData: {},
             recipeOptions: [],
+            foodConsumables: [],
             isLoadingRecipes: false,
             gameVersion: null,
 
@@ -155,6 +156,21 @@ export const useIcarusStore = defineStore('icarus', {
         },
         gameVersionExtractedAt(state) {
             return formatGameVersionExtractedAt(state.gameVersion);
+        },
+        foodBuffStatOptions(state) {
+            const labels = new Map();
+            for (const food of state.foodConsumables) {
+                for (const stat of food.grantedStats) {
+                    if (!labels.has(stat.key)) {
+                        const base = (stat.display || stat.key).replace(/^[+-]?\d+%?\s*/, '').trim();
+                        labels.set(stat.key, base || stat.key);
+                    }
+                }
+            }
+            return [...labels.entries()]
+                .filter(([value]) => value !== 'BaseFoodStomachSlots_+')
+                .map(([value, label]) => ({ value, label }))
+                .sort((a, b) => a.label.localeCompare(b.label));
         },
         sortedRecipeOptions(state) {
             return state.recipeOptions.sort((a, b) => a.label.localeCompare(b.label));
@@ -334,21 +350,35 @@ export const useIcarusStore = defineStore('icarus', {
             }
 
             if (currentTab) {
-                const matchingItem = currentTab.items.find((item) => item.id === itemId);
-                const outputQuantity = this.recipeData[itemId].outputQuantity ?? 1;
-
-                if (matchingItem) {
-                    matchingItem.quantity += outputQuantity;
-                } else {
-                    currentTab.items.push({
-                        id: itemId,
-                        quantity: outputQuantity,
-                    });
-                }
-                this.syncTabTitle(currentTab);
+                this.addItemToTab(itemId, currentTab.id);
             } else {
                 console.error(`Could not find tab with id ${this.activeTabId}`, this.tabs);
             }
+        },
+        /** Add a craft recipe to a specific planning tab (not the dashboard). */
+        addItemToTab(itemId, tabId) {
+            if (!itemId || !this.recipeData[itemId]) {
+                return null;
+            }
+            const tab = findTab(tabId, this.tabs);
+            if (!tab || tab.isDashboard) {
+                return null;
+            }
+
+            const matchingItem = tab.items.find((item) => item.id === itemId);
+            const outputQuantity = this.recipeData[itemId].outputQuantity ?? 1;
+
+            if (matchingItem) {
+                matchingItem.quantity += outputQuantity;
+            } else {
+                tab.items.push({
+                    id: itemId,
+                    quantity: outputQuantity,
+                });
+            }
+            this.syncTabTitle(tab);
+            this.activeTabId = tab.id;
+            return tab;
         },
         openItemInNewTab(itemId) {
             if (!itemId || !this.recipeData[itemId]) {
@@ -356,13 +386,7 @@ export const useIcarusStore = defineStore('icarus', {
             }
 
             const tab = this.addTab();
-            const outputQuantity = this.recipeData[itemId].outputQuantity ?? 1;
-            tab.items.push({
-                id: itemId,
-                quantity: outputQuantity,
-            });
-            this.syncTabTitle(tab);
-            this.activeTabId = tab.id;
+            this.addItemToTab(itemId, tab.id);
             return tab;
         },
         removeItem(itemId, tab = this.activeTab) {
@@ -422,13 +446,14 @@ export const useIcarusStore = defineStore('icarus', {
             this.itemTableData = itemTableData;
             this.stations = stations ?? {};
             this.recipeData = recipeData;
+            this.foodConsumables = buildFoodConsumables(catalog);
             // Use Set to deduplicate: aliased entries (e.g. "Refined_Wood" / "Wood_Refined")
             // share the same object reference so Set collapses them to one search result.
             this.recipeOptions = [...new Set(Object.values(recipeData))];
             this.isLoadingRecipes = false;
             this.syncAllTabTitles();
 
-            console.log({ itemStaticData, itemTableData, stations, recipeData, meta: catalog.meta, gameVersion: this.gameVersion });
+            console.log({ itemStaticData, itemTableData, stations, recipeData, foodConsumables: this.foodConsumables.length, meta: catalog.meta, gameVersion: this.gameVersion });
             console.log(`Processed data in ${performance.now() - startTime}ms`);
         },
     },

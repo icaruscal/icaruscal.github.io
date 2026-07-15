@@ -56,7 +56,6 @@
                 <li class="line-through">Save tab data in localStorage to support session restoration</li>
                 <li class="line-through">Show stack size on icons that normally produce more than 1 item</li>
                 <li class="line-through">Improve item search matching (fuzzy search)</li>
-                <li>Add way to "check" off items (mark as done)</li>
                 <li>Implement talent options logic to impact component output calculation</li>
                 <li>Indicate which items belong to each Tier (not specified in game data export directly)</li>
             </ul>
@@ -80,9 +79,6 @@ import { mapGetters } from 'pinia';
 import ItemSearchView from '@/pages/icarus/components/craftingCalculator/ItemSearchView.vue';
 import TabsView from '@/pages/icarus/components/TabsView.vue';
 import { useIcarusStore } from '@/store/icarus';
-
-const icarusStore = useIcarusStore();
-icarusStore.loadRecipeData();
 
 const AlertVersion = Object.freeze({
     welcome: 1,

@@ -10,6 +10,18 @@
                         :preview-disabled="true"
                     />
                     <span class="px-2">Icarus Crafting Calculator</span>
+                    <nav class="page-nav flex align-items-center ml-3">
+                        <router-link
+                            v-for="item in navItems"
+                            :key="item.to"
+                            class="page-nav-link"
+                            :to="item.to"
+                            active-class="is-active"
+                            exact-active-class="is-active"
+                        >
+                            {{ item.label }}
+                        </router-link>
+                    </nav>
                 </div>
                 <div class="header-actions flex align-items-center mr-2">
                     <n-tooltip v-if="gameVersionShort" trigger="hover" placement="bottom">
@@ -23,7 +35,7 @@
                             <div v-if="gameVersionExtractedAt">Extracted {{ gameVersionExtractedAt }}</div>
                         </div>
                     </n-tooltip>
-                    <n-tooltip trigger="hover" placement="bottom">
+                    <n-tooltip v-if="isCalculatorPage" trigger="hover" placement="bottom">
                         <template #trigger>
                             <n-button size="small" secondary quaternary circle :type="pageLayout === 'top' ? 'primary' : 'default'" @click="toggleLayout">
                                 <n-icon size="16">
@@ -44,6 +56,7 @@
 import { mapActions, mapGetters } from 'pinia';
 import { Columns, SearchPlus } from '@vicons/fa';
 import { GAME_ASSETS_URL } from '@/constants/common';
+import { RouteName } from '@/constants/router';
 import { useIcarusStore } from '@/store/icarus';
 
 export default {
@@ -55,10 +68,17 @@ export default {
     data() {
         return {
             gameAssetsUrl: GAME_ASSETS_URL,
+            navItems: [
+                { label: 'Calculator', to: { name: RouteName.CALCULATOR } },
+                { label: 'Explore', to: { name: RouteName.EXPLORE } },
+            ],
         };
     },
     computed: {
         ...mapGetters(useIcarusStore, ['pageLayout', 'gameVersionShort', 'gameVersionLabel', 'gameVersionExtractedAt']),
+        isCalculatorPage() {
+            return this.$route.name === RouteName.CALCULATOR;
+        },
     },
     methods: {
         ...mapActions(useIcarusStore, ['setPageLayout']),
@@ -97,6 +117,30 @@ export default {
             white-space: nowrap;
             cursor: default;
         }
+    }
+}
+
+.page-nav {
+    gap: 0.15rem;
+    font-weight: 500;
+}
+
+.page-nav-link {
+    padding: 0.25rem 0.7rem;
+    border-radius: 4px;
+    color: rgba(255, 255, 255, 0.55);
+    text-decoration: none;
+    font-size: 0.9rem;
+    transition: color 0.15s ease, background-color 0.15s ease;
+
+    &:hover {
+        color: rgba(255, 255, 255, 0.9);
+        background-color: rgba(255, 255, 255, 0.06);
+    }
+
+    &.is-active {
+        color: #70c0e8;
+        background-color: rgba(112, 192, 232, 0.12);
     }
 }
 

@@ -176,7 +176,7 @@ type CatalogModifier = {
 /** Internal recipe row (display fields used while building; omitted from emit when on items). */
 type CatalogRecipe = {
     id: string;
-    acquisition: 'craft' | 'shop' | 'workshop';
+    acquisition: 'craft' | 'shop' | 'workshop' | 'gather' | 'mission';
     purchase: PurchaseInfo | null;
     templateName: string | null;
     staticItemName: string | null;
@@ -193,6 +193,8 @@ type CatalogRecipe = {
     instantStats: ResolvedStat[];
     modifier: CatalogModifier | null;
     equipGrantedStats: ResolvedStat[];
+    /** Faction / mission reward item (D_ItemsStatic Manual_Tags FactionMission.*). */
+    mission?: boolean;
     tier: TierInfo;
     flags: Flag[];
 };
@@ -210,6 +212,8 @@ type CatalogItem = {
      * Tree recursion stops here even when recipeIds lists conversion recipes (Quarrite → Ore, etc.).
      */
     gatherFirst?: boolean;
+    /** Faction / mission reward item (Manual_Tags FactionMission.*). */
+    mission?: boolean;
 };
 
 /** Crafting station (D_RecipeSets) with UI labels/icons. */
@@ -296,6 +300,11 @@ function isGatherFirstFromTags(tags: string[]): boolean {
     return tags.some((tag) => GATHER_FIRST_TAG_RE.test(tag));
 }
 
+/** Mission / faction reward items (Manual_Tags FactionMission.Item / FactionMission.Item.*). */
+function isMissionFromTags(tags: string[]): boolean {
+    return tags.some((tag) => tag === 'FactionMission.Item' || tag.startsWith('FactionMission.Item.'));
+}
+
 function manualTagNames(row: ItemsStaticRow | undefined): string[] {
     return (row?.Manual_Tags?.GameplayTags ?? [])
         .map((t) => t.TagName)
@@ -362,6 +371,7 @@ function emitRecipe(recipe: CatalogRecipe, items: Record<string, CatalogItem>): 
         instantStats: recipe.instantStats,
         modifier: recipe.modifier,
         equipGrantedStats: recipe.equipGrantedStats,
+        mission: recipe.mission || undefined,
         tier: recipe.tier,
         flags: recipe.flags,
     };
@@ -383,6 +393,18 @@ function indexByName<T extends { Name: string }>(table: DataTable<T> | undefined
         map.set(row.Name, row);
     }
     return map;
+}
+
+/** Exact match first, then case-insensitive (export ids sometimes mismatch casing). */
+function lookupByName<T extends { Name: string }>(map: Map<string, T>, name: string | null | undefined): T | undefined {
+    if (!name) return undefined;
+    const exact = map.get(name);
+    if (exact) return exact;
+    const lower = name.toLowerCase();
+    for (const [key, value] of map) {
+        if (key.toLowerCase() === lower) return value;
+    }
+    return undefined;
 }
 
 async function exists(filePath: string): Promise<boolean> {
@@ -778,7 +800,7 @@ async function main(): Promise<void> {
         const rawConsumable = staticItem.Consumable?.RowName;
         details.consumableName = rawConsumable && rawConsumable !== 'None' ? rawConsumable : null;
         if (details.consumableName) {
-            const consumable = consumableByName.get(details.consumableName);
+            const consumable = lookupByName(consumableByName, details.consumableName);
             if (!consumable) {
                 flags.push('missing_consumable_row');
             } else {
@@ -816,6 +838,76 @@ async function main(): Promise<void> {
                     ...resolveStats(equip.GrantedStats, statsByName, flags),
                     ...resolveStats(equip.GlobalStat_GrantedStats, statsByName, flags),
                 ];
+            }
+        }
+
+        return details;
+    }
+
+    /** Resolve display + consumable stats for a D_ItemsStatic row (no ItemTemplate required). */
+    function resolveStaticItemDetails(staticItemName: string, flags: Flag[]): TemplateDetails {
+        const details: TemplateDetails = {
+            staticItemName,
+            displayName: null,
+            description: null,
+            icon: null,
+            iconPath: null,
+            consumableName: null,
+            instantStats: [],
+            modifier: null,
+            equipGrantedStats: [],
+        };
+        const staticItem = staticByName.get(staticItemName);
+        if (!staticItem) {
+            flags.push('missing_static_item');
+            return details;
+        }
+
+        const itemableName = staticItem.Itemable?.RowName;
+        if (!itemableName || itemableName === 'None') {
+            flags.push('missing_itemable');
+        } else {
+            const itemable = itemableByName.get(itemableName);
+            if (!itemable) {
+                flags.push('missing_itemable');
+            } else {
+                details.displayName = parseNsLocText(itemable.DisplayName);
+                details.description = parseNsLocText(itemable.Description);
+                details.icon = itemable.Icon ?? null;
+                details.iconPath = toIconPath(details.icon);
+            }
+        }
+
+        const rawConsumable = staticItem.Consumable?.RowName;
+        details.consumableName = rawConsumable && rawConsumable !== 'None' ? rawConsumable : null;
+        if (details.consumableName) {
+            const consumable = lookupByName(consumableByName, details.consumableName);
+            if (!consumable) {
+                flags.push('missing_consumable_row');
+            } else {
+                details.instantStats = resolveStats(consumable.Stats, statsByName, flags);
+                const modName = consumable.Modifier?.Modifier?.RowName;
+                if (modName && modName !== 'None') {
+                    const mod = modifierByName.get(modName);
+                    if (!mod) {
+                        flags.push('missing_modifier_row');
+                        details.modifier = {
+                            name: modName,
+                            displayName: null,
+                            description: null,
+                            lifetimeSeconds: consumable.Modifier?.ModifierLifetime ?? null,
+                            grantedStats: [],
+                        };
+                    } else {
+                        details.modifier = {
+                            name: mod.Name,
+                            displayName: parseNsLocText(mod.ModifierName),
+                            description: parseNsLocText(mod.ModifierDescription),
+                            lifetimeSeconds: consumable.Modifier?.ModifierLifetime ?? null,
+                            grantedStats: resolveStats(mod.GrantedStats, statsByName, flags),
+                        };
+                    }
+                }
             }
         }
 
@@ -983,6 +1075,8 @@ async function main(): Promise<void> {
             for (const station of stations) referencedStationIds.add(station);
         }
 
+        const mission = isMissionFromTags(manualTagNames(staticByName.get(staticItemName ?? '')));
+
         catalog.push({
             id: recipe.Name,
             acquisition,
@@ -1000,6 +1094,7 @@ async function main(): Promise<void> {
             instantStats,
             modifier,
             equipGrantedStats,
+            ...(mission ? { mission: true } : {}),
             tier: {
                 value: tierResolved.value,
                 method: tierResolved.method,
@@ -1033,6 +1128,8 @@ async function main(): Promise<void> {
 
         if (details.staticItemName) referencedStaticIds.add(details.staticItemName);
 
+        const mission = isMissionFromTags(manualTagNames(staticByName.get(details.staticItemName ?? '')));
+
         catalog.push({
             id: entry.row.Name,
             acquisition: 'workshop',
@@ -1052,9 +1149,73 @@ async function main(): Promise<void> {
             instantStats: details.instantStats,
             modifier: details.modifier,
             equipGrantedStats: details.equipGrantedStats,
+            ...(mission ? { mission: true } : {}),
             tier: {
                 value: null,
                 method: 'purchase_only',
+                talentName: null,
+                talentTree: null,
+                stationSources: [],
+            },
+            flags: uniq,
+        });
+    }
+
+    // Gather / raw edible items that have a Consumable trait but no craft/shop/workshop recipe
+    // covering that static id (e.g. Wild Berry, Carrot, raw meats). Mission-tagged orphans use
+    // acquisition "mission" (e.g. FactionMission.Item.AnimalFood variants).
+    const coveredConsumableStaticIds = new Set(
+        catalog.map((row) => row.staticItemName).filter((id): id is string => Boolean(id))
+    );
+    const isFoodOrWaterInstant = (stats: ResolvedStat[]) =>
+        stats.some((stat) => /FoodRecovery|WaterRecovery/.test(stat.key));
+
+    for (const staticRow of staticTable.Rows ?? []) {
+        const consumableName = staticRow.Consumable?.RowName;
+        if (!consumableName || consumableName === 'None') continue;
+        if (coveredConsumableStaticIds.has(staticRow.Name)) continue;
+
+        const flags: Flag[] = [];
+        const details = resolveStaticItemDetails(staticRow.Name, flags);
+        if (!isFoodOrWaterInstant(details.instantStats)) continue;
+
+        const hasStats =
+            details.instantStats.length > 0 || (details.modifier?.grantedStats.length ?? 0) > 0;
+        if (!hasStats) flags.push('no_granted_stats');
+
+        const uniq = uniqueFlags(flags);
+        for (const flag of uniq) {
+            flagSummary.set(flag, (flagSummary.get(flag) ?? 0) + 1);
+        }
+
+        referencedStaticIds.add(staticRow.Name);
+        coveredConsumableStaticIds.add(staticRow.Name);
+
+        const mission = isMissionFromTags(manualTagNames(staticRow));
+
+        catalog.push({
+            id: staticRow.Name,
+            acquisition: mission ? 'mission' : 'gather',
+            purchase: null,
+            templateName: null,
+            staticItemName: details.staticItemName,
+            displayName: details.displayName,
+            description: details.description,
+            iconPath: details.iconPath,
+            stations: [],
+            ingredients: [],
+            outputs: details.staticItemName
+                ? [{ id: details.staticItemName, templateName: details.staticItemName, count: 1 }]
+                : [],
+            outputCount: 1,
+            consumableName: details.consumableName,
+            instantStats: details.instantStats,
+            modifier: details.modifier,
+            equipGrantedStats: [],
+            ...(mission ? { mission: true } : {}),
+            tier: {
+                value: 0,
+                method: 'default_unlocked',
                 talentName: null,
                 talentTree: null,
                 stationSources: [],
@@ -1097,6 +1258,7 @@ async function main(): Promise<void> {
         // Pipe/fuel ResourceInputs (Water, Biofuel, …) are not D_ItemsStatic rows.
         const isResource = !staticByName.has(staticId);
         const gatherFirst = isGatherFirstFromTags(manualTagNames(staticByName.get(staticId)));
+        const mission = isMissionFromTags(manualTagNames(staticByName.get(staticId)));
         if (gatherFirst) gatherFirstCount += 1;
         const item: CatalogItem = {
             id: staticId,
@@ -1105,6 +1267,7 @@ async function main(): Promise<void> {
             iconPath: display.iconPath,
             recipeIds: lookupByStatic[staticId] ?? [],
             ...(gatherFirst ? { gatherFirst: true } : {}),
+            ...(mission ? { mission: true } : {}),
         };
         items[staticId] = item;
         itemsOut[staticId] = emitObject({ ...item });
@@ -1211,9 +1374,11 @@ async function main(): Promise<void> {
     }
 
     const withStats = catalog.filter((item) => !item.flags.includes('no_granted_stats'));
-    const purchasable = catalog.filter((item) => item.acquisition !== 'craft');
+    const purchasable = catalog.filter((item) => item.acquisition === 'shop' || item.acquisition === 'workshop');
     const craftRecipes = catalog.filter((item) => item.acquisition === 'craft');
-    const unknownTier = catalog.filter(
+    const gatherRecipes = catalog.filter((item) => item.acquisition === 'gather');
+    const missionRecipes = catalog.filter((item) => item.acquisition === 'mission' || item.mission);
+    const unknownTiers = catalog.filter(
         (item) => item.tier.value == null && item.tier.method !== 'purchase_only'
     );
     const reviewQueueCount = catalog.filter((item) => item.flags.some((flag) => REVIEW_FLAGS.has(flag))).length;
@@ -1228,6 +1393,8 @@ async function main(): Promise<void> {
             dataRoot,
             recipeCount: catalog.length,
             craftCount: craftRecipes.length,
+            gatherCount: gatherRecipes.length,
+            missionCount: missionRecipes.length,
             withGrantedStatsCount: withStats.length,
             purchasableCount: purchasable.length,
             shopCount: purchasable.filter((item) => item.acquisition === 'shop').length,
@@ -1236,15 +1403,15 @@ async function main(): Promise<void> {
             rawMaterialCount,
             gatherFirstCount,
             stationCount: Object.keys(stationsOut).length,
-            unknownTierCount: unknownTier.length,
+            unknownTierCount: unknownTiers.length,
             reviewQueueCount,
             flagSummary: Object.fromEntries([...flagSummary.entries()].sort((a, b) => b[1] - a[1])),
             notes: {
-                usage: 'Load recipes (filter acquisition===craft) for the calculator. Resolve ingredient/output display via items[staticItemName] (or items[ingredientId]). Multi-output recipes set items[*].recipeIds for every Outputs entry and include recipes[].outputs with per-output counts (use that count when the tree targets a secondary product). ResourceInputs become ingredients with table "Resource" (e.g. Water). Resolve station labels via stations[id].displayName (Processing remaps RecipeSet→deployable when ids differ, e.g. Cleaning_Device→T3_Cleaning_Device). Use stations[id].craftRecipeId to craft the station. Walk trees with items[id].recipeIds; missing/empty recipeIds = raw; items with gatherFirst=true are world-gather primary (Ore/Wood/…) — treat as terminal even when recipeIds lists conversion recipes (Quarrite armor → ore, Pyritic crust, Frozen_Ore). First id is a reasonable default when multiple recipes share an output. Absent null/[] fields are defaults.',
+                usage: 'Load recipes (filter acquisition===craft) for the calculator. Resolve ingredient/output display via items[staticItemName] (or items[ingredientId]). Multi-output recipes set items[*].recipeIds for every Outputs entry and include recipes[].outputs with per-output counts (use that count when the tree targets a secondary product). ResourceInputs become ingredients with table "Resource" (e.g. Water). Resolve station labels via stations[id].displayName (Processing remaps RecipeSet→deployable when ids differ, e.g. Cleaning_Device→T3_Cleaning_Device). Use stations[id].craftRecipeId to craft the station. Walk trees with items[id].recipeIds; missing/empty recipeIds = raw; items with gatherFirst=true are world-gather primary (Ore/Wood/…) — treat as terminal even when recipeIds lists conversion recipes (Quarrite armor → ore, Pyritic crust, Frozen_Ore). First id is a reasonable default when multiple recipes share an output. Absent null/[] fields are defaults. Food Explore: recipes with instant Food/Water recovery (includes acquisition===gather for world edibles; acquisition===mission / mission:true for FactionMission.* items).',
                 tier0: 'Tier 0 means available without a Blueprint_T* unlock (default / Character crafting).',
                 stationDeduction: 'If a recipe has no Requirement, tier is the minimum tier among its RecipeSets stations.',
                 acquisition:
-                    "'craft' = normal recipe; 'shop' = bought in-world with currency (see purchase.shop); 'workshop' = orbital workshop item (see purchase.workshop). Purchase-only items have no tier/station.",
+                    "'craft' = normal recipe; 'gather' = world edible with Consumable but no craft/shop/workshop recipe; 'mission' = FactionMission-tagged edible with no craft recipe (often shares a display name with a craftable variant); 'shop' = bought in-world with currency (see purchase.shop); 'workshop' = orbital workshop item (see purchase.workshop). Purchase-only items have no tier/station. mission:true marks FactionMission.* items on any acquisition.",
                 iconPath: 'Ready for `${gameAssetsUrl}/ItemIcons/${iconPath}.png`. Omitting iconPath means none / outside Item_Icons.',
                 review: 'meta.reviewQueueCount / flagSummary. Filter recipes whose flags intersect REVIEW_FLAGS for a review list.',
             },
@@ -1294,10 +1461,10 @@ async function main(): Promise<void> {
     console.log(`Wrote ${catalog.length} recipes (compact emit)`);
     console.log(`  pretty:   ${prettyPath} (${formatBytes(Buffer.byteLength(prettyJson))})`);
     console.log(`  minified: ${minPath} (${formatBytes(Buffer.byteLength(minJson))})`);
-    console.log(`Craft: ${craftRecipes.length}; items: ${Object.keys(items).length} (raw: ${rawMaterialCount}, gatherFirst: ${gatherFirstCount}); stations: ${Object.keys(stationsOut).length}`);
+    console.log(`Craft: ${craftRecipes.length}; gather: ${gatherRecipes.length}; mission: ${missionRecipes.length}; items: ${Object.keys(items).length} (raw: ${rawMaterialCount}, gatherFirst: ${gatherFirstCount}); stations: ${Object.keys(stationsOut).length}`);
     console.log(`With granted stats: ${withStats.length}`);
     console.log(`Purchasable: ${purchasable.length} (shop + workshop)`);
-    console.log(`Unknown tier: ${unknownTier.length}`);
+    console.log(`Unknown tier: ${unknownTiers.length}`);
     console.log(`Review queue (count only): ${reviewQueueCount}`);
     console.log('Flag summary:');
     for (const [flag, count] of [...flagSummary.entries()].sort((a, b) => b[1] - a[1])) {

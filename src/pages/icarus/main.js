@@ -7,12 +7,16 @@ import {
     NButtonGroup,
     NCard,
     NCheckbox,
+    NDataTable,
+    NDropdown,
     NIcon,
     NImage,
     NInput,
     NInputNumber,
     NSelect,
+    NSlider,
     NSpin,
+    NSwitch,
     NTabPane,
     NTabs,
     NTag,
@@ -28,6 +32,7 @@ import 'vue-virtual-scroller/dist/vue-virtual-scroller.css';
 import '@/style/style.scss';
 
 import App from '@/pages/icarus/Index.vue';
+import router from '@/router/router';
 
 const naive = create({
     components: [
@@ -36,12 +41,16 @@ const naive = create({
         NButtonGroup,
         NCard,
         NCheckbox,
+        NDataTable,
+        NDropdown,
         NIcon,
         NImage,
         NInput,
         NInputNumber,
         NSelect,
+        NSlider,
         NSpin,
+        NSwitch,
         NTabPane,
         NTabs,
         NTag,
@@ -54,6 +63,7 @@ const app = createApp(App);
 
 app.use(naive);
 app.use(pinia);
+app.use(router);
 app.use(VueVirtualScroller);
 
 app.mount('#app');
