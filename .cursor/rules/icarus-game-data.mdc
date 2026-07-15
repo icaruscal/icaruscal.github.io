@@ -1,0 +1,15 @@
+---
+description: Consult Icarus game data docs and raw Ue4Export tables when working with game data
+alwaysApply: true
+---
+
+# Icarus game data reference
+
+When working with Icarus recipes, items, stations, stats, talents, tiers, shops, workshop purchases, the data catalog, or Ue4Export tables:
+
+1. **Read** [`docs/icarus-game-data.md`](docs/icarus-game-data.md) first for join chains, conventions, and known gaps.
+2. **Resolve the raw export root** from `ICARUS_EXTRACTED_GAME_FILES_FOLDER` in [`.env.development`](.env.development) (gitignored). If that file is missing, use [`.env.development.example`](.env.development.example).
+3. **Check original exports** under that folder when the catalog or docs are incomplete — data tables live at `<ICARUS_EXTRACTED_GAME_FILES_FOLDER>/data/<Category>/D_*.json`.
+4. Prefer verifying claims against those `D_*.json` files over guessing from app code alone.
+
+Do not hardcode a machine-specific export path; always take it from the env var above.

@@ -23,10 +23,12 @@ Adjust paths/URLs in the local copies as needed. `yarn dev` uses `.env.developme
 ### Extracting game files
 - Download [Ue4Export](https://github.com/CrystalFerrai/Ue4Export/releases) tool
     - Ensure you have [.NET 8.0](https://dotnet.microsoft.com/en-us/download/dotnet/8.0) installed
-- Copy the `scripts/Ue4ExportFiles/*` files into the directory which you extracted the `Ue4Export` tool (Sibling of Ue4Export.exe).
-- Adjust the `export.bat` file to point to your game directory.
-- Execute `export.bat` from within the `UeExport` directory.
-- This will produce both the json data files, as well as the image assets.
+- Copy `scripts/Ue4ExportFiles/*` next to `Ue4Export.exe`.
+- From the Ue4Export directory, pass the Icarus install root and export output path:
+  ```
+  export.bat "C:\Games\Steam\steamapps\common\Icarus" "D:\IC_Export"
+  ```
+- That writes json data + image assets into the export path you give.
 
 ### Updating Via script
 Update ItemIcons from a Ue4Export:

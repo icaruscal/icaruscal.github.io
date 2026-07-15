@@ -4,14 +4,20 @@ Reference notes on how Icarus (the survival game) stores its gameplay data, how 
 `scripts/build-data-catalog.ts` script joins it into `data-catalog.json`.
 Written to assist future AI/dev sessions — read this before spelunking the raw exports.
 
+**Raw export path:** set `ICARUS_EXTRACTED_GAME_FILES_FOLDER` in `.env.development` (see
+`.env.development.example`). That directory is the Ue4Export output root (e.g. WSL `/mnt/d/IC_Export`
+for Windows `D:\IC_Export`). Data tables live under
+`<ICARUS_EXTRACTED_GAME_FILES_FOLDER>/data/<Category>/D_*.json`. Do not assume a hardcoded path.
+
 ## 1. Extracting game data
 
 - Tool: [Ue4Export](https://github.com/CrystalFerrai/Ue4Export/releases) (needs .NET 8). Icarus is **UE4.27**.
 - Run on Windows against the game install (e.g. `D:\SteamLibrary\steamapps\common\Icarus\`):
   - `Icarus\Content\Paks` → texture/asset exports (`scripts/Ue4ExportFiles/assetlist.txt`)
   - `Icarus\Content\Data` → JSON data tables (`scripts/Ue4ExportFiles/assetlist_data.txt`)
-- See `scripts/Ue4ExportFiles/export.bat` and the README. A local export lives at `/mnt/d/IC_Export`
-  (WSL view of `D:\IC_Export`), with data tables under `IC_Export/data/<Category>/D_*.json`.
+- See `scripts/Ue4ExportFiles/export.bat` and the README. Point
+  `ICARUS_EXTRACTED_GAME_FILES_FOLDER` at the export root you produce, then use that path for
+  `yarn build-data-catalog` and when inspecting raw `D_*.json` tables.
 
 ### Data table format
 
