@@ -10,12 +10,14 @@
  *
  * This script will attempt to prune any extra assets as well as find all new ones, and assets that changed. It uses the
  * export's `Traits/D_Itemable.json` to decide which ItemIcons belong in the web app.
+ * Also syncs `version.json` from the export root into data/ and public/.
  * Game recipe/item JSON for the app is built separately via `yarn build-data-catalog` (not copied into public/Data).
  *
  * @module
  */
 import { readdir, readFile, stat, copyFile, rm, realpath, chmod } from 'node:fs/promises';
 import * as path from 'node:path';
+import { syncStampedVersionJson } from './version-json.mjs';
 /**
  * An Item row is 1 row within one of the D_Item*.json files extracted from the data.pak file.
  *
@@ -344,7 +346,28 @@ async function main() {
 
     console.log('Updating web game assets (ItemIcons)');
     await updateGameAssets(baseWebLoc, extractedUeExportDir);
+
+    console.log('Syncing game version.json');
+    await syncVersionJson(extractedUeExportDir);
+
     console.log('Remember: yarn build-data-catalog <exportRoot> to refresh data/icarus-game/data-catalog.json');
+}
+
+/**
+ * Copy install version.json from the export root into data/ (git) and public/ (deploy).
+ * @param {import('node:fs').PathLike} extractedUeExportDir
+ */
+async function syncVersionJson(extractedUeExportDir) {
+    const src = path.join(extractedUeExportDir, 'version.json');
+    if (!(await statOrUndefined(src))) {
+        console.warn(`WARNING: No version.json in export (${src}). Run export.bat to copy Icarus/Config/version.json.`);
+        return;
+    }
+    const dataDest = path.join('data', 'icarus-game', 'version.json');
+    const publicDest = path.join('public', 'icarus-game', 'Data', 'version.json');
+    await syncStampedVersionJson(src, [dataDest, publicDest]);
+    console.log(`${src} => ${dataDest}`);
+    console.log(`${src} => ${publicDest}`);
 }
 
 await main();

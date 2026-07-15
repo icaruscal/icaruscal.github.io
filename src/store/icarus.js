@@ -4,7 +4,7 @@ import { useStorage } from '@vueuse/core';
 import { useFuse } from '@vueuse/integrations/useFuse';
 
 import { LOCAL_STORAGE_PREFIX } from '@/constants/common';
-import { generateHighlightedText, processCatalogData } from '@/utility/icarusData';
+import { formatGameVersionExtractedAt, formatGameVersionLabel, formatGameVersionShort, generateHighlightedText, processCatalogData } from '@/utility/icarusData';
 
 // utility methods
 const DEFAULT_TAB_TITLE = 'Planning';
@@ -126,6 +126,7 @@ export const useIcarusStore = defineStore('icarus', {
             recipeData: {},
             recipeOptions: [],
             isLoadingRecipes: false,
+            gameVersion: null,
 
             recipeSearch: '',
         };
@@ -145,6 +146,15 @@ export const useIcarusStore = defineStore('icarus', {
         },
         pageLayout(state) {
             return state.settings.pageLayout === 'top' ? 'top' : 'side';
+        },
+        gameVersionShort(state) {
+            return formatGameVersionShort(state.gameVersion);
+        },
+        gameVersionLabel(state) {
+            return formatGameVersionLabel(state.gameVersion);
+        },
+        gameVersionExtractedAt(state) {
+            return formatGameVersionExtractedAt(state.gameVersion);
         },
         sortedRecipeOptions(state) {
             return state.recipeOptions.sort((a, b) => a.label.localeCompare(b.label));
@@ -383,13 +393,27 @@ export const useIcarusStore = defineStore('icarus', {
             const dateTime = new Date().getTime();
             this.isLoadingRecipes = true;
 
-            const catalogResponse = await fetch(`/icarus-game/Data/data-catalog.json?v=${dateTime}`, {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-            });
+            const [catalogResponse, versionResponse] = await Promise.all([
+                fetch(`/icarus-game/Data/data-catalog.json?v=${dateTime}`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                }),
+                fetch(`/icarus-game/Data/version.json?v=${dateTime}`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                }),
+            ]);
             const catalog = await catalogResponse.json();
+            if (versionResponse.ok) {
+                this.gameVersion = await versionResponse.json();
+            } else {
+                console.warn('Could not load game version.json', versionResponse.status);
+                this.gameVersion = null;
+            }
 
             const startTime = performance.now();
             const { recipeData, itemStaticData, itemTableData, stations } = processCatalogData(catalog);
@@ -404,7 +428,7 @@ export const useIcarusStore = defineStore('icarus', {
             this.isLoadingRecipes = false;
             this.syncAllTabTitles();
 
-            console.log({ itemStaticData, itemTableData, stations, recipeData, meta: catalog.meta });
+            console.log({ itemStaticData, itemTableData, stations, recipeData, meta: catalog.meta, gameVersion: this.gameVersion });
             console.log(`Processed data in ${performance.now() - startTime}ms`);
         },
     },

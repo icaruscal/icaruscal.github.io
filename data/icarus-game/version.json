@@ -1,0 +1,20 @@
+{
+    "Name": "Icarus",
+    "Version": {
+        "Major": 3,
+        "Minor": 0,
+        "Patch": 18,
+        "Changelist": 154111,
+        "BuildType": "Shipping",
+        "FeatureLevel": "DangerousHorizons"
+    },
+    "BackendSchema": {
+        "Major": 1,
+        "Minor": 0,
+        "Changelist": 153890
+    },
+    "Data": {
+        "Changelist": 154111
+    },
+    "extractedAt": "2026-07-15"
+}

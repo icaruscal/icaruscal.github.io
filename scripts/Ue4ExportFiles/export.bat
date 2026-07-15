@@ -43,6 +43,19 @@ if not exist "%ICARUS_DIR%\Icarus\Content\Data" (
     exit /b 1
 )
 
+set "VERSION_JSON=%ICARUS_DIR%\Icarus\Config\version.json"
+if not exist "%VERSION_JSON%" (
+    echo ERROR: Missing game version file "%VERSION_JSON%"
+    exit /b 1
+)
+
+if not exist "%OUT_DIR%" mkdir "%OUT_DIR%"
+
+echo Copying game version...
+powershell -NoProfile -ExecutionPolicy Bypass -Command ^
+  "$src = Get-Content -LiteralPath '%VERSION_JSON%' -Raw | ConvertFrom-Json; $src | Add-Member -NotePropertyName extractedAt -NotePropertyValue (Get-Date -Format 'yyyy-MM-dd') -Force; $json = $src | ConvertTo-Json -Depth 10; [System.IO.File]::WriteAllText((Join-Path '%OUT_DIR%' 'version.json'), $json)"
+if errorlevel 1 exit /b 1
+
 echo Exporting textures from Paks...
 "%UE4EXPORT%" "%ICARUS_DIR%\Icarus\Content\Paks" %ENGINE% "%IMAGE_LIST%" "%OUT_DIR%"
 if errorlevel 1 exit /b 1
@@ -55,6 +68,7 @@ for /D %%G in ("%OUT_DIR%\data\*") do move "%%~G" "%OUT_DIR%\"
 rmdir "%OUT_DIR%\data"
 
 echo Done. Export written to "%OUT_DIR%"
+echo Version: "%OUT_DIR%\version.json"
 pause
 exit /b 0
 

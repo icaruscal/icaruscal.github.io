@@ -1,16 +1,19 @@
 /**
  * Minify data/icarus-game/data-catalog.json → public/icarus-game/Data/data-catalog.json
+ * and copy version.json next to it.
  * used by Vite builds when the pretty catalog already exists (no re-export needed).
  * Prefer `yarn build-data-catalog` after a game data export — it writes both.
  */
-import { existsSync, mkdirSync, readFileSync, writeFileSync, statSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync, statSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const prettyPath = resolve(root, 'data/icarus-game/data-catalog.json');
+const prettyVersionPath = resolve(root, 'data/icarus-game/version.json');
 const publicDir = resolve(root, 'public/icarus-game/Data');
 const minPath = resolve(publicDir, 'data-catalog.json');
+const publicVersionPath = resolve(publicDir, 'version.json');
 
 function formatBytes(n) {
     if (n < 1024) return `${n} B`;
@@ -32,6 +35,13 @@ function main() {
     console.log(`Data catalog → ${minPath}`);
     console.log(`  pretty:   ${formatBytes(statSync(prettyPath).size)}`);
     console.log(`  minified: ${formatBytes(Buffer.byteLength(minified))}`);
+
+    if (existsSync(prettyVersionPath)) {
+        copyFileSync(prettyVersionPath, publicVersionPath);
+        console.log(`Game version → ${publicVersionPath}`);
+    } else {
+        console.warn(`Missing ${prettyVersionPath} (header will not show a game version)`);
+    }
 }
 
 main();

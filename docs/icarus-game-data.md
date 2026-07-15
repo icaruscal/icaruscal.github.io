@@ -18,6 +18,10 @@ for Windows `D:\IC_Export`). Data tables live under
 - See `scripts/Ue4ExportFiles/export.bat` and the README. Point
   `ICARUS_EXTRACTED_GAME_FILES_FOLDER` at the export root you produce, then use that path for
   `yarn build-data-catalog` and when inspecting raw `D_*.json` tables.
+- Game build version is **not** inside the DataTables. `export.bat` copies
+  `<IcarusInstall>/Icarus/Config/version.json` to the export root. That file is synced into
+  `data/icarus-game/version.json` and shown in the site header as `v{Major}.{Minor}.{Patch}`
+  (hover tooltip: full `v…-rel-{FeatureLevel}` build string + `extractedAt` date from export).
 
 ### Data table format
 

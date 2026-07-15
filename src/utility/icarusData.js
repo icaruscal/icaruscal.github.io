@@ -453,6 +453,42 @@ export function processRecipeData(rows = [], { itemTemplateData = {}, itemStatic
     return { recipeData: postProcessData(recipeData) };
 }
 
+/**
+ * Format Icarus Config/version.json into short display label e.g. v3.0.18
+ * @param {{ Version?: { Major?: number, Minor?: number, Patch?: number } }} doc
+ */
+export function formatGameVersionShort(doc) {
+    const v = doc?.Version;
+    if (!v || v.Major == null || v.Minor == null || v.Patch == null) {
+        return '';
+    }
+    return `v${v.Major}.${v.Minor}.${v.Patch}`;
+}
+
+/**
+ * Format Icarus Config/version.json into the patch-notes style label
+ * e.g. v3.0.18.154111-rel-DangerousHorizons
+ * @param {{ Version?: { Major?: number, Minor?: number, Patch?: number, Changelist?: number, BuildType?: string, FeatureLevel?: string } }} doc
+ */
+export function formatGameVersionLabel(doc) {
+    const v = doc?.Version;
+    if (!v || v.Major == null || v.Minor == null || v.Patch == null || v.Changelist == null) {
+        return '';
+    }
+    const channel = v.BuildType === 'Shipping' || !v.BuildType ? 'rel' : String(v.BuildType).toLowerCase();
+    const feature = v.FeatureLevel || 'Unknown';
+    return `v${v.Major}.${v.Minor}.${v.Patch}.${v.Changelist}-${channel}-${feature}`;
+}
+
+/** YYYY-MM-DD stamped when export.bat / sync wrote the file */
+export function formatGameVersionExtractedAt(doc) {
+    const raw = doc?.extractedAt;
+    if (typeof raw !== 'string' || !raw) {
+        return '';
+    }
+    return raw.slice(0, 10);
+}
+
 export function generateHighlightedText(inputText, regions = []) {
     let content = '';
     let nextNonHighlightedRegionStartingIndex = 0;

@@ -12,6 +12,17 @@
                     <span class="px-2">Icarus Crafting Calculator</span>
                 </div>
                 <div class="header-actions flex align-items-center mr-2">
+                    <n-tooltip v-if="gameVersionShort" trigger="hover" placement="bottom">
+                        <template #trigger>
+                            <n-text depth="3" class="game-version-label mr-3">
+                                {{ gameVersionShort }}
+                            </n-text>
+                        </template>
+                        <div class="game-version-tooltip">
+                            <div>{{ gameVersionLabel }}</div>
+                            <div v-if="gameVersionExtractedAt">Extracted {{ gameVersionExtractedAt }}</div>
+                        </div>
+                    </n-tooltip>
                     <n-tooltip trigger="hover" placement="bottom">
                         <template #trigger>
                             <n-button size="small" secondary quaternary circle :type="pageLayout === 'top' ? 'primary' : 'default'" @click="toggleLayout">
@@ -47,7 +58,7 @@ export default {
         };
     },
     computed: {
-        ...mapGetters(useIcarusStore, ['pageLayout']),
+        ...mapGetters(useIcarusStore, ['pageLayout', 'gameVersionShort', 'gameVersionLabel', 'gameVersionExtractedAt']),
     },
     methods: {
         ...mapActions(useIcarusStore, ['setPageLayout']),
@@ -79,6 +90,17 @@ export default {
             font-weight: bold;
             font-size: 1rem;
         }
+
+        .game-version-label {
+            font-size: 0.8rem;
+            font-weight: normal;
+            white-space: nowrap;
+            cursor: default;
+        }
     }
+}
+
+.game-version-tooltip {
+    line-height: 1.4;
 }
 </style>

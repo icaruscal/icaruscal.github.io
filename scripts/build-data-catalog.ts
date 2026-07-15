@@ -20,6 +20,7 @@
  */
 import { promises as fs } from 'node:fs';
 import * as path from 'node:path';
+import { stampExtractedAt } from './version-json.mjs';
 
 type RowRef = { RowName?: string; DataTableName?: string };
 type DataTable<T extends { Name: string }> = { Rows?: T[]; Defaults?: Record<string, unknown> };
@@ -1262,6 +1263,30 @@ async function main(): Promise<void> {
     await fs.mkdir(path.dirname(minPath), { recursive: true });
     await fs.writeFile(prettyPath, prettyJson, 'utf8');
     await fs.writeFile(minPath, minJson, 'utf8');
+
+    // dataRoot is <export>/data or export itself — version.json lives on the export root
+    const versionCandidates = [
+        path.join(path.resolve(exportArg), 'version.json'),
+        path.join(path.dirname(dataRoot), 'version.json'),
+        path.join(dataRoot, 'version.json'),
+    ];
+    let versionSrc: string | undefined;
+    for (const candidate of versionCandidates) {
+        if (await exists(candidate)) {
+            versionSrc = candidate;
+            break;
+        }
+    }
+    if (versionSrc) {
+        const prettyVersionPath = path.join(path.dirname(prettyPath), 'version.json');
+        const publicVersionPath = path.join(path.dirname(minPath), 'version.json');
+        const versionJson = stampExtractedAt(await fs.readFile(versionSrc, 'utf8'));
+        await fs.writeFile(prettyVersionPath, versionJson, 'utf8');
+        await fs.writeFile(publicVersionPath, versionJson, 'utf8');
+        console.log(`Game version: ${versionSrc} → ${prettyVersionPath}`);
+    } else {
+        console.warn('No version.json next to export (run export.bat to copy Icarus/Config/version.json)');
+    }
 
     const formatBytes = (n: number) =>
         n < 1024 ? `${n} B` : n < 1024 * 1024 ? `${(n / 1024).toFixed(1)} KB` : `${(n / (1024 * 1024)).toFixed(2)} MB`;

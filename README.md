@@ -28,23 +28,23 @@ Adjust paths/URLs in the local copies as needed. `yarn dev` uses `.env.developme
   ```
   export.bat "C:\Games\Steam\steamapps\common\Icarus" "D:\IC_Export"
   ```
-- That writes json data + image assets into the export path you give.
+- That writes json data + image assets into the export path you give, plus copies `Icarus\Config\version.json` to `<ExportDir>\version.json`.
 
 ### Updating Via script
 Update ItemIcons from a Ue4Export:
 ```
 yarn update-game-assets <path/to/Ue4ExportDir/export>
 ```
-This syncs icons from the export (using `Traits/D_Itemable.json` as the reference list) and removes any leftover raw `D_*.json` tables from `public/icarus-game/Data`.
+This syncs icons from the export (using `Traits/D_Itemable.json` as the reference list), copies `version.json` into `data/icarus-game/` and `public/icarus-game/Data/`, and removes any leftover raw `D_*.json` tables from `public/icarus-game/Data`.
 
 ### Data catalog (recipes, items, stations, stats + tier)
 The app loads a single combined JSON (`data-catalog.json`), not the raw Ue4Export `D_*.json` tables.
 ```
 yarn build-data-catalog <path/to/IC_Export> [prettyOutFile]
 ```
-Writes a **pretty** file to `data/icarus-game/data-catalog.json` and a **minified** copy to `public/icarus-game/Data/data-catalog.json`.
+Writes a **pretty** file to `data/icarus-game/data-catalog.json` and a **minified** copy to `public/icarus-game/Data/data-catalog.json`. Also copies `version.json` from the export root when present.
 
-`yarn build` / `yarn gh` re-minify from the pretty file via the Vite plugin (`yarn prepare-data-catalog`). During `yarn dev`, the pretty `data/` file is served at `/icarus-game/Data/data-catalog.json`. GitHub Pages gzip-compresses `.json` on the fly.
+`yarn build` / `yarn gh` re-minify from the pretty file via the Vite plugin (`yarn prepare-data-catalog`). During `yarn dev`, the pretty `data/` files are served at `/icarus-game/Data/data-catalog.json` and `/icarus-game/Data/version.json`. The header shows the game version from that JSON.
 
 Each recipe has an `acquisition` field: `craft`, `shop`, or `workshop`. See [docs/icarus-game-data.md](./docs/icarus-game-data.md).
 
@@ -55,7 +55,7 @@ Prefer `yarn update-game-assets` (above). Manually: Web App base is `public/icar
 
 ### Updating the Web App
 
-Once the data and image files are updated, the remaining adjustments are done within the `src\pages\Icarus.vue` file. Here we can specify the game version and the calendar date, the update notes link and week number, and the welcome/changes banner texts.
+Once the data and image files are updated, the remaining adjustments are done within the `src\pages\Icarus.vue` file (welcome/changes banner texts, Steam news link). Game version display comes from `data/icarus-game/version.json` automatically.
 
 
 ## Setting up Dev Environment

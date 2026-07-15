@@ -35,15 +35,6 @@
         <div :class="pageLayout === 'side' ? 'flex flex-wrap' : 'top-layout-body'">
             <div v-if="pageLayout === 'side'">
                 <item-search-view class="item-selector" variant="side"></item-search-view>
-                <div class="m-2 text-200">
-                    <n-text depth="3" class="flex-shrink-0">Supports game version</n-text>
-                    <div class="flex align-items-center mt-2">
-                        <div class="game-version">
-                            <n-input :value="'v3.0.3.150621-rel-DangerousHorizons'" readonly></n-input>
-                        </div>
-                        <n-text depth="3">📅 2026-03-26</n-text>
-                    </div>
-                </div>
             </div>
             <tabs-view :class="pageLayout === 'top' ? 'tab-view tab-view--full' : 'tab-view flex-1'"></tabs-view>
         </div>
@@ -150,12 +141,6 @@ export default {
 .item-selector {
     width: 23rem;
     margin: 0.5rem;
-}
-
-.game-version {
-    width: 8rem;
-    text-align: center;
-    margin-right: 1rem;
 }
 
 .top-search-sticky {
