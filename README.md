@@ -12,6 +12,13 @@ nvm use
 yarn install
 yarn dev
 ```
+
+Local env files are gitignored. Copy the examples once (or after pulling changes to them):
+```
+cp .env.development.example .env.development
+cp .env.production.example .env.production
+```
+Adjust paths/URLs in the local copies as needed. `yarn dev` uses `.env.development`; production builds use `.env.production`.
 ## Updating Project files
 ### Extracting game files
 - Download [Ue4Export](https://github.com/CrystalFerrai/Ue4Export/releases) tool
@@ -56,4 +63,11 @@ Once the data and image files are updated, the remaining adjustments are done wi
 ### Yarn
 - Before you can run yarn, you should enable: `corepack enable` which then will automatically install yarn when you run the command to the version of the repository.  See [yarnpkg install instructions](https://yarnpkg.com/getting-started/install).
 - Run `yarn install` to install the dependencies.
+- Copy env templates and edit for your machine:
+  ```
+  cp .env.development.example .env.development
+  cp .env.production.example .env.production
+  ```
+  - `.env.development` — `VITE_GAME_ASSETS_URL` and `ICARUS_EXTRACTED_GAME_FILES_FOLDER` for local/dev
+  - `.env.production` — production `VITE_GAME_ASSETS_URL` for builds / GitHub Pages
 - Ensure `yarn build` executes without a problem.

@@ -31,3 +31,8 @@ dist-ssr
 
 # these file names are too long, and broke things, so they were renamed to shorter, de-duplicated names, that still work with the code
 # explore `git config --system core.longpaths true` as needed
+
+
+# Local environment files (use *.example as templates)
+.env.development
+.env.production
