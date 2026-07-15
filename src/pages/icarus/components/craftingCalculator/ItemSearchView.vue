@@ -39,22 +39,24 @@
                     v-slot="{ item }"
                 >
                     <div class="recipe-item flex align-items-center" @mousedown.prevent @click="onSelectItem(item.id)">
-                        <div class="relative flex align-items-center">
-                            <n-image
-                                class="icon"
-                                width="32"
-                                :src="`${gameAssetsUrl}/ItemIcons/${item.iconPath}.png`"
-                                :fallback-src="`${gameAssetsUrl}/Images/question-mark.png`"
-                                :preview-disabled="true"
-                            />
-                            <div v-if="recipeData[item.id]?.outputQuantity > 1" class="item-counter">x{{ recipeData[item.id].outputQuantity }}</div>
-                        </div>
-                        <div class="flex-shrink" style="min-width: 0">
-                            <div class="label text-overflow-ellipsis" v-bind:item-id="item.id">
-                                <span v-if="item.highlightedLabel" v-html="item.highlightedLabel"></span>
-                                <span v-else>{{ item.label }}</span>
+                        <item-modifier-tooltip class="recipe-item-main flex align-items-center" :recipe="recipeData[item.id]">
+                            <div class="relative flex align-items-center">
+                                <n-image
+                                    class="icon"
+                                    width="32"
+                                    :src="`${gameAssetsUrl}/ItemIcons/${item.iconPath}.png`"
+                                    :fallback-src="`${gameAssetsUrl}/Images/question-mark.png`"
+                                    :preview-disabled="true"
+                                />
+                                <div v-if="recipeData[item.id]?.outputQuantity > 1" class="item-counter">x{{ recipeData[item.id].outputQuantity }}</div>
                             </div>
-                        </div>
+                            <div class="flex-shrink" style="min-width: 0">
+                                <div class="label text-overflow-ellipsis" v-bind:item-id="item.id">
+                                    <span v-if="item.highlightedLabel" v-html="item.highlightedLabel"></span>
+                                    <span v-else>{{ item.label }}</span>
+                                </div>
+                            </div>
+                        </item-modifier-tooltip>
                         <n-tooltip trigger="hover">
                             <template #trigger>
                                 <n-button class="hover-button ml-auto" secondary type="default" size="small">
@@ -79,6 +81,7 @@ import { Plus } from '@vicons/fa';
 
 import { useIcarusStore } from '@/store/icarus';
 import { GAME_ASSETS_URL } from '@/constants/common';
+import ItemModifierTooltip from './ItemModifierTooltip.vue';
 
 const icarusStore = useIcarusStore();
 
@@ -86,6 +89,7 @@ export default {
     name: 'CraftingToolItemSelector',
     components: {
         Plus,
+        ItemModifierTooltip,
     },
     props: {
         variant: {
@@ -187,6 +191,11 @@ export default {
     height: 40px;
     padding: 0.1rem 1rem 0.1rem 0.6rem;
     cursor: pointer;
+
+    .recipe-item-main {
+        flex: 1;
+        min-width: 0;
+    }
 
     .icon {
         margin-right: 0.5rem;

@@ -246,6 +246,9 @@ export function processCatalogData(catalog = {}) {
             sources,
             preferredSource: sources[0] ?? null,
             outputQuantity: recipe.outputCount ?? 1,
+            instantStats: recipe.instantStats ?? [],
+            equipGrantedStats: recipe.equipGrantedStats ?? [],
+            modifier: recipe.modifier ?? null,
         };
     }
 
@@ -599,4 +602,20 @@ export function buildFoodConsumables(catalog = {}) {
 
     foods.sort((a, b) => a.label.localeCompare(b.label));
     return foods;
+}
+
+/** Whether a recipe has consumable / equip effects worth showing in a hover tooltip. */
+export function recipeHasModifierTooltip(recipe = {}) {
+    if (!recipe) return false;
+    if ((recipe.instantStats ?? []).length > 0) return true;
+    if ((recipe.equipGrantedStats ?? []).length > 0) return true;
+    const modifier = recipe.modifier;
+    if (!modifier) return false;
+    return Boolean(modifier.description) || (modifier.grantedStats ?? []).length > 0 || modifier.lifetimeSeconds != null;
+}
+
+/** Minutes label for a modifier lifetime, or null when unset. */
+export function formatModifierLifetimeMinutes(lifetimeSeconds) {
+    if (lifetimeSeconds == null || Number.isNaN(Number(lifetimeSeconds))) return null;
+    return Math.round(Number(lifetimeSeconds) / 60);
 }

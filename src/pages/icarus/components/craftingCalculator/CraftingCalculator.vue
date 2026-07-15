@@ -31,7 +31,11 @@
                         <div class="flex-grow-1">
                             <div class="flex align-items-center pb-1">
                                 <div class="flex-shrink">
-                                    <div class="label text-overflow-ellipsis" :data-item-id="item.id">{{ recipeData[item.id]?.label }}</div>
+                                    <item-modifier-tooltip :recipe="recipeData[item.id]">
+                                        <div class="label text-overflow-ellipsis" :data-item-id="item.id">
+                                            {{ recipeData[item.id]?.label }}
+                                        </div>
+                                    </item-modifier-tooltip>
                                 </div>
                             </div>
                             <div class="flex align-items-center flex-grow-1">
@@ -61,6 +65,31 @@
 
             <div class="mt-4">
                 <crafting-tree :trees="requirementTrees" :progress="treeProgress" :collapsed-paths="collapsedPaths" />
+            </div>
+
+            <div v-if="terminalMaterials.length > 0" class="mt-4">
+                <div class="flex align-items-center">
+                    <h3>Materials</h3>
+                </div>
+                <div>
+                    <div
+                        v-for="material in terminalMaterials"
+                        :key="material.id"
+                        class="recipe-item materials pl-0 flex align-items-center"
+                    >
+                        <div class="relative flex align-items-center">
+                            <n-image
+                                class="icon"
+                                width="32"
+                                :src="`${gameAssetsUrl}/ItemIcons/${materialIconPath(material.id)}.png`"
+                                :fallback-src="`${gameAssetsUrl}/Images/question-mark.png`"
+                                :preview-disabled="false"
+                            />
+                        </div>
+                        <div class="material-qty">{{ material.quantity }}</div>
+                        <div class="label">{{ material.label }}</div>
+                    </div>
+                </div>
             </div>
 
             <div class="flex align-items-center mt-3">
@@ -96,6 +125,7 @@ import { SortAlphaDown, Times } from '@vicons/fa';
 
 import ComponentSourcePicker from './ComponentSourcePicker.vue';
 import CraftingTree from './CraftingTree.vue';
+import ItemModifierTooltip from './ItemModifierTooltip.vue';
 import QuantityStepper from './QuantityStepper.vue';
 import { useIcarusStore } from '@/store/icarus';
 import { getStationCraftRecipeId, getStationLabel } from '@/utility/icarusData';
@@ -106,6 +136,7 @@ export default {
     components: {
         ComponentSourcePicker,
         CraftingTree,
+        ItemModifierTooltip,
         QuantityStepper,
         SortAlphaDown,
         Times,
@@ -156,9 +187,58 @@ export default {
         collapsedPaths() {
             return this.tab.collapsedPaths ?? {};
         },
+        terminalMaterials() {
+            const totals = new Map();
+
+            const addTerminal = (node) => {
+                if (!node?.id) return;
+                const existing = totals.get(node.id);
+                if (existing) {
+                    existing.quantity += node.quantity ?? 0;
+                    return;
+                }
+                totals.set(node.id, {
+                    id: node.id,
+                    label: node.label ?? node.id,
+                    quantity: node.quantity ?? 0,
+                });
+            };
+
+            const walk = (node) => {
+                if (!node) return;
+                const children = node.children || [];
+                if (children.length === 0) {
+                    addTerminal(node);
+                    return;
+                }
+                children.forEach((child) => {
+                    if (child.expanded) {
+                        walk(child.expanded);
+                    } else {
+                        addTerminal(child);
+                    }
+                });
+            };
+
+            (this.requirementTrees || []).forEach(walk);
+
+            return [...totals.values()]
+                .map((entry) => ({
+                    ...entry,
+                    quantity: Math.ceil(entry.quantity),
+                }))
+                .filter((entry) => entry.quantity > 0)
+                .sort((a, b) => a.label.localeCompare(b.label));
+        },
     },
     methods: {
         ...mapActions(useIcarusStore, ['removeItem']),
+        materialIconPath(itemId) {
+            const recipe = this.recipeData[itemId];
+            if (recipe?.iconPath) return recipe.iconPath;
+            const tableId = this.itemStaticData[itemId]?.itemTableId;
+            return this.itemTableData[tableId]?.icon ?? this.itemTableData[itemId]?.icon ?? '';
+        },
         stationLabel(stationId) {
             return getStationLabel(stationId, {
                 stations: this.stations,
@@ -295,8 +375,17 @@ export default {
     padding: 0.3rem 0.3rem 0.4rem 0.3rem;
     border-radius: 4px;
 
-    &.stations {
+    &.stations,
+    &.materials {
         min-height: 35px;
+    }
+
+    .material-qty {
+        min-width: 2.25rem;
+        margin-right: 0.5rem;
+        font-weight: 700;
+        font-variant-numeric: tabular-nums;
+        opacity: 0.85;
     }
 
     .input-quantity {
