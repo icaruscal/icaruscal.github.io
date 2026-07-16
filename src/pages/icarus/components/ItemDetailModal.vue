@@ -327,6 +327,7 @@ import { nextTick } from 'vue';
 
 import { useIcarusStore } from '@/store/icarus';
 import { buildItemDetail } from '@/utility/icarusData';
+import { getStatEffectClass } from '@/utility/icarusStatPolarity';
 import { GAME_ASSETS_URL } from '@/constants/common';
 import DeployableRuntimeBadges from '@/pages/icarus/components/DeployableRuntimeBadges.vue';
 import FavoriteStarButton from '@/pages/icarus/components/FavoriteStarButton.vue';
@@ -432,13 +433,9 @@ export default {
             if (/FoodRecovery/i.test(key)) return 'food';
             if (/WaterRecovery/i.test(key)) return 'water';
             if (/HealthRecovery|MaximumHealth/i.test(key)) return 'health';
-            if (/Stamina/i.test(key)) return 'stamina';
-            if (/Oxygen/i.test(key)) return 'oxygen';
-            if (typeof stat?.value === 'number') {
-                if (stat.value < 0) return 'is-neg';
-                if (stat.value > 0) return 'is-pos';
-            }
-            return '';
+            if (/StaminaRecovery|MaximumStamina/i.test(key)) return 'stamina';
+            if (/OxygenRecovery|MaximumOxygen/i.test(key)) return 'oxygen';
+            return getStatEffectClass(stat);
         },
     },
 };

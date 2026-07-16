@@ -17,7 +17,7 @@
                 <div v-if="instantStats.length" class="mod-section">
                     <div class="mod-section-title">On consume</div>
                     <ul class="mod-stat-list">
-                        <li v-for="stat in instantStats" :key="`i-${stat.key}`" :class="statClass(stat.value)">
+                        <li v-for="stat in instantStats" :key="`i-${stat.key}`" :class="statClass(stat)">
                             {{ stat.display || `${stat.key}: ${stat.value}` }}
                         </li>
                     </ul>
@@ -32,7 +32,7 @@
                         {{ modifierDescription }}
                     </div>
                     <ul v-if="grantedStats.length" class="mod-stat-list">
-                        <li v-for="stat in grantedStats" :key="`g-${stat.key}`" :class="statClass(stat.value)">
+                        <li v-for="stat in grantedStats" :key="`g-${stat.key}`" :class="statClass(stat)">
                             {{ stat.display || `${stat.key}: ${stat.value}` }}
                         </li>
                     </ul>
@@ -45,7 +45,7 @@
                 >
                     <div class="mod-section-title">Equipped</div>
                     <ul class="mod-stat-list">
-                        <li v-for="stat in equipGrantedStats" :key="`e-${stat.key}`" :class="statClass(stat.value)">
+                        <li v-for="stat in equipGrantedStats" :key="`e-${stat.key}`" :class="statClass(stat)">
                             {{ stat.display || `${stat.key}: ${stat.value}` }}
                         </li>
                     </ul>
@@ -58,6 +58,7 @@
 
 <script>
 import { formatModifierLifetimeMinutes, recipeHasModifierTooltip } from '@/utility/icarusData';
+import { getStatEffectClass } from '@/utility/icarusStatPolarity';
 
 export default {
     name: 'ItemModifierTooltip',
@@ -91,11 +92,8 @@ export default {
         },
     },
     methods: {
-        statClass(value) {
-            if (typeof value !== 'number') return '';
-            if (value < 0) return 'is-neg';
-            if (value > 0) return 'is-pos';
-            return '';
+        statClass(stat) {
+            return getStatEffectClass(stat);
         },
     },
 };

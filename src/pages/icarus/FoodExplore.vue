@@ -313,7 +313,7 @@
                                         v-for="stat in otherInstantStats(food)"
                                         :key="`i-${stat.key}`"
                                         class="stat-pill"
-                                        :class="statClass(stat.value)"
+                                        :class="statClass(stat)"
                                     >
                                         {{ stat.display || `${stat.key} ${stat.value}` }}
                                     </span>
@@ -327,7 +327,7 @@
                                     <li
                                         v-for="stat in food.grantedStats"
                                         :key="stat.key"
-                                        :class="['buff-stat', statClass(stat.value)]"
+                                        :class="['buff-stat', statClass(stat)]"
                                     >
                                         {{ stat.display || `${stat.key}: ${stat.value}` }}
                                     </li>
@@ -363,6 +363,7 @@ import FavoriteStarButton from '@/pages/icarus/components/FavoriteStarButton.vue
 import ItemDetailButton from '@/pages/icarus/components/ItemDetailButton.vue';
 import ItemLockBadge from '@/pages/icarus/components/ItemLockBadge.vue';
 import { hasItemLocks } from '@/utility/icarusData';
+import { getStatEffectClass } from '@/utility/icarusStatPolarity';
 import {
     createDefaultExploreFilters,
     exploreQueriesEqual,
@@ -789,7 +790,7 @@ export default {
                             'div',
                             { class: 'table-buff-text' },
                             stats.map((stat, index) =>
-                                h('span', { class: this.statClass(stat.value) }, [
+                                h('span', { class: this.statClass(stat) }, [
                                     index > 0 ? h('span', { class: 'table-buff-sep' }, ' · ') : null,
                                     stat.display || formatStatCellValue(stat.key, stat.value) || stat.key,
                                 ])
@@ -827,7 +828,7 @@ export default {
                         NTooltip,
                         { trigger: 'hover', placement: 'top' },
                         {
-                            trigger: () => h('span', { class: ['buff-cell', this.statClass(stat.value)] }, text),
+                            trigger: () => h('span', { class: ['buff-cell', this.statClass(stat)] }, text),
                             default: () => stat.display || text,
                         }
                     );
@@ -1153,11 +1154,8 @@ export default {
                 (stat) => !/FoodRecovery|WaterRecovery|HealthRecovery|StaminaRecovery|OxygenRecovery/.test(stat.key)
             );
         },
-        statClass(value) {
-            if (typeof value !== 'number') return '';
-            if (value < 0) return 'is-neg';
-            if (value > 0) return 'is-pos';
-            return '';
+        statClass(stat) {
+            return getStatEffectClass(stat);
         },
     },
 };
