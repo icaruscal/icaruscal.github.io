@@ -6,6 +6,7 @@
 
 const ALL_SOURCES = ['craft', 'gather', 'mission', 'shop', 'workshop'];
 const ALL_CATEGORIES = ['food', 'medicine'];
+const ALL_AUDIENCES = ['prospector', 'animal', 'other'];
 const DEFAULT_TIER = [0, 5];
 const VALID_SORT = new Set(['name', 'foodDesc', 'waterDesc', 'durationDesc', 'tierAsc']);
 
@@ -13,6 +14,7 @@ export const createDefaultExploreFilters = () => ({
     search: '',
     categories: { food: true, medicine: true },
     sources: { craft: true, gather: true, mission: true, shop: true, workshop: true },
+    audiences: { prospector: true, animal: true, other: true },
     tier: [...DEFAULT_TIER],
     food: [0, 400],
     water: [0, 400],
@@ -101,6 +103,11 @@ export function exploreStateToQuery({
         query.cat = catsOn.join(',');
     }
 
+    const audOn = ALL_AUDIENCES.filter((key) => filters.audiences?.[key]);
+    if (audOn.length > 0 && audOn.length < ALL_AUDIENCES.length) {
+        query.aud = audOn.join(',');
+    }
+
     const srcOn = ALL_SOURCES.filter((key) => filters.sources?.[key]);
     if (srcOn.length > 0 && srcOn.length < ALL_SOURCES.length) {
         query.src = srcOn.join(',');
@@ -160,6 +167,14 @@ export function queryToExploreState(query, { foodBounds, waterBounds, durationBo
         const selected = new Set(catRaw.split(',').filter(Boolean));
         for (const key of ALL_CATEGORIES) {
             filters.categories[key] = selected.has(key);
+        }
+    }
+
+    const audRaw = queryString(query, 'aud');
+    if (audRaw) {
+        const selected = new Set(audRaw.split(',').filter(Boolean));
+        for (const key of ALL_AUDIENCES) {
+            filters.audiences[key] = selected.has(key);
         }
     }
 

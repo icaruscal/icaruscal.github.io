@@ -25,6 +25,15 @@
                         </div>
 
                         <div class="filter-block">
+                            <label class="filter-label">Intended for</label>
+                            <div class="toggle-grid">
+                                <n-checkbox v-model:checked="filters.audiences.prospector">Prospector</n-checkbox>
+                                <n-checkbox v-model:checked="filters.audiences.animal">Animal</n-checkbox>
+                                <n-checkbox v-model:checked="filters.audiences.other">Other / untagged</n-checkbox>
+                            </div>
+                        </div>
+
+                        <div class="filter-block">
                             <label class="filter-label">Source</label>
                             <div class="toggle-grid">
                                 <n-checkbox v-model:checked="filters.sources.craft">Craft</n-checkbox>
@@ -270,6 +279,13 @@
                                             <span class="chip" :class="`chip--${categoryTagType(food.category)}`">
                                                 {{ categoryLabel(food.category) }}
                                             </span>
+                                            <span
+                                                v-if="food.foodAudience"
+                                                class="chip"
+                                                :class="`chip--${foodAudienceTagType(food.foodAudience)}`"
+                                            >
+                                                {{ foodAudienceLabel(food.foodAudience) }}
+                                            </span>
                                             <span class="chip" :class="`chip--${acquisitionTagType(food.acquisition)}`">
                                                 {{ acquisitionLabel(food.acquisition) }}
                                             </span>
@@ -481,6 +497,12 @@ export default {
             return this.foodConsumables.filter((food) => {
                 const category = food.category === 'medicine' ? 'medicine' : 'food';
                 if (!this.filters.categories[category]) return false;
+
+                const audienceKey =
+                    food.foodAudience === 'animal' || food.foodAudience === 'prospector'
+                        ? food.foodAudience
+                        : 'other';
+                if (!this.filters.audiences[audienceKey]) return false;
 
                 if (!selectedSources.includes(food.acquisition)) return false;
 
@@ -700,6 +722,17 @@ export default {
                                 { size: 'small', bordered: false, type: this.categoryTagType(row.category) },
                                 { default: () => this.categoryLabel(row.category) }
                             ),
+                            row.foodAudience
+                                ? h(
+                                      NTag,
+                                      {
+                                          size: 'small',
+                                          bordered: false,
+                                          type: this.foodAudienceTagType(row.foodAudience),
+                                      },
+                                      { default: () => this.foodAudienceLabel(row.foodAudience) }
+                                  )
+                                : null,
                             h(
                                 NTag,
                                 { size: 'small', bordered: false, type: this.acquisitionTagType(row.acquisition) },
@@ -1096,6 +1129,12 @@ export default {
         },
         categoryTagType(category) {
             return category === 'medicine' ? 'info' : 'success';
+        },
+        foodAudienceLabel(audience) {
+            return audience === 'animal' ? 'Animal' : audience === 'prospector' ? 'Prospector' : null;
+        },
+        foodAudienceTagType(audience) {
+            return audience === 'animal' ? 'warning' : audience === 'prospector' ? 'success' : 'default';
         },
         acquisitionLabel(acquisition) {
             return (

@@ -324,6 +324,12 @@ type CatalogItem = {
     gatherFirst?: boolean;
     /** Faction / mission reward item (Manual_Tags FactionMission.*). */
     mission?: boolean;
+    /**
+     * Who this consumable is designed for (D_ItemsStatic Manual_Tags).
+     * `animal` = Item.AnimalFeed; `prospector` = Item.Consumable.Food*.
+     * Omitted when neither tag is present (medicines, gear, etc.).
+     */
+    foodAudience?: 'animal' | 'prospector';
     locks: CatalogLocks | null;
     /** Pipe / power requirements when this item is a deployable (D_Deployable trait). */
     deployable?: CatalogDeployableRuntime;
@@ -418,6 +424,21 @@ function isGatherFirstFromTags(tags: string[]): boolean {
 /** Mission / faction reward items (Manual_Tags FactionMission.Item / FactionMission.Item.*). */
 function isMissionFromTags(tags: string[]): boolean {
     return tags.some((tag) => tag === 'FactionMission.Item' || tag.startsWith('FactionMission.Item.'));
+}
+
+/**
+ * Intended consumer of a food item from Manual_Tags.
+ * Animal feed is tagged Item.AnimalFeed; prospector food is Item.Consumable.Food*.
+ * Animals can still eat many prospector foods in-game — this is "designed for", not "can eat".
+ */
+function foodAudienceFromTags(tags: string[]): 'animal' | 'prospector' | null {
+    if (tags.some((tag) => tag === 'Item.AnimalFeed' || tag.startsWith('Item.AnimalFeed.'))) {
+        return 'animal';
+    }
+    if (tags.some((tag) => tag === 'Item.Consumable.Food' || tag.startsWith('Item.Consumable.Food.'))) {
+        return 'prospector';
+    }
+    return null;
 }
 
 function emptyLocks(): CatalogLocks {
@@ -1732,13 +1753,19 @@ async function main(): Promise<void> {
     const items: Record<string, CatalogItem> = {};
     const itemsOut: Record<string, Record<string, unknown>> = {};
     let gatherFirstCount = 0;
+    let animalFoodCount = 0;
+    let prospectorFoodCount = 0;
     for (const staticId of [...referencedStaticIds].sort()) {
         const display = resolveStaticDisplay(staticId);
         // Pipe/fuel ResourceInputs (Water, Biofuel, …) are not D_ItemsStatic rows.
         const isResource = !staticByName.has(staticId);
-        const gatherFirst = isGatherFirstFromTags(manualTagNames(staticByName.get(staticId)));
-        const mission = isMissionFromTags(manualTagNames(staticByName.get(staticId)));
+        const tags = manualTagNames(staticByName.get(staticId));
+        const gatherFirst = isGatherFirstFromTags(tags);
+        const mission = isMissionFromTags(tags);
+        const foodAudience = foodAudienceFromTags(tags);
         if (gatherFirst) gatherFirstCount += 1;
+        if (foodAudience === 'animal') animalFoodCount += 1;
+        if (foodAudience === 'prospector') prospectorFoodCount += 1;
         // Item-level locks only when every acquisition path is gated (and share that gate).
         // gatherFirst ⇒ world gather is an unlocked path — ignore conversion-recipe DLC unions.
         // Per-recipe locks stay on recipes[] for DLC-only alternate crafts.
@@ -1754,6 +1781,7 @@ async function main(): Promise<void> {
             recipeIds: lookupByStatic[staticId] ?? [],
             ...(gatherFirst ? { gatherFirst: true } : {}),
             ...(mission ? { mission: true } : {}),
+            ...(foodAudience ? { foodAudience } : {}),
             locks: itemLocks,
         };
         items[staticId] = item;
@@ -1925,17 +1953,21 @@ async function main(): Promise<void> {
             itemCount: Object.keys(items).length,
             rawMaterialCount,
             gatherFirstCount,
+            animalFoodCount,
+            prospectorFoodCount,
             stationCount: Object.keys(stationsOut).length,
             deployableCount,
             unknownTierCount: unknownTiers.length,
             reviewQueueCount,
             flagSummary: Object.fromEntries([...flagSummary.entries()].sort((a, b) => b[1] - a[1])),
             notes: {
-                usage: 'Load recipes (filter acquisition===craft) for the calculator. Resolve ingredient/output display via items[staticItemName] (or items[ingredientId]). Multi-output recipes set items[*].recipeIds for every Outputs entry and include recipes[].outputs with per-output counts (use that count when the tree targets a secondary product). ResourceInputs become ingredients with table "Resource" (e.g. Water). Resolve station labels via stations[id].displayName (Processing remaps RecipeSet→deployable when ids differ, e.g. Cleaning_Device→T3_Cleaning_Device). Use stations[id].craftRecipeId to craft the station. Walk trees with items[id].recipeIds; missing/empty recipeIds = raw; items with gatherFirst=true are world-gather primary (Ore/Wood/…) — treat as terminal even when recipeIds lists conversion recipes (Quarrite armor → ore, Pyritic crust, Frozen_Ore). First id is a reasonable default when multiple recipes share an output. Absent null/[] fields are defaults. Food Explore: recipes with instant Food/Water recovery (includes acquisition===gather for world edibles; acquisition===mission / mission:true for FactionMission.* items).',
+                usage: 'Load recipes (filter acquisition===craft) for the calculator. Resolve ingredient/output display via items[staticItemName] (or items[ingredientId]). Multi-output recipes set items[*].recipeIds for every Outputs entry and include recipes[].outputs with per-output counts (use that count when the tree targets a secondary product). ResourceInputs become ingredients with table "Resource" (e.g. Water). Resolve station labels via stations[id].displayName (Processing remaps RecipeSet→deployable when ids differ, e.g. Cleaning_Device→T3_Cleaning_Device). Use stations[id].craftRecipeId to craft the station. Walk trees with items[id].recipeIds; missing/empty recipeIds = raw; items with gatherFirst=true are world-gather primary (Ore/Wood/…) — treat as terminal even when recipeIds lists conversion recipes (Quarrite armor → ore, Pyritic crust, Frozen_Ore). First id is a reasonable default when multiple recipes share an output. Absent null/[] fields are defaults. Food Explore: recipes with instant Food/Water recovery (includes acquisition===gather for world edibles; acquisition===mission / mission:true for FactionMission.* items). Filter by items[*].foodAudience (or the same field on explore rows): animal = Item.AnimalFeed, prospector = Item.Consumable.Food*.',
                 tier0: 'Tier 0 means available without a Blueprint_T* unlock (default / Character crafting).',
                 stationDeduction: 'If a recipe has no Requirement, tier is the minimum tier among its RecipeSets stations.',
                 acquisition:
                     "'craft' = normal recipe; 'gather' = world edible with Consumable but no craft/shop/workshop recipe; 'mission' = FactionMission-tagged edible with no craft recipe (often shares a display name with a craftable variant); 'shop' = bought in-world with currency (see purchase.shop); 'workshop' = orbital workshop item (see purchase.workshop). Purchase-only items have no tier/station. mission:true marks FactionMission.* items on any acquisition.",
+                foodAudience:
+                    "items[*].foodAudience — 'animal' when Manual_Tags include Item.AnimalFeed (dedicated animal feed/gruel/silage); 'prospector' when tagged Item.Consumable.Food*. Omitted when neither applies. Animals can still eat many prospector foods; this marks design intent, not exclusive edibility.",
                 iconPath: 'Ready for `${gameAssetsUrl}/ItemIcons/${iconPath}.png`. Omitting iconPath means none / outside Item_Icons.',
                 review: 'meta.reviewQueueCount / flagSummary. Filter recipes whose flags intersect REVIEW_FLAGS for a review list.',
                 deployable:
@@ -1994,7 +2026,7 @@ async function main(): Promise<void> {
     console.log(`Wrote ${catalog.length} recipes (compact emit)`);
     console.log(`  pretty:   ${prettyPath} (${formatBytes(Buffer.byteLength(prettyJson))})`);
     console.log(`  minified: ${minPath} (${formatBytes(Buffer.byteLength(minJson))})`);
-    console.log(`Craft: ${craftRecipes.length}; gather: ${gatherRecipes.length}; mission: ${missionRecipes.length}; items: ${Object.keys(items).length} (raw: ${rawMaterialCount}, gatherFirst: ${gatherFirstCount}); stations: ${Object.keys(stationsOut).length}`);
+    console.log(`Craft: ${craftRecipes.length}; gather: ${gatherRecipes.length}; mission: ${missionRecipes.length}; items: ${Object.keys(items).length} (raw: ${rawMaterialCount}, gatherFirst: ${gatherFirstCount}, animalFood: ${animalFoodCount}, prospectorFood: ${prospectorFoodCount}); stations: ${Object.keys(stationsOut).length}`);
     console.log(`With granted stats: ${withStats.length}`);
     console.log(`Purchasable: ${purchasable.length} (shop + workshop)`);
     console.log(`Unknown tier: ${unknownTiers.length}`);

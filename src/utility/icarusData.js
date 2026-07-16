@@ -770,6 +770,7 @@ export function buildFoodConsumables(catalog = {}) {
             acquisition: recipe.acquisition ?? 'craft',
             mission: Boolean(recipe.mission || item?.mission || recipe.acquisition === 'mission'),
             locks: mergeItemLocks(recipe.locks, item?.locks),
+            foodAudience: item?.foodAudience ?? null,
             category: isFood ? 'food' : 'medicine',
             isFood,
             tier: recipe.tier?.value ?? null,
@@ -1240,6 +1241,41 @@ export function resolveCatalogStaticItemId(catalog = {}, itemOrRecipeId) {
 }
 
 /**
+ * Shape a catalog / craft recipe for ItemModifierTooltip (instant + buff + equip).
+ * Prefers craft `recipeData` when it has tooltip content; otherwise falls back to
+ * any catalog recipe (gather/shop/workshop) that carries consumable or equip effects.
+ */
+export function resolveModifierTooltipRecipe(itemOrRecipeId, { catalog = {}, recipeData = {} } = {}) {
+    if (!itemOrRecipeId) return null;
+
+    const craft = recipeData[itemOrRecipeId] ?? null;
+    if (craft && recipeHasModifierTooltip(craft)) return craft;
+
+    const recipes = catalog.recipes ?? [];
+    const byId = recipes.find((row) => row.id === itemOrRecipeId);
+    if (byId && recipeHasModifierTooltip(byId)) {
+        return {
+            instantStats: byId.instantStats ?? [],
+            equipGrantedStats: byId.equipGrantedStats ?? [],
+            modifier: byId.modifier ?? null,
+        };
+    }
+
+    const staticId = resolveCatalogStaticItemId(catalog, itemOrRecipeId);
+    if (!staticId) return craft;
+
+    const producing = recipes.filter((row) => recipeProducesStatic(row, staticId));
+    const best = pickEffectsRecipe(producing);
+    if (!best || !recipeHasModifierTooltip(best)) return craft;
+
+    return {
+        instantStats: best.instantStats ?? [],
+        equipGrantedStats: best.equipGrantedStats ?? [],
+        modifier: best.modifier ?? null,
+    };
+}
+
+/**
  * Build a plain item-detail view model from the full data catalog.
  * Accepts a static item id or any recipe id that produces the item.
  */
@@ -1416,6 +1452,7 @@ export function buildItemDetail(catalog = {}, itemOrRecipeId) {
         iconPath,
         gatherFirst: Boolean(item?.gatherFirst),
         mission: Boolean(item?.mission || sourceRecipes.some((r) => r.mission || r.acquisition === 'mission')),
+        foodAudience: item?.foodAudience ?? null,
         locks: normalizeLocks(item?.locks),
         deployableBadges,
         availability,

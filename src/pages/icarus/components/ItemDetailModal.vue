@@ -60,6 +60,13 @@
                             </span>
                             <span v-if="detail.mission" class="chip chip-mission">Mission</span>
                             <span v-if="detail.gatherFirst" class="chip chip-gather">Gather-first</span>
+                            <span
+                                v-if="detail.foodAudience"
+                                class="chip"
+                                :class="detail.foodAudience === 'animal' ? 'chip-animal' : 'chip-prospector'"
+                            >
+                                {{ detail.foodAudience === 'animal' ? 'Animal feed' : 'Prospector food' }}
+                            </span>
                         </div>
                         <p v-if="detail.description" class="hero-description">{{ detail.description }}</p>
                         <p v-else class="hero-description muted">No description.</p>
@@ -267,22 +274,15 @@
                                     </span>
                                 </div>
                                 <div v-if="recipe.ingredients.length" class="item-chip-list">
-                                    <button
+                                    <item-detail-chip
                                         v-for="ing in recipe.ingredients"
                                         :key="`${recipe.id}-${ing.id}`"
-                                        type="button"
-                                        class="item-chip"
-                                        @click="openRelated(ing.id)"
-                                    >
-                                        <n-image
-                                            width="22"
-                                            :src="`${gameAssetsUrl}/ItemIcons/${ing.iconPath}.png`"
-                                            :fallback-src="`${gameAssetsUrl}/Images/question-mark.png`"
-                                            :preview-disabled="true"
-                                        />
-                                        <span class="item-chip-count">{{ ing.count }}×</span>
-                                        <span class="item-chip-label">{{ ing.label }}</span>
-                                    </button>
+                                        :item-id="ing.id"
+                                        :label="ing.label"
+                                        :icon-path="ing.iconPath"
+                                        :count="ing.count"
+                                        @select="openRelated"
+                                    />
                                 </div>
                                 <p v-else class="na">No ingredients listed.</p>
                             </div>
@@ -299,22 +299,18 @@
                     <div v-if="detail.usedIn.length" class="used-in-wrap">
                         <div class="used-in-scroll">
                             <div class="used-in-flow">
-                                <button
+                                <item-detail-chip
                                     v-for="row in detail.usedIn"
                                     :key="row.recipeId"
-                                    type="button"
-                                    class="used-in-entry"
-                                    @click="openRelated(row.staticItemName || row.recipeId)"
-                                >
-                                    <n-image
-                                        width="18"
-                                        :src="`${gameAssetsUrl}/ItemIcons/${row.iconPath}.png`"
-                                        :fallback-src="`${gameAssetsUrl}/Images/question-mark.png`"
-                                        :preview-disabled="true"
-                                    />
-                                    <span class="used-in-entry-label">{{ row.label }}</span>
-                                    <span class="used-in-entry-meta">×{{ row.count }}</span>
-                                </button>
+                                    variant="compact"
+                                    :item-id="row.staticItemName || row.recipeId"
+                                    :recipe-id="row.recipeId"
+                                    :label="row.label"
+                                    :icon-path="row.iconPath"
+                                    :count="row.count"
+                                    count-placement="end"
+                                    @select="openRelated"
+                                />
                             </div>
                         </div>
                     </div>
@@ -334,6 +330,7 @@ import { buildItemDetail } from '@/utility/icarusData';
 import { GAME_ASSETS_URL } from '@/constants/common';
 import DeployableRuntimeBadges from '@/pages/icarus/components/DeployableRuntimeBadges.vue';
 import FavoriteStarButton from '@/pages/icarus/components/FavoriteStarButton.vue';
+import ItemDetailChip from '@/pages/icarus/components/ItemDetailChip.vue';
 import ItemLockBadge from '@/pages/icarus/components/ItemLockBadge.vue';
 
 const ACQ_META = {
@@ -349,6 +346,7 @@ export default {
     components: {
         DeployableRuntimeBadges,
         FavoriteStarButton,
+        ItemDetailChip,
         ItemLockBadge,
     },
     data() {
@@ -613,6 +611,16 @@ export default {
     background: rgba(200, 120, 60, 0.16);
 }
 
+.chip-prospector {
+    color: #a8e6a3;
+    background: rgba(99, 180, 90, 0.18);
+}
+
+.chip-animal {
+    color: #e6d48a;
+    background: rgba(180, 150, 60, 0.18);
+}
+
 .chip-neutral {
     color: rgba(255, 255, 255, 0.7);
 }
@@ -842,38 +850,6 @@ export default {
     padding-right: 0.15rem;
 }
 
-.used-in-entry {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.3rem;
-    max-width: 100%;
-    padding: 0.18rem 0.4rem 0.18rem 0.25rem;
-    border: none;
-    border-radius: 4px;
-    background: rgba(255, 255, 255, 0.05);
-    color: inherit;
-    font: inherit;
-    cursor: pointer;
-    transition: background 0.15s ease;
-
-    &:hover {
-        background: rgba(99, 226, 183, 0.12);
-    }
-}
-
-.used-in-entry-label {
-    font-size: 0.8rem;
-    font-weight: 600;
-    color: rgba(255, 255, 255, 0.86);
-    white-space: nowrap;
-}
-
-.used-in-entry-meta {
-    font-size: 0.7rem;
-    color: rgba(255, 255, 255, 0.42);
-    font-variant-numeric: tabular-nums;
-}
-
 .item-chip-list {
     display: flex;
     flex-wrap: wrap;
@@ -906,13 +882,6 @@ export default {
     &:disabled {
         cursor: default;
     }
-}
-
-.item-chip-count {
-    font-size: 0.75rem;
-    font-weight: 700;
-    color: rgba(255, 255, 255, 0.55);
-    font-variant-numeric: tabular-nums;
 }
 
 .item-chip-label {

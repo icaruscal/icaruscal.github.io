@@ -11,6 +11,8 @@
     "itemCount": 2551,
     "rawMaterialCount": 673,
     "gatherFirstCount": 27,
+    "animalFoodCount": 17,
+    "prospectorFoodCount": 205,
     "stationCount": 68,
     "deployableCount": 221,
     "unknownTierCount": 59,
@@ -26,10 +28,11 @@
       "missing_static_item": 10
     },
     "notes": {
-      "usage": "Load recipes (filter acquisition===craft) for the calculator. Resolve ingredient/output display via items[staticItemName] (or items[ingredientId]). Multi-output recipes set items[*].recipeIds for every Outputs entry and include recipes[].outputs with per-output counts (use that count when the tree targets a secondary product). ResourceInputs become ingredients with table \"Resource\" (e.g. Water). Resolve station labels via stations[id].displayName (Processing remaps RecipeSet→deployable when ids differ, e.g. Cleaning_Device→T3_Cleaning_Device). Use stations[id].craftRecipeId to craft the station. Walk trees with items[id].recipeIds; missing/empty recipeIds = raw; items with gatherFirst=true are world-gather primary (Ore/Wood/…) — treat as terminal even when recipeIds lists conversion recipes (Quarrite armor → ore, Pyritic crust, Frozen_Ore). First id is a reasonable default when multiple recipes share an output. Absent null/[] fields are defaults. Food Explore: recipes with instant Food/Water recovery (includes acquisition===gather for world edibles; acquisition===mission / mission:true for FactionMission.* items).",
+      "usage": "Load recipes (filter acquisition===craft) for the calculator. Resolve ingredient/output display via items[staticItemName] (or items[ingredientId]). Multi-output recipes set items[*].recipeIds for every Outputs entry and include recipes[].outputs with per-output counts (use that count when the tree targets a secondary product). ResourceInputs become ingredients with table \"Resource\" (e.g. Water). Resolve station labels via stations[id].displayName (Processing remaps RecipeSet→deployable when ids differ, e.g. Cleaning_Device→T3_Cleaning_Device). Use stations[id].craftRecipeId to craft the station. Walk trees with items[id].recipeIds; missing/empty recipeIds = raw; items with gatherFirst=true are world-gather primary (Ore/Wood/…) — treat as terminal even when recipeIds lists conversion recipes (Quarrite armor → ore, Pyritic crust, Frozen_Ore). First id is a reasonable default when multiple recipes share an output. Absent null/[] fields are defaults. Food Explore: recipes with instant Food/Water recovery (includes acquisition===gather for world edibles; acquisition===mission / mission:true for FactionMission.* items). Filter by items[*].foodAudience (or the same field on explore rows): animal = Item.AnimalFeed, prospector = Item.Consumable.Food*.",
       "tier0": "Tier 0 means available without a Blueprint_T* unlock (default / Character crafting).",
       "stationDeduction": "If a recipe has no Requirement, tier is the minimum tier among its RecipeSets stations.",
       "acquisition": "'craft' = normal recipe; 'gather' = world edible with Consumable but no craft/shop/workshop recipe; 'mission' = FactionMission-tagged edible with no craft recipe (often shares a display name with a craftable variant); 'shop' = bought in-world with currency (see purchase.shop); 'workshop' = orbital workshop item (see purchase.workshop). Purchase-only items have no tier/station. mission:true marks FactionMission.* items on any acquisition.",
+      "foodAudience": "items[*].foodAudience — 'animal' when Manual_Tags include Item.AnimalFeed (dedicated animal feed/gruel/silage); 'prospector' when tagged Item.Consumable.Food*. Omitted when neither applies. Animals can still eat many prospector foods; this marks design intent, not exclusive edibility.",
       "iconPath": "Ready for `${gameAssetsUrl}/ItemIcons/${iconPath}.png`. Omitting iconPath means none / outside Item_Icons.",
       "review": "meta.reviewQueueCount / flagSummary. Filter recipes whose flags intersect REVIEW_FLAGS for a review list.",
       "deployable": "items[*].deployable / stations[*].deployable — pipe and power requirements for placeables (D_Resource + D_Processing + D_Generator). connections[].resource is electricity|water|biofuel|oxygen|crudeOil|refinedOil; required=false means optional (see optionalHint). powerDrawMw is processing draw when connected. generator covers internal fuel (biofuel/wood) without a pipe."
@@ -114327,7 +114330,8 @@
       "displayName": "Agave",
       "description": "A desert plant known for its hardy growth and sweet core.",
       "flavorText": "Sweetness hidden inside spiny armor.",
-      "iconPath": "Consumeables/T_ITEM_Agave"
+      "iconPath": "Consumeables/T_ITEM_Agave",
+      "foodAudience": "prospector"
     },
     "Agave_Syrup": {
       "id": "Agave_Syrup",
@@ -114337,7 +114341,8 @@
       "iconPath": "Consumeables/T_ITEM_Agave_Syrup",
       "recipeIds": [
         "Food_Agave_Syrup"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "AlienFossil_Conch": {
       "id": "AlienFossil_Conch",
@@ -115654,7 +115659,8 @@
       "iconPath": "Consumeables/T_ITEM_Animal_Gruel_Fish",
       "recipeIds": [
         "Animal_Fish_Gruel"
-      ]
+      ],
+      "foodAudience": "animal"
     },
     "Animal_Gruel_Fruit": {
       "id": "Animal_Gruel_Fruit",
@@ -115663,7 +115669,8 @@
       "iconPath": "Consumeables/T_ITEM_Animal_Gruel_Fruit",
       "recipeIds": [
         "Animal_Fruit_Gruel"
-      ]
+      ],
+      "foodAudience": "animal"
     },
     "Animal_Gruel_Meat": {
       "id": "Animal_Gruel_Meat",
@@ -115672,7 +115679,8 @@
       "iconPath": "Consumeables/T_ITEM_Animal_Gruel_Meat",
       "recipeIds": [
         "Animal_Meat_Gruel"
-      ]
+      ],
+      "foodAudience": "animal"
     },
     "Animal_Gruel_Rotten": {
       "id": "Animal_Gruel_Rotten",
@@ -115682,7 +115690,8 @@
       "iconPath": "Consumeables/T_ITEM_Rotten_Gruel",
       "recipeIds": [
         "Rotten_Gruel"
-      ]
+      ],
+      "foodAudience": "animal"
     },
     "Animal_Gruel_Vegetable": {
       "id": "Animal_Gruel_Vegetable",
@@ -115691,7 +115700,8 @@
       "iconPath": "Consumeables/T_ITEM_Animal_Gruel_Vege",
       "recipeIds": [
         "Animal_Vegetable_Gruel"
-      ]
+      ],
+      "foodAudience": "animal"
     },
     "Animal_Silage": {
       "id": "Animal_Silage",
@@ -115701,7 +115711,8 @@
       "recipeIds": [
         "Animal_Silage_Grain",
         "Animal_Silage_Fiber"
-      ]
+      ],
+      "foodAudience": "animal"
     },
     "AntiPoison_Tonic": {
       "id": "AntiPoison_Tonic",
@@ -116453,7 +116464,8 @@
       "displayName": "Avocado",
       "description": "A fruit with a creamy texture and nutty flavor, high in healthy fats.",
       "flavorText": "These are commonly used in Mexican cuisine.",
-      "iconPath": "Consumeables/ITEM_Avocado"
+      "iconPath": "Consumeables/ITEM_Avocado",
+      "foodAudience": "prospector"
     },
     "Axe_Attachment_FellingDamage_1": {
       "id": "Axe_Attachment_FellingDamage_1",
@@ -116503,7 +116515,8 @@
       "iconPath": "Consumeables/T_ITEM_Bacon_Sandwich",
       "recipeIds": [
         "Bacon_Sandwich"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Bait": {
       "id": "Bait",
@@ -116528,7 +116541,8 @@
       "displayName": "Banana",
       "description": "A Delicious looking Yellow Banana.",
       "flavorText": "Primates are fond of these.",
-      "iconPath": "Consumeables/T_ITEM_Banana"
+      "iconPath": "Consumeables/T_ITEM_Banana",
+      "foodAudience": "prospector"
     },
     "Banana_Bread": {
       "id": "Banana_Bread",
@@ -116538,7 +116552,8 @@
       "iconPath": "Consumeables/T_ITEM_Banana_Bread",
       "recipeIds": [
         "Food_Banana_Bread"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Banana_Porridge": {
       "id": "Banana_Porridge",
@@ -116548,7 +116563,8 @@
       "iconPath": "Consumeables/T_ITEM_Banana_Porridge",
       "recipeIds": [
         "Banana_Porridge"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Banana_Tart": {
       "id": "Banana_Tart",
@@ -116558,7 +116574,8 @@
       "iconPath": "Consumeables/T_ITEM_Banana_Tart",
       "recipeIds": [
         "Banana_Tart"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Banana_Toast": {
       "id": "Banana_Toast",
@@ -116568,7 +116585,8 @@
       "iconPath": "Consumeables/T_ITEM_Banana_Toast",
       "recipeIds": [
         "Food_Banana_Toast"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Bandage_Basic": {
       "id": "Bandage_Basic",
@@ -116783,7 +116801,8 @@
       "displayName": "Soy Bean",
       "description": "Close to the perfect food source.",
       "flavorText": "The argument over whether soy produces \\'milk\\' or \\'juice\\' rages into the 22nd century.",
-      "iconPath": "Consumeables/ITEM_Bean"
+      "iconPath": "Consumeables/ITEM_Bean",
+      "foodAudience": "prospector"
     },
     "Bear_Head": {
       "id": "Bear_Head",
@@ -116926,7 +116945,8 @@
       "displayName": "Wild Berry",
       "description": "Berries will satisfy hunger, hydrate slightly, and extend endurance, but not for long.",
       "flavorText": "The intrepid prospector may also ferment wine, trusting that the quality of the resulting beverage is less important than the sheer fact of its existence.",
-      "iconPath": "Consumeables/ITEM_Berries"
+      "iconPath": "Consumeables/ITEM_Berries",
+      "foodAudience": "prospector"
     },
     "Big_Breakfast": {
       "id": "Big_Breakfast",
@@ -116936,7 +116956,8 @@
       "iconPath": "Consumeables/T_ITEM_Big_Breakfast",
       "recipeIds": [
         "Food_Big_Breakfast"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Binoculars": {
       "id": "Binoculars",
@@ -118301,7 +118322,8 @@
       "iconPath": "Consumeables/T_ITEM_Caramel_Fruit_Tart",
       "recipeIds": [
         "Caramel_Fruit_Tart"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Caramelized_Onions": {
       "id": "Caramelized_Onions",
@@ -118311,7 +118333,8 @@
       "iconPath": "Consumeables/T_ITEM_Caramelized_Onion",
       "recipeIds": [
         "Food_Caramelized_Onion"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Carbon_Arms": {
       "id": "Carbon_Arms",
@@ -118436,7 +118459,8 @@
       "displayName": "Carrot",
       "description": "A carrot, like many before it.",
       "flavorText": "May improve accuracy.",
-      "iconPath": "Consumeables/ITEM_Carrot"
+      "iconPath": "Consumeables/ITEM_Carrot",
+      "foodAudience": "prospector"
     },
     "Carrot_Cake": {
       "id": "Carrot_Cake",
@@ -118446,14 +118470,16 @@
       "iconPath": "Consumeables/T_ITEM_Carrot_Cake",
       "recipeIds": [
         "Carrot_Cake"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Carrot_Cake_Piece": {
       "id": "Carrot_Cake_Piece",
       "displayName": "Carrot Cake Piece",
       "description": "A piece of carrot cake, made from scratch on Icarus.",
       "flavorText": "Who knew vegetables could taste this great.",
-      "iconPath": "Consumeables/T_ITEM_Carrot_Cake_Piece"
+      "iconPath": "Consumeables/T_ITEM_Carrot_Cake_Piece",
+      "foodAudience": "prospector"
     },
     "Carved_Bed": {
       "id": "Carved_Bed",
@@ -119181,7 +119207,8 @@
       "iconPath": "Consumeables/T_ITEM_Cheese",
       "recipeIds": [
         "Cheese"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Cheese_Pizza": {
       "id": "Cheese_Pizza",
@@ -119191,7 +119218,8 @@
       "iconPath": "Consumeables/T_ITEM_Cheese_Pizza",
       "recipeIds": [
         "Cheese_Pizza"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Cheese_Roll": {
       "id": "Cheese_Roll",
@@ -119201,7 +119229,8 @@
       "iconPath": "Consumeables/T_ITEM_Cheese_Roll",
       "recipeIds": [
         "Cheese_Roll"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Chefs_Backpack": {
       "id": "Chefs_Backpack",
@@ -119390,7 +119419,8 @@
       "iconPath": "Consumeables/T_ITEM_Choc_Chip_Cookie",
       "recipeIds": [
         "Choc_Chip_Cookie"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Chocolate_Cake": {
       "id": "Chocolate_Cake",
@@ -119400,14 +119430,16 @@
       "iconPath": "Consumeables/T_ITEM_Chocolate_Cake",
       "recipeIds": [
         "Chocolate_Cake"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Chocolate_Cake_Piece": {
       "id": "Chocolate_Cake_Piece",
       "displayName": "Chocolate Cake Piece",
       "description": "A piece of chocolate cake, made from scratch on Icarus.",
       "flavorText": "Just like Grandma used to make.",
-      "iconPath": "Consumeables/T_ITEM_Chocolate_Cake_Piece"
+      "iconPath": "Consumeables/T_ITEM_Chocolate_Cake_Piece",
+      "foodAudience": "prospector"
     },
     "Clay": {
       "id": "Clay",
@@ -119687,14 +119719,16 @@
       "iconPath": "Consumeables/T_ITEM_Coconut_Cake",
       "recipeIds": [
         "Coconut_Cake"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Coconut_Cake_Piece": {
       "id": "Coconut_Cake_Piece",
       "displayName": "Coconut Cake Piece",
       "description": "A piece of coconut cake, made from scratch on Icarus.",
       "flavorText": "A taste of home.",
-      "iconPath": "Consumeables/T_ITEM_Coconut_Cake_Piece"
+      "iconPath": "Consumeables/T_ITEM_Coconut_Cake_Piece",
+      "foodAudience": "prospector"
     },
     "Coconut_Cookie": {
       "id": "Coconut_Cookie",
@@ -119704,28 +119738,32 @@
       "iconPath": "Consumeables/T_ITEM_Coconut_Cookie",
       "recipeIds": [
         "Coconut_Cookie"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Coconut_mature": {
       "id": "Coconut_mature",
       "displayName": "Mature Coconut",
       "description": "Maturity diminishes liquid content, but offers more satisfying flesh.",
       "flavorText": "A coconut\\'s final stage is also its most energy-rich.",
-      "iconPath": "Consumeables/ITEM_Coconut_Mature"
+      "iconPath": "Consumeables/ITEM_Coconut_Mature",
+      "foodAudience": "prospector"
     },
     "Coconut_mid": {
       "id": "Coconut_mid",
       "displayName": "Ripe Coconut",
       "description": "A balance of light sustenance and moderate hydration, in a fibrous shell.",
       "flavorText": "Ripe coconuts contain a balance of thirst-quenching liquid and energy-dense, hunger satisfying flesh.",
-      "iconPath": "Consumeables/ITEM_Coconut_Ripe"
+      "iconPath": "Consumeables/ITEM_Coconut_Ripe",
+      "foodAudience": "prospector"
     },
     "Coconut_young": {
       "id": "Coconut_young",
       "displayName": "Young Coconut",
       "description": "Mostly water, young coconuts will quench thirst but won\\'t do much for hunger.",
       "flavorText": "Like sharks, coconuts often fail to live up to their lethal reputation.",
-      "iconPath": "Consumeables/ITEM_Coconut_Young"
+      "iconPath": "Consumeables/ITEM_Coconut_Young",
+      "foodAudience": "prospector"
     },
     "Coffee": {
       "id": "Coffee",
@@ -120322,7 +120360,8 @@
       "iconPath": "Consumeables/T_ITEM_Cooked_Agave",
       "recipeIds": [
         "Food_Cooked_Agave"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Cooked_Bacon": {
       "id": "Cooked_Bacon",
@@ -120332,7 +120371,8 @@
       "iconPath": "Consumeables/ITEM_Cooked_Bacon",
       "recipeIds": [
         "Cooked_Bacon"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Cooked_Banana": {
       "id": "Cooked_Banana",
@@ -120342,7 +120382,8 @@
       "iconPath": "Consumeables/T_ITEM_Roast_Banana",
       "recipeIds": [
         "Cooked_Banana"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Cooked_Carrot": {
       "id": "Cooked_Carrot",
@@ -120352,7 +120393,8 @@
       "iconPath": "Consumeables/ITEM_BarbequeCarrot",
       "recipeIds": [
         "Food_Cooked_Carrot"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Cooked_Corn": {
       "id": "Cooked_Corn",
@@ -120362,7 +120404,8 @@
       "iconPath": "Consumeables/ITEM_CharredCorn",
       "recipeIds": [
         "Food_Cooked_Corn"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Cooked_Eggs": {
       "id": "Cooked_Eggs",
@@ -120372,7 +120415,8 @@
       "iconPath": "Consumeables/T_ITEM_Fried_Egg",
       "recipeIds": [
         "Food_Cooked_Egg"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Cooked_Fish": {
       "id": "Cooked_Fish",
@@ -120381,7 +120425,8 @@
       "iconPath": "Consumeables/ITEM_Cooked_Fish",
       "recipeIds": [
         "Cooked_Fish"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Cooked_Garlic": {
       "id": "Cooked_Garlic",
@@ -120391,7 +120436,8 @@
       "iconPath": "Consumeables/T_ITEM_Cooked_Garlic",
       "recipeIds": [
         "Food_Cooked_Garlic"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Cooked_Kumara": {
       "id": "Cooked_Kumara",
@@ -120401,7 +120447,8 @@
       "iconPath": "Consumeables/ITEM_BroiledKumara",
       "recipeIds": [
         "Food_Cooked_Kumara"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Cooked_Meat": {
       "id": "Cooked_Meat",
@@ -120411,7 +120458,8 @@
       "iconPath": "Consumeables/ITEM_Cooked_Meat",
       "recipeIds": [
         "Cooked_Meat"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Cooked_Mushroom": {
       "id": "Cooked_Mushroom",
@@ -120421,7 +120469,8 @@
       "iconPath": "Consumeables/ITEM_SearedMushroom",
       "recipeIds": [
         "Food_Cooked_Mushroom"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Cooked_Onion": {
       "id": "Cooked_Onion",
@@ -120431,7 +120480,8 @@
       "iconPath": "Consumeables/T_ITEM_Cooked_Onion",
       "recipeIds": [
         "Food_Cooked_Onion"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Cooked_Potato": {
       "id": "Cooked_Potato",
@@ -120441,7 +120491,8 @@
       "iconPath": "Consumeables/ITEM_CrisphyPotato",
       "recipeIds": [
         "Food_Cooked_Potato"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Cooked_PricklyPear": {
       "id": "Cooked_PricklyPear",
@@ -120451,7 +120502,8 @@
       "iconPath": "Consumeables/T_ITEM_Cooked_PricklyPear",
       "recipeIds": [
         "Food_Cooked_PricklyPear"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Cooked_Pumpkin": {
       "id": "Cooked_Pumpkin",
@@ -120461,7 +120513,8 @@
       "iconPath": "Consumeables/ITEM_GrilledPumpkin",
       "recipeIds": [
         "Food_Cooked_Pumpkin"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Cooked_Rhubarb": {
       "id": "Cooked_Rhubarb",
@@ -120471,7 +120524,8 @@
       "iconPath": "Consumeables/ITEM_SautedRhubarb",
       "recipeIds": [
         "Food_Cooked_Rhubarb"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Cooked_Soy_Bean": {
       "id": "Cooked_Soy_Bean",
@@ -120481,7 +120535,8 @@
       "iconPath": "Consumeables/ITEM_CrunchySoybeans",
       "recipeIds": [
         "Food_Cooked_Soy_Bean"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Cooked_Squash": {
       "id": "Cooked_Squash",
@@ -120491,7 +120546,8 @@
       "iconPath": "Consumeables/ITEM_RoastSquash",
       "recipeIds": [
         "Food_Cooked_Squash"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Cooked_Tomato": {
       "id": "Cooked_Tomato",
@@ -120501,7 +120557,8 @@
       "iconPath": "Consumeables/ITEM_FriedTomato",
       "recipeIds": [
         "Food_Cooked_Tomato"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Cooked_Truffle": {
       "id": "Cooked_Truffle",
@@ -120511,7 +120568,8 @@
       "iconPath": "Consumeables/T_ITEM_Cooked_Truffle",
       "recipeIds": [
         "Food_Cooked_Truffle"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Cooking_Station_V2": {
       "id": "Cooking_Station_V2",
@@ -120597,7 +120655,8 @@
       "displayName": "Corn",
       "description": "A staple on several planets.",
       "flavorText": "Cook or cultivate this ancient cereal, humanity\\'s most widely produced grain.",
-      "iconPath": "Consumeables/ITEM_Corn"
+      "iconPath": "Consumeables/ITEM_Corn",
+      "foodAudience": "prospector"
     },
     "Cougar_Head": {
       "id": "Cougar_Head",
@@ -120730,7 +120789,8 @@
       "recipeIds": [
         "Crispy_Bacon",
         "Crispy_Bacon_Butter"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Crocodile_Head": {
       "id": "Crocodile_Head",
@@ -120794,7 +120854,8 @@
       "iconPath": "Consumeables/ITEM_CrumbedFishFillet",
       "recipeIds": [
         "Food_Crumbed_Saltwater_Fillet"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Crushed_Bone": {
       "id": "Crushed_Bone",
@@ -120833,7 +120894,8 @@
       "displayName": "Raw Meat",
       "description": "Meat from a recently killed animal, worth cooking first.",
       "flavorText": "Transplanted from Earth, a range of genetically modified animals thrive in the terrazone, providing an energy-dense food source.",
-      "iconPath": "Consumeables/ITEM_Raw_Meat"
+      "iconPath": "Consumeables/ITEM_Raw_Meat",
+      "foodAudience": "prospector"
     },
     "Deep_Freeze": {
       "id": "Deep_Freeze",
@@ -121313,7 +121375,8 @@
       "iconPath": "Resources/ITEM_Dough",
       "recipeIds": [
         "Dough_Bread"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Dough_Flatbread": {
       "id": "Dough_Flatbread",
@@ -121323,7 +121386,8 @@
       "iconPath": "Resources/ITEM_Dough",
       "recipeIds": [
         "Dough_Flatbread"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Drac_Head": {
       "id": "Drac_Head",
@@ -121390,7 +121454,8 @@
       "iconPath": "Consumeables/ITEM_DriedAvocado",
       "recipeIds": [
         "Dried_Avocado"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Dried_Banana": {
       "id": "Dried_Banana",
@@ -121400,7 +121465,8 @@
       "iconPath": "Consumeables/T_ITEM_Dried_Banana",
       "recipeIds": [
         "Dried_Banana"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Dried_Freshwater_Fillet": {
       "id": "Dried_Freshwater_Fillet",
@@ -121410,7 +121476,8 @@
       "iconPath": "Consumeables/ITEM_Dried_Fishwater_Fish",
       "recipeIds": [
         "Dried_Freshwater_Fillet"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Dried_Kiwifruit": {
       "id": "Dried_Kiwifruit",
@@ -121420,7 +121487,8 @@
       "iconPath": "Consumeables/T_ITEM_Kiwifruit_Chips",
       "recipeIds": [
         "Dried_Kiwifruit"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Dried_Meat_Generic": {
       "id": "Dried_Meat_Generic",
@@ -121430,7 +121498,8 @@
       "iconPath": "Consumeables/T_ITEM_Generic_Meat_Dried",
       "recipeIds": [
         "Dried_Meat_Generic"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Dried_Rhubarb": {
       "id": "Dried_Rhubarb",
@@ -121440,7 +121509,8 @@
       "iconPath": "Consumeables/ITEM_DriedRhubarb",
       "recipeIds": [
         "Dried_Rhubarb"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Dried_Saltwater_Fillet": {
       "id": "Dried_Saltwater_Fillet",
@@ -121450,7 +121520,8 @@
       "iconPath": "Consumeables/ITEM_Dried_Saltwater_Fish",
       "recipeIds": [
         "Dried_Saltwater_Fillet"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Dried_Tomato": {
       "id": "Dried_Tomato",
@@ -121460,7 +121531,8 @@
       "iconPath": "Consumeables/ITEM_DriedTomato",
       "recipeIds": [
         "Dried_Tomato"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Drill_Arrow": {
       "id": "Drill_Arrow",
@@ -121520,7 +121592,8 @@
       "recipeIds": [
         "Carcass_Chicken",
         "Carcass_Rooster"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Egg_Salad": {
       "id": "Egg_Salad",
@@ -121530,7 +121603,8 @@
       "iconPath": "Consumeables/T_ITEM_Tomato_Eggs",
       "recipeIds": [
         "Food_Egg_Salad"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Electric_Armor_Bench": {
       "id": "Electric_Armor_Bench",
@@ -121769,7 +121843,8 @@
       "iconPath": "Consumeables/T_ITEM_Energy_Bar",
       "recipeIds": [
         "Energy_Bar"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Envirosuit": {
       "id": "Envirosuit",
@@ -122367,21 +122442,24 @@
       "iconPath": "Consumeables/ITEM_Meat_TboneRaw",
       "recipeIds": [
         "Carcass_BatDog"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Fatty_Tbone_Cooked": {
       "id": "Fatty_Tbone_Cooked",
       "displayName": "Cooked Fatty T-Bone",
       "description": "A fiercely won, delicious steak dinner",
       "flavorText": "Gourmet food, Icarus style",
-      "iconPath": "Consumeables/ITEM_Meat_TboneCooked"
+      "iconPath": "Consumeables/ITEM_Meat_TboneCooked",
+      "foodAudience": "prospector"
     },
     "Fatty_Tbone_Dried": {
       "id": "Fatty_Tbone_Dried",
       "displayName": "Dried Fatty T-Bone",
       "description": "A large, fatty piece of dried meat",
       "flavorText": "A tough, chewy snack",
-      "iconPath": "Consumeables/ITEM_Meat_TboneDried"
+      "iconPath": "Consumeables/ITEM_Meat_TboneDried",
+      "foodAudience": "prospector"
     },
     "Feet_Arms_Attachment_Fall_Resistance_1": {
       "id": "Feet_Arms_Attachment_Fall_Resistance_1",
@@ -122685,7 +122763,8 @@
       "iconPath": "Consumeables/ITEM_Fish_Chunk_Stew",
       "recipeIds": [
         "Food_Fish_Chunk_Stew"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Fish_Chunks": {
       "id": "Fish_Chunks",
@@ -122696,7 +122775,8 @@
       "recipeIds": [
         "Butcher_Fish",
         "Butcher_Fish_Player"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Fish_Fillet_Pie": {
       "id": "Fish_Fillet_Pie",
@@ -122706,7 +122786,8 @@
       "iconPath": "Consumeables/ITEM_Fish_Pie",
       "recipeIds": [
         "Food_Fish_Fillet_Pie"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Fish_Wall_Mount": {
       "id": "Fish_Wall_Mount",
@@ -122932,7 +123013,8 @@
       "iconPath": "Consumeables/T_ITEM_Animal_Feed",
       "recipeIds": [
         "Animal_Feed"
-      ]
+      ],
+      "foodAudience": "animal"
     },
     "Food_Animal_Feed_Bean": {
       "id": "Food_Animal_Feed_Bean",
@@ -122942,7 +123024,8 @@
       "iconPath": "Consumeables/T_ITEM_Animal_Feed_Bean",
       "recipeIds": [
         "Animal_Feed_Bean"
-      ]
+      ],
+      "foodAudience": "animal"
     },
     "Food_Animal_Feed_Carrot": {
       "id": "Food_Animal_Feed_Carrot",
@@ -122952,7 +123035,8 @@
       "iconPath": "Consumeables/T_ITEM_Animal_Feed_Carrot",
       "recipeIds": [
         "Animal_Feed_Carrot"
-      ]
+      ],
+      "foodAudience": "animal"
     },
     "Food_Animal_Feed_CarryWeight": {
       "id": "Food_Animal_Feed_CarryWeight",
@@ -122960,7 +123044,8 @@
       "description": "Nutritionally dense animal feed.",
       "flavorText": "Seed feed to satiate your creatures needs.",
       "iconPath": "Consumeables/T_ITEM_Animal_Feed",
-      "mission": true
+      "mission": true,
+      "foodAudience": "animal"
     },
     "Food_Animal_Feed_Corn": {
       "id": "Food_Animal_Feed_Corn",
@@ -122970,7 +123055,8 @@
       "iconPath": "Consumeables/T_ITEM_Animal_Feed_Corn",
       "recipeIds": [
         "Animal_Feed_Corn"
-      ]
+      ],
+      "foodAudience": "animal"
     },
     "Food_Animal_Feed_High_Quality": {
       "id": "Food_Animal_Feed_High_Quality",
@@ -122980,7 +123066,8 @@
       "iconPath": "Consumeables/T_Animal_Feed_High_Quality",
       "recipeIds": [
         "Animal_Feed_Omni"
-      ]
+      ],
+      "foodAudience": "animal"
     },
     "Food_Animal_Feed_Mushroom": {
       "id": "Food_Animal_Feed_Mushroom",
@@ -122990,7 +123077,8 @@
       "iconPath": "Consumeables/T_ITEM_Animal_Feed_Mushroom",
       "recipeIds": [
         "Animal_Feed_Mushroom"
-      ]
+      ],
+      "foodAudience": "animal"
     },
     "Food_Animal_Feed_Potato": {
       "id": "Food_Animal_Feed_Potato",
@@ -123000,7 +123088,8 @@
       "iconPath": "Consumeables/T_ITEM_Animal_Feed_Potato",
       "recipeIds": [
         "Animal_Feed_Potato"
-      ]
+      ],
+      "foodAudience": "animal"
     },
     "Food_Animal_Feed_Pumpkin": {
       "id": "Food_Animal_Feed_Pumpkin",
@@ -123010,7 +123099,8 @@
       "iconPath": "Consumeables/T_ITEM_Animal_Feed_Pumpkin",
       "recipeIds": [
         "Animal_Feed_Pumpkin"
-      ]
+      ],
+      "foodAudience": "animal"
     },
     "Food_Animal_Feed_Speed": {
       "id": "Food_Animal_Feed_Speed",
@@ -123018,7 +123108,8 @@
       "description": "Nutritionally dense animal feed.",
       "flavorText": "Seed feed to satiate your creatures needs.",
       "iconPath": "Consumeables/T_ITEM_Animal_Feed",
-      "mission": true
+      "mission": true,
+      "foodAudience": "animal"
     },
     "Food_Animal_Feed_Squash": {
       "id": "Food_Animal_Feed_Squash",
@@ -123028,7 +123119,8 @@
       "iconPath": "Consumeables/T_ITEM_Animal_Feed_Squash",
       "recipeIds": [
         "Animal_Feed_Squash"
-      ]
+      ],
+      "foodAudience": "animal"
     },
     "Food_Berry_Bar": {
       "id": "Food_Berry_Bar",
@@ -123038,7 +123130,8 @@
       "iconPath": "Consumeables/T_ITEM_Seed_Bar",
       "recipeIds": [
         "Berry_Bar"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Food_Bread": {
       "id": "Food_Bread",
@@ -123047,7 +123140,8 @@
       "iconPath": "Consumeables/ITEM_Food_Bread",
       "recipeIds": [
         "Bread"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Food_Corn_Soup": {
       "id": "Food_Corn_Soup",
@@ -123057,7 +123151,8 @@
       "iconPath": "Consumeables/ITEM_CornSoup",
       "recipeIds": [
         "Food_Corn_Soup"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Food_Creamed_Corn": {
       "id": "Food_Creamed_Corn",
@@ -123067,21 +123162,24 @@
       "iconPath": "Consumeables/ITEM_CreamedCorn",
       "recipeIds": [
         "Food_Creamed_Corn"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Food_Crumbed_Fish_Fillet": {
       "id": "Food_Crumbed_Fish_Fillet",
       "displayName": "Crumbed Fish Fillet",
       "description": "Battered in breadcrumbs, lightly fried, boosts health and stamina.",
       "flavorText": "Bread meets fish.",
-      "iconPath": "Consumeables/ITEM_CrumbedFishFillet"
+      "iconPath": "Consumeables/ITEM_CrumbedFishFillet",
+      "foodAudience": "prospector"
     },
     "Food_Fish_Dish": {
       "id": "Food_Fish_Dish",
       "displayName": "Fish curry",
       "description": "A simple curry with a large health boost.",
       "flavorText": "Not the best fish curry in the galaxy, but far from the worst.",
-      "iconPath": "Consumeables/ITEM_FishDish"
+      "iconPath": "Consumeables/ITEM_FishDish",
+      "foodAudience": "prospector"
     },
     "Food_Flatbread": {
       "id": "Food_Flatbread",
@@ -123091,7 +123189,8 @@
       "iconPath": "Consumeables/ITEM_Food_Flatbread",
       "recipeIds": [
         "Flatbread"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Food_Fried_Soy_Beans": {
       "id": "Food_Fried_Soy_Beans",
@@ -123101,7 +123200,8 @@
       "iconPath": "Consumeables/ITEM_FriedSoyBeans",
       "recipeIds": [
         "Food_Fried_Soy_Beans"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Food_Fruit_Pie": {
       "id": "Food_Fruit_Pie",
@@ -123111,7 +123211,8 @@
       "iconPath": "Consumeables/ITEM_FruitPie",
       "recipeIds": [
         "Fruit_Pie"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Food_Fruit_Salad": {
       "id": "Food_Fruit_Salad",
@@ -123121,7 +123222,8 @@
       "iconPath": "Consumeables/ITEM_FruitSalad",
       "recipeIds": [
         "Food_Fruit_Salad"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Food_Hearty_Salad": {
       "id": "Food_Hearty_Salad",
@@ -123131,7 +123233,8 @@
       "iconPath": "Consumeables/ITEM_HeartySalad",
       "recipeIds": [
         "Food_Hearty_Salad"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Food_Honey_Bar": {
       "id": "Food_Honey_Bar",
@@ -123141,7 +123244,8 @@
       "iconPath": "Consumeables/T_ITEM_Honey_Bar",
       "recipeIds": [
         "Honey_Bar"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Food_Meat_Pie": {
       "id": "Food_Meat_Pie",
@@ -123151,7 +123255,8 @@
       "iconPath": "Consumeables/ITEM_MeatPie",
       "recipeIds": [
         "Meat_Pie"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Food_Meat_Stew": {
       "id": "Food_Meat_Stew",
@@ -123161,7 +123266,8 @@
       "iconPath": "Consumeables/ITEM_MeatStew",
       "recipeIds": [
         "Food_Meat_Stew"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Food_Mushroom_Soup": {
       "id": "Food_Mushroom_Soup",
@@ -123171,7 +123277,8 @@
       "iconPath": "Consumeables/ITEM_MushroomSoup",
       "recipeIds": [
         "Food_Mushroom_Soup"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Food_Pickled_Carrot": {
       "id": "Food_Pickled_Carrot",
@@ -123181,7 +123288,8 @@
       "iconPath": "Consumeables/ITEM_PickledCarrot",
       "recipeIds": [
         "Pickled_Carrot"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Food_Pickled_Tomato": {
       "id": "Food_Pickled_Tomato",
@@ -123191,7 +123299,8 @@
       "iconPath": "Consumeables/ITEM_PickedTomato",
       "recipeIds": [
         "Pickled_Tomato"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Food_Potato_Bread": {
       "id": "Food_Potato_Bread",
@@ -123201,7 +123310,8 @@
       "iconPath": "Consumeables/ITEM_PotatoBread",
       "recipeIds": [
         "Potato_Bread"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Food_Potato_Carrot_Fries": {
       "id": "Food_Potato_Carrot_Fries",
@@ -123211,7 +123321,8 @@
       "iconPath": "Consumeables/ITEM_PotatoCarrotFries",
       "recipeIds": [
         "Food_Potato_Carrot_Fries"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Food_Pumpkin_Bread": {
       "id": "Food_Pumpkin_Bread",
@@ -123221,7 +123332,8 @@
       "iconPath": "Consumeables/ITEM_PumpkinBread",
       "recipeIds": [
         "Pumpkin_Bread"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Food_Roasted_Vegetables": {
       "id": "Food_Roasted_Vegetables",
@@ -123231,7 +123343,8 @@
       "iconPath": "Consumeables/ITEM_RoastVeges",
       "recipeIds": [
         "Food_Roasted_Vegetables"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Food_Seed_Bread": {
       "id": "Food_Seed_Bread",
@@ -123241,7 +123354,8 @@
       "iconPath": "Consumeables/T_ITEM_Seed_Bread",
       "recipeIds": [
         "Seed_Bread"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Food_Seed_Cracker": {
       "id": "Food_Seed_Cracker",
@@ -123251,7 +123365,8 @@
       "iconPath": "Consumeables/T_ITEM_Seed_Crackers",
       "recipeIds": [
         "Seed_Crackers"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Food_Shepherds_Pie": {
       "id": "Food_Shepherds_Pie",
@@ -123261,7 +123376,8 @@
       "iconPath": "Consumeables/ITEM_ShepherdsPie",
       "recipeIds": [
         "Shepherds_Pie"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Food_Tomato_Soup": {
       "id": "Food_Tomato_Soup",
@@ -123271,7 +123387,8 @@
       "iconPath": "Consumeables/ITEM_TomatoSoup",
       "recipeIds": [
         "Food_Tomato_Soup"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Food_Trough": {
       "id": "Food_Trough",
@@ -123376,7 +123493,8 @@
       "iconPath": "Consumeables/ITEM_VegePie",
       "recipeIds": [
         "Vegetable_Pie"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Food_Wild_Salad": {
       "id": "Food_Wild_Salad",
@@ -123386,7 +123504,8 @@
       "iconPath": "Consumeables/ITEM_FieldSalad",
       "recipeIds": [
         "Food_Wild_Salad"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Fortification_Concrete_Gate": {
       "id": "Fortification_Concrete_Gate",
@@ -123556,7 +123675,8 @@
       "iconPath": "Consumeables/T_ITEM_Onion_Soup",
       "recipeIds": [
         "Food_French_Onion_Soup"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Freshwater_Fillet_Curry": {
       "id": "Freshwater_Fillet_Curry",
@@ -123566,7 +123686,8 @@
       "iconPath": "Consumeables/ITEM_Fish_Curry",
       "recipeIds": [
         "Food_Freshwater_Fillet_Curry"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Freshwater_Fish_Fillet": {
       "id": "Freshwater_Fish_Fillet",
@@ -123576,7 +123697,8 @@
       "iconPath": "Consumeables/ITEM_Freshwater_Fish_Fillet",
       "recipeIds": [
         "Butcher_Fish_Freshwater"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Fried_Chicken": {
       "id": "Fried_Chicken",
@@ -123586,7 +123708,8 @@
       "iconPath": "Consumeables/T_ITEM_Fried_Chicken",
       "recipeIds": [
         "Fried_Chicken"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Fried_Chunky_Vegetables": {
       "id": "Fried_Chunky_Vegetables",
@@ -123596,7 +123719,8 @@
       "iconPath": "Consumeables/ITEM_FriedChunkyVeges",
       "recipeIds": [
         "Food_Fried_Chunky_Vegetables"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Fried_Fish_Chunks": {
       "id": "Fried_Fish_Chunks",
@@ -123606,7 +123730,8 @@
       "iconPath": "Consumeables/ITEM_Fried_Fish_Chunks",
       "recipeIds": [
         "Food_Fried_Fish_Chunks"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Frozen_Banana": {
       "id": "Frozen_Banana",
@@ -123616,7 +123741,8 @@
       "iconPath": "Consumeables/T_ITEM_Frozen_Banana",
       "recipeIds": [
         "Frozen_Banana"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Frozen_Ore": {
       "id": "Frozen_Ore",
@@ -123648,7 +123774,8 @@
       "iconPath": "Consumeables/ITEM_FuitMuffin",
       "recipeIds": [
         "Food_Fruit_Muffin"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Fruit_Snack_Pack": {
       "id": "Fruit_Snack_Pack",
@@ -123658,7 +123785,8 @@
       "iconPath": "Consumeables/T_ITEM_Snack_Pack",
       "recipeIds": [
         "Fruit_Snack_Pack"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Fur": {
       "id": "Fur",
@@ -123820,7 +123948,8 @@
         "Carcass_Slinker",
         "Carcass_Chew",
         "Carcass_Bounder_Desert"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Gamey_Meat_Cooked": {
       "id": "Gamey_Meat_Cooked",
@@ -123830,7 +123959,8 @@
       "iconPath": "Consumeables/ITEM_Meat_GameyCooked",
       "recipeIds": [
         "Cooked_Gamey_Meat"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Gamey_Meat_Dried": {
       "id": "Gamey_Meat_Dried",
@@ -123840,14 +123970,16 @@
       "iconPath": "Consumeables/ITEM_Meat_GameyDried",
       "recipeIds": [
         "Dried_Gamey_Meat"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Garlic": {
       "id": "Garlic",
       "displayName": "Garlic",
       "description": "A pungent bulb used to elevate savoury dishes.",
       "flavorText": "One can never have too much garlic in a dish.",
-      "iconPath": "Consumeables/T_ITEM_Garlic"
+      "iconPath": "Consumeables/T_ITEM_Garlic",
+      "foodAudience": "prospector"
     },
     "Garlic_Bread": {
       "id": "Garlic_Bread",
@@ -123857,7 +123989,8 @@
       "iconPath": "Consumeables/T_ITEM_Garlic_Bread",
       "recipeIds": [
         "Food_Garlic_Bread"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Garlic_Butter": {
       "id": "Garlic_Butter",
@@ -123867,7 +124000,8 @@
       "iconPath": "Consumeables/T_ITEM_Garlic_Butter",
       "recipeIds": [
         "Food_Garlic_Butter"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Garlic_Pizza": {
       "id": "Garlic_Pizza",
@@ -123877,7 +124011,8 @@
       "iconPath": "Consumeables/T_ITEM_Garlic_Pizza",
       "recipeIds": [
         "Food_Garlic_Pizza"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Gas_Fireplace": {
       "id": "Gas_Fireplace",
@@ -124263,7 +124398,8 @@
       "iconPath": "Consumeables/ITEM_Raw_Prime_Meat",
       "recipeIds": [
         "Butcher_Meat_Bull"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Giant_Steak_Cooked": {
       "id": "Giant_Steak_Cooked",
@@ -124273,7 +124409,8 @@
       "iconPath": "Consumeables/ITEM_Cooked_Prime_Meat",
       "recipeIds": [
         "Cooked_Giant_Steak"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Giant_Steak_Dried": {
       "id": "Giant_Steak_Dried",
@@ -124283,7 +124420,8 @@
       "iconPath": "Consumeables/ITEM_Cooked_Prime_MeatDried",
       "recipeIds": [
         "Dried_Giant_Steak"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Glass": {
       "id": "Glass",
@@ -124497,7 +124635,8 @@
       "iconPath": "Consumeables/T_ITEM_Honey_Jar",
       "recipeIds": [
         "Glass_Jar_Honey"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Glass_Jar_Jam": {
       "id": "Glass_Jar_Jam",
@@ -124507,7 +124646,8 @@
       "iconPath": "Consumeables/ITEM_Jar_Jam",
       "recipeIds": [
         "Glass_Jar_Jam"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Glass_Ramp": {
       "id": "Glass_Ramp",
@@ -124669,7 +124809,8 @@
       "iconPath": "Consumeables/T_ITEM_Glazed_Carrots",
       "recipeIds": [
         "Food_Glazed_Carrots"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Gold_Bed": {
       "id": "Gold_Bed",
@@ -125289,7 +125430,8 @@
       "iconPath": "Consumeables/T_ITEM_Grilled_Chicken",
       "recipeIds": [
         "Grilled_Chicken"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Grilled_Freshwater_Fish": {
       "id": "Grilled_Freshwater_Fish",
@@ -125299,7 +125441,8 @@
       "iconPath": "Consumeables/ITEM_Grilled_Freshwater_Fish",
       "recipeIds": [
         "Food_Grilled_Feshwater_Fillet"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Grilled_Saltwater_Fish": {
       "id": "Grilled_Saltwater_Fish",
@@ -125309,14 +125452,16 @@
       "iconPath": "Consumeables/ITEM_Grilled_Saltwater_Fish",
       "recipeIds": [
         "Food_Grilled_Saltwater_Fillet"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Gruel": {
       "id": "Gruel",
       "displayName": "Gruel",
       "description": "Will satisfy your hunger, but not your taste buds. ",
       "flavorText": "Looks.... Appetising.....",
-      "iconPath": "Resources/T_ITEM_Gruel"
+      "iconPath": "Resources/T_ITEM_Gruel",
+      "foodAudience": "prospector"
     },
     "Guano": {
       "id": "Guano",
@@ -127140,7 +127285,8 @@
       "iconPath": "Resources/T_ITEM_Honey",
       "recipeIds": [
         "Honey"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Honey_Mead": {
       "id": "Honey_Mead",
@@ -127160,7 +127306,8 @@
       "iconPath": "Consumeables/T_ITEM_Honey_Glazed_Pastry",
       "recipeIds": [
         "Honey_Pastry"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Honey_Tea": {
       "id": "Honey_Tea",
@@ -127174,7 +127321,8 @@
       "displayName": "Honeycomb",
       "description": "A raw source of food that can be processed into Honey and Beeswax using a Mortar and Pestle, or Beehive Extractor.",
       "flavorText": "The Bees of Icarus are known for their long, needle-like stingers which are capable of piercing even the toughest of envirosuits. Proceed with caution.",
-      "iconPath": "Resources/T_ITEM_Honeycomb"
+      "iconPath": "Resources/T_ITEM_Honeycomb",
+      "foodAudience": "prospector"
     },
     "Hopping_Creature_Head": {
       "id": "Hopping_Creature_Head",
@@ -128588,7 +128736,8 @@
       "displayName": "Kiwifruit",
       "description": "Sweet and Refreshing and a little bit Tangy.",
       "flavorText": "Also known as a Chinese Gooseberry",
-      "iconPath": "Consumeables/ITEM_Kiwi_Fruit"
+      "iconPath": "Consumeables/ITEM_Kiwi_Fruit",
+      "foodAudience": "prospector"
     },
     "Kiwi_Head": {
       "id": "Kiwi_Head",
@@ -128625,7 +128774,8 @@
       "iconPath": "Consumeables/T_ITEM_Kiwifruit_Jam",
       "recipeIds": [
         "Kiwifruit_Jam"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Kiwifruit_Sorbet": {
       "id": "Kiwifruit_Sorbet",
@@ -128635,7 +128785,8 @@
       "iconPath": "Consumeables/T_ITEM_Kiwifruit_Sorbet",
       "recipeIds": [
         "Kiwifruit_Sorbet"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Knife_Attachment_Bone_Yield_1": {
       "id": "Knife_Attachment_Bone_Yield_1",
@@ -128749,7 +128900,8 @@
       "displayName": "Kumara",
       "description": "A sweet potato, typically with red skin and yellow or orange flesh.",
       "flavorText": "Often found in Pacific island and Maori cuisine.",
-      "iconPath": "Consumeables/ITEM_Kumara"
+      "iconPath": "Consumeables/ITEM_Kumara",
+      "foodAudience": "prospector"
     },
     "Lamb_Head": {
       "id": "Lamb_Head",
@@ -131005,7 +131157,8 @@
       "displayName": "Oxygel",
       "description": "Agrizero\\'s patented gel supplement lowers the heart rate, reducing oxygen consumption.",
       "flavorText": "Largely illegal on Earth, indispensible among the stars.",
-      "iconPath": "Consumeables/ITEM_MetaRation_7"
+      "iconPath": "Consumeables/ITEM_MetaRation_7",
+      "foodAudience": "prospector"
     },
     "Meta_Oxygen_Tank_Larkwell": {
       "id": "Meta_Oxygen_Tank_Larkwell",
@@ -131131,7 +131284,8 @@
       "displayName": "MicroMeal",
       "description": "Agrizero\\'s finest synthetic food product",
       "flavorText": "For those with more pressing concerns than what their food actually tastes like, Agrizero\\'s MREs provide enduring sustenance.",
-      "iconPath": "Consumeables/ITEM_MetaRation"
+      "iconPath": "Consumeables/ITEM_MetaRation",
+      "foodAudience": "prospector"
     },
     "Meta_Reed_Seed": {
       "id": "Meta_Reed_Seed",
@@ -131356,7 +131510,8 @@
       "displayName": "Go",
       "description": "Xigo\\'s flagship lifestyle beverage.",
       "flavorText": "Humanity\\'s favorite flavor.",
-      "iconPath": "Consumeables/ITEM_MetaRation_10"
+      "iconPath": "Consumeables/ITEM_MetaRation_10",
+      "foodAudience": "prospector"
     },
     "Meta_Spear_Inaris_Alpha": {
       "id": "Meta_Spear_Inaris_Alpha",
@@ -131447,7 +131602,8 @@
       "displayName": "Endurogel",
       "description": "A blend of natural ingredients and highly synthetic stimulants that temporarily slows stamina loss.",
       "flavorText": "Don\\'t ask, just take.",
-      "iconPath": "Consumeables/ITEM_MetaRation_4"
+      "iconPath": "Consumeables/ITEM_MetaRation_4",
+      "foodAudience": "prospector"
     },
     "Meta_Strawberry_Seed": {
       "id": "Meta_Strawberry_Seed",
@@ -131468,7 +131624,8 @@
       "displayName": "UltraMeal",
       "description": "Protein- and energy- boosted high-density food product.",
       "flavorText": "Agrizero\\'s \\'Eat and forget\\' campaign never truly hit home, suggesting the food was either immemorable or best wiped from one\\'s memory. Regardless, the product provides a huge amount of nutrition in a small space.",
-      "iconPath": "Consumeables/ITEM_MetaRation_1"
+      "iconPath": "Consumeables/ITEM_MetaRation_1",
+      "foodAudience": "prospector"
     },
     "Meta_Tomato_Seed": {
       "id": "Meta_Tomato_Seed",
@@ -132726,7 +132883,8 @@
       "iconPath": "Consumeables/ITEM_MixedBerries",
       "recipeIds": [
         "Food_Mixed_Berries"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Moa_Head": {
       "id": "Moa_Head",
@@ -132760,7 +132918,8 @@
       "displayName": "Mushroom",
       "description": "A nutritious fungus, can be eaten raw, but best fried.",
       "flavorText": "The full implications of introducing fungi to a new world are yet to be seen.",
-      "iconPath": "Consumeables/ITEM_Mushroom"
+      "iconPath": "Consumeables/ITEM_Mushroom",
+      "foodAudience": "prospector"
     },
     "Mushroom_Omlette": {
       "id": "Mushroom_Omlette",
@@ -132770,7 +132929,8 @@
       "iconPath": "Consumeables/T_ITEM_Mushroom_Omlette",
       "recipeIds": [
         "Food_Mushroom_Omlette"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Nailgun": {
       "id": "Nailgun",
@@ -133100,7 +133260,8 @@
       "displayName": "Onion",
       "description": "A versatile vegetable that enhances the flavour of most dishes.",
       "flavorText": "Every layer hides another reason to cry.",
-      "iconPath": "Consumeables/T_ITEM_Onion"
+      "iconPath": "Consumeables/T_ITEM_Onion",
+      "foodAudience": "prospector"
     },
     "Onion_Rings": {
       "id": "Onion_Rings",
@@ -133110,7 +133271,8 @@
       "iconPath": "Consumeables/T_ITEM_Onion_Rings",
       "recipeIds": [
         "Food_Onion_Rings"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Onion_Souffle": {
       "id": "Onion_Souffle",
@@ -133120,7 +133282,8 @@
       "iconPath": "Consumeables/T_ITEM_Onion_Souffle",
       "recipeIds": [
         "Food_Onion_Souffle"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Organic_Extractor": {
       "id": "Organic_Extractor",
@@ -133350,7 +133513,8 @@
       "recipeIds": [
         "Pastry",
         "Pastry_Butter"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Pavlova": {
       "id": "Pavlova",
@@ -133360,7 +133524,8 @@
       "iconPath": "Consumeables/T_ITEM_Pavlova",
       "recipeIds": [
         "Pavlova"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Pickaxe_Attachment_BauxiteYield_1": {
       "id": "Pickaxe_Attachment_BauxiteYield_1",
@@ -133490,7 +133655,8 @@
       "iconPath": "Consumeables/ITEM_PickledAvocado",
       "recipeIds": [
         "Pickled_Avocado"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Pickled_Eggs": {
       "id": "Pickled_Eggs",
@@ -133500,7 +133666,8 @@
       "iconPath": "Consumeables/T_ITEM_Pickled_Eggs",
       "recipeIds": [
         "Food_Pickled_Eggs"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Pickled_Freshwater_Fillet": {
       "id": "Pickled_Freshwater_Fillet",
@@ -133510,7 +133677,8 @@
       "iconPath": "Consumeables/ITEM_Fried_Pickled",
       "recipeIds": [
         "Pickled_Freshwater_Fillet"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Pig_Head": {
       "id": "Pig_Head",
@@ -134124,7 +134292,8 @@
       "displayName": "Potato",
       "description": "A starchy tuber that makes up the base of many meals.",
       "flavorText": "Mash them, boil them, you can even put them in a stew.",
-      "iconPath": "Consumeables/T_ITEM_Potato"
+      "iconPath": "Consumeables/T_ITEM_Potato",
+      "foodAudience": "prospector"
     },
     "Pouch_Generic": {
       "id": "Pouch_Generic",
@@ -134182,7 +134351,8 @@
       "displayName": "Prickly Pear",
       "description": "A cactus fruit with vibrant colour and mild sweetness.",
       "flavorText": "A bright treasure.",
-      "iconPath": "Consumeables/T_ITEM_Prickly_Pear"
+      "iconPath": "Consumeables/T_ITEM_Prickly_Pear",
+      "foodAudience": "prospector"
     },
     "PricklyPear_Jelly": {
       "id": "PricklyPear_Jelly",
@@ -134192,7 +134362,8 @@
       "iconPath": "Consumeables/T_ITEM_PricklyPear_Jelly",
       "recipeIds": [
         "Food_PricklyPear_Jelly"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "PricklyPear_Margarita": {
       "id": "PricklyPear_Margarita",
@@ -134202,7 +134373,8 @@
       "iconPath": "Consumeables/T_ITEM_PricklyPear_Margarita",
       "recipeIds": [
         "Drink_PricklyPear_Margarita"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "PricklyPear_Muffins": {
       "id": "PricklyPear_Muffins",
@@ -134212,7 +134384,8 @@
       "iconPath": "Consumeables/T_ITEM_PricklyPear_Muffin",
       "recipeIds": [
         "Food_PricklyPear_Muffins"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Pronghorn_Head": {
       "id": "Pronghorn_Head",
@@ -134340,7 +134513,8 @@
       "displayName": "Pumpkin",
       "description": "A deep yellow squash cultivar.",
       "flavorText": "Ensuring that Halloween becomes a multi-planet holiday. Best cooked.",
-      "iconPath": "Consumeables/ITEM_Pumpkin"
+      "iconPath": "Consumeables/ITEM_Pumpkin",
+      "foodAudience": "prospector"
     },
     "Pumpkin_Pie": {
       "id": "Pumpkin_Pie",
@@ -134350,7 +134524,8 @@
       "iconPath": "Consumeables/T_ITEM_Pumpkin_Pie",
       "recipeIds": [
         "Food_Pumpkin_Pie"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Purification_Pill": {
       "id": "Purification_Pill",
@@ -135061,7 +135236,8 @@
         "Carcass_Boar_Juvenile",
         "Butcher_Meat_Pig",
         "Carcass_Pig"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Raw_Chicken": {
       "id": "Raw_Chicken",
@@ -135074,14 +135250,16 @@
         "Butcher_Meat_Rooster",
         "Carcass_Chicken",
         "Carcass_Rooster"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Raw_Fish": {
       "id": "Raw_Fish",
       "displayName": "Raw Fish",
       "description": "Will nourish, but better if cooked.",
       "flavorText": "Salmon and trout required only slight genetic adjustment to thrive in the waterways of Icarus.",
-      "iconPath": "Consumeables/ITEM_Raw_Fish"
+      "iconPath": "Consumeables/ITEM_Raw_Fish",
+      "foodAudience": "prospector"
     },
     "Raw_Iron_Wood": {
       "id": "Raw_Iron_Wood",
@@ -135153,7 +135331,8 @@
         "Carcass_Juvenile_Tundra_Monkey",
         "Carcass_Komodo",
         "Carcass_Lava_Komodo"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Raw_Wood_Lamp": {
       "id": "Raw_Wood_Lamp",
@@ -135690,7 +135869,8 @@
       "displayName": "Rhubarb",
       "description": "A tart and tangy vegetable with large green leaves and pink or red stalks.",
       "flavorText": "Rhubarb is a good source of vitamins C and K.",
-      "iconPath": "Consumeables/ITEM_Rhubarb"
+      "iconPath": "Consumeables/ITEM_Rhubarb",
+      "foodAudience": "prospector"
     },
     "Rhubarb_Stew": {
       "id": "Rhubarb_Stew",
@@ -135700,7 +135880,8 @@
       "iconPath": "Consumeables/ITEM_RhubarbStew",
       "recipeIds": [
         "Food_Rhubarb_Stew"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Rifle_Assault": {
       "id": "Rifle_Assault",
@@ -135777,7 +135958,8 @@
       "iconPath": "Consumeables/T_ITEM_Roast_Chicken",
       "recipeIds": [
         "Roast_Chicken"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Roat_Head": {
       "id": "Roat_Head",
@@ -136726,7 +136908,8 @@
       "iconPath": "Consumeables/T_ITEM_Salted_Caramel_Pastry",
       "recipeIds": [
         "Salted_Caramel_Pastry"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Salting_Station": {
       "id": "Salting_Station",
@@ -136746,7 +136929,8 @@
       "iconPath": "Consumeables/ITEM_Fish_Sashimi",
       "recipeIds": [
         "Food_Saltwater_Fillet_Sashimi"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Saltwater_Fish_Fillet": {
       "id": "Saltwater_Fish_Fillet",
@@ -136756,7 +136940,8 @@
       "iconPath": "Consumeables/ITEM_Saltwater_Fish_Fillet",
       "recipeIds": [
         "Butcher_Fish_Saltwater"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Sand": {
       "id": "Sand",
@@ -137408,7 +137593,8 @@
       "iconPath": "Consumeables/ITEM_SavouryRoll",
       "recipeIds": [
         "Food_Savory_Roll"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Scale_Arms": {
       "id": "Scale_Arms",
@@ -138163,7 +138349,8 @@
       "iconPath": "Consumeables/T_ITEM_Scrambled_Eggs",
       "recipeIds": [
         "Food_Scrambled_Eggs"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Seed": {
       "id": "Seed",
@@ -138311,7 +138498,8 @@
       "iconPath": "Consumeables/ITEM_ShepherdsRoll",
       "recipeIds": [
         "Food_Shepherds_Roll"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Shield_Bone": {
       "id": "Shield_Bone",
@@ -138784,7 +138972,8 @@
       "iconPath": "Consumeables/T_ITEM_Smashed_Avocado",
       "recipeIds": [
         "Food_Smashed_Avocado"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Smoke_Grenade": {
       "id": "Smoke_Grenade",
@@ -138803,7 +138992,8 @@
       "iconPath": "Consumeables/ITEM_SmokedBacon",
       "recipeIds": [
         "Smoked_Bacon"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Smoked_Fatty_Tbone": {
       "id": "Smoked_Fatty_Tbone",
@@ -138813,7 +139003,8 @@
       "iconPath": "Consumeables/T_ITEM_Fatty_TBone_Smoked",
       "recipeIds": [
         "Smoked_Fatty_Tbone"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Smoked_Freshwater_Fillet": {
       "id": "Smoked_Freshwater_Fillet",
@@ -138823,7 +139014,8 @@
       "iconPath": "Consumeables/T_ITEM_Freshwater_Fillet_Smoked",
       "recipeIds": [
         "Smoked_Freshwater_Fillet"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Smoked_Gamey_Meat": {
       "id": "Smoked_Gamey_Meat",
@@ -138833,7 +139025,8 @@
       "iconPath": "Consumeables/T_ITEM_Gamey_Meat_Smoked",
       "recipeIds": [
         "Smoked_Gamey_Meat"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Smoked_Garlic": {
       "id": "Smoked_Garlic",
@@ -138843,7 +139036,8 @@
       "iconPath": "Consumeables/T_ITEM_Smoked_Garlic",
       "recipeIds": [
         "Food_Smoked_Garlic"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Smoked_Giant_Steak": {
       "id": "Smoked_Giant_Steak",
@@ -138853,7 +139047,8 @@
       "iconPath": "Consumeables/T_ITEM_Giant_Steak_Smoked",
       "recipeIds": [
         "Smoked_Giant_Steak"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Smoked_Meat_Generic": {
       "id": "Smoked_Meat_Generic",
@@ -138863,7 +139058,8 @@
       "iconPath": "Consumeables/T_ITEM_Generic_Meat_Smoked",
       "recipeIds": [
         "Smoked_Meat_Generic"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Smoked_Saltwater_Fillet": {
       "id": "Smoked_Saltwater_Fillet",
@@ -138873,7 +139069,8 @@
       "iconPath": "Consumeables/T_ITEM_Saltwater_Fillet_Smoked",
       "recipeIds": [
         "Smoked_Saltwater_Fillet"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Smoked_Soft_Meat": {
       "id": "Smoked_Soft_Meat",
@@ -138883,7 +139080,8 @@
       "iconPath": "Consumeables/T_ITEM_Soft_Meat_Smoked",
       "recipeIds": [
         "Smoked_Soft_Meat"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Smoked_Stringy_Meat": {
       "id": "Smoked_Stringy_Meat",
@@ -138893,7 +139091,8 @@
       "iconPath": "Consumeables/T_ITEM_Stringy_Meat_Smoked",
       "recipeIds": [
         "Smoked_Stringy_Meat"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Smoked_White_Meat": {
       "id": "Smoked_White_Meat",
@@ -138903,7 +139102,8 @@
       "iconPath": "Consumeables/T_ITEM_White_Meat_Smoked",
       "recipeIds": [
         "Smoked_White_Meat"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Smoker_T3": {
       "id": "Smoker_T3",
@@ -139055,7 +139255,8 @@
         "Carcass_Piglet",
         "Carcass_Scorpion",
         "Butcher_Meat_Sheep"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Soft_Meat_Cooked": {
       "id": "Soft_Meat_Cooked",
@@ -139065,7 +139266,8 @@
       "iconPath": "Consumeables/ITEM_Meat_SoftCooked",
       "recipeIds": [
         "Cooked_Soft_Meat"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Soft_Meat_Dried": {
       "id": "Soft_Meat_Dried",
@@ -139075,7 +139277,8 @@
       "iconPath": "Consumeables/ITEM_Meat_SoftDried",
       "recipeIds": [
         "Dried_Soft_Meat"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Solar_Backpack": {
       "id": "Solar_Backpack",
@@ -139304,14 +139507,16 @@
       "displayName": "Spoiled Meat",
       "description": "Animal flesh, considerably past its best-by date.",
       "flavorText": "You wouldn\\'t be the first prospector desperate enough to eat this.",
-      "iconPath": "Consumeables/ITEM_Spoiled_Meat"
+      "iconPath": "Consumeables/ITEM_Spoiled_Meat",
+      "foodAudience": "prospector"
     },
     "Spoiled_Plants": {
       "id": "Spoiled_Plants",
       "displayName": "Spoiled Plants",
       "description": "This produce is certainly past its best",
       "flavorText": "I wouldn\\'t eat that if I were you",
-      "iconPath": "Resources/ITEM_Spoiled_Plants"
+      "iconPath": "Resources/ITEM_Spoiled_Plants",
+      "foodAudience": "prospector"
     },
     "Sponge": {
       "id": "Sponge",
@@ -139344,7 +139549,8 @@
       "displayName": "Squash",
       "description": "An edible herbaceous vine fruit.",
       "flavorText": "A myriad of squash varieties exist, but the effects of genetic tampering by xeno-biologiest have resulted in a variant with noticeable endurance-enhancing qualities.",
-      "iconPath": "Consumeables/ITEM_Squash"
+      "iconPath": "Consumeables/ITEM_Squash",
+      "foodAudience": "prospector"
     },
     "Stamina_Enhancement_Tonic": {
       "id": "Stamina_Enhancement_Tonic",
@@ -140012,14 +140218,16 @@
       "iconPath": "Consumeables/T_ITEM_BerriesAndCream",
       "recipeIds": [
         "Strawberries_And_Cream"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Strawberry": {
       "id": "Strawberry",
       "displayName": "Strawberry",
       "description": "A sweet and juicy fruit with a bright red color.",
       "flavorText": "The average berry contains around 200 tiny seeds",
-      "iconPath": "Consumeables/ITEM_Strawberry"
+      "iconPath": "Consumeables/ITEM_Strawberry",
+      "foodAudience": "prospector"
     },
     "Strawberry_Candy": {
       "id": "Strawberry_Candy",
@@ -140029,7 +140237,8 @@
       "iconPath": "Consumeables/T_ITEM_Strawberry_Candy",
       "recipeIds": [
         "Strawberry_Candy"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Strawberry_Jam": {
       "id": "Strawberry_Jam",
@@ -140039,7 +140248,8 @@
       "iconPath": "Consumeables/ITEM_RasberryJam",
       "recipeIds": [
         "Strawberry_Jam"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Strength_Enhancement_Tonic": {
       "id": "Strength_Enhancement_Tonic",
@@ -140075,7 +140285,8 @@
         "Carcass_Komodo",
         "Carcass_Lava_Komodo",
         "Carcass_Scorpion"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Stringy_Meat_Cooked": {
       "id": "Stringy_Meat_Cooked",
@@ -140085,7 +140296,8 @@
       "iconPath": "Consumeables/ITEM_Meat_StringyCooked",
       "recipeIds": [
         "Cooked_Stringy_Meat"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Stringy_Meat_Dried": {
       "id": "Stringy_Meat_Dried",
@@ -140095,7 +140307,8 @@
       "iconPath": "Consumeables/ITEM_Meat_StringyDried",
       "recipeIds": [
         "Dried_Stringy_Meat"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Stryder_Head": {
       "id": "Stryder_Head",
@@ -140122,7 +140335,8 @@
       "iconPath": "Consumeables/ITEM_StuffedAvocado",
       "recipeIds": [
         "Food_Stuffed_Avocado"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Submachine_Gun": {
       "id": "Submachine_Gun",
@@ -140914,7 +141128,8 @@
       "displayName": "Tomato",
       "description": "A staple in many diets that can be eaten raw or cooked.",
       "flavorText": "Classed as a fruit, not a vegetable.",
-      "iconPath": "Consumeables/ITEM_Tomato"
+      "iconPath": "Consumeables/ITEM_Tomato",
+      "foodAudience": "prospector"
     },
     "Tool_Attachment_Attack_Speed_1": {
       "id": "Tool_Attachment_Attack_Speed_1",
@@ -141077,7 +141292,8 @@
       "displayName": "Truffle",
       "description": "A rare fungus prized for its strong aroma and flavour.",
       "flavorText": "A delicacy worth more than its weight in gold.",
-      "iconPath": "Consumeables/T_ITEM_Truffle"
+      "iconPath": "Consumeables/T_ITEM_Truffle",
+      "foodAudience": "prospector"
     },
     "Truffle_Focaccia": {
       "id": "Truffle_Focaccia",
@@ -141087,7 +141303,8 @@
       "iconPath": "Consumeables/T_ITEM_Truffle_Focaccia",
       "recipeIds": [
         "Food_Truffle_Focaccia"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Truffle_Fries": {
       "id": "Truffle_Fries",
@@ -141097,7 +141314,8 @@
       "iconPath": "Consumeables/T_ITEM_Truffle_Fries",
       "recipeIds": [
         "Food_Truffle_Fries"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Truffle_Pasta": {
       "id": "Truffle_Pasta",
@@ -141107,7 +141325,8 @@
       "iconPath": "Consumeables/T_ITEM_Truffle_Pasta",
       "recipeIds": [
         "Food_Truffle_Pasta"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Truffle_Vodka": {
       "id": "Truffle_Vodka",
@@ -141358,7 +141577,8 @@
       "iconPath": "Consumeables/ITEM_VegetableRoll",
       "recipeIds": [
         "Food_Vegetable_Roll"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Venom_Sac": {
       "id": "Venom_Sac",
@@ -141795,7 +142015,8 @@
       "displayName": "Watermelon",
       "description": "Mainly water and sugar.",
       "flavorText": "Icarus produces approximately 0.003% of humanity\\'s watermelons.",
-      "iconPath": "Consumeables/ITEM_Watermelon"
+      "iconPath": "Consumeables/ITEM_Watermelon",
+      "foodAudience": "prospector"
     },
     "Watermelon_Lollypop": {
       "id": "Watermelon_Lollypop",
@@ -141805,7 +142026,8 @@
       "iconPath": "Consumeables/T_ITEM_Watermelon_Lollypop",
       "recipeIds": [
         "Watermelon_Lollypop"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "Waterskin": {
       "id": "Waterskin",
@@ -141859,7 +142081,8 @@
         "Carcass_Chicken",
         "Carcass_Rooster",
         "Carcass_Pig"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "White_Meat_Cooked": {
       "id": "White_Meat_Cooked",
@@ -141869,7 +142092,8 @@
       "iconPath": "Consumeables/ITEM_Meat_WhiteCooked",
       "recipeIds": [
         "Cooked_White_Meat"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "White_Meat_Dried": {
       "id": "White_Meat_Dried",
@@ -141879,7 +142103,8 @@
       "iconPath": "Consumeables/ITEM_Meat_WhiteDried",
       "recipeIds": [
         "Dried_White_Meat"
-      ]
+      ],
+      "foodAudience": "prospector"
     },
     "WildBoar_Head": {
       "id": "WildBoar_Head",

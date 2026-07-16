@@ -187,6 +187,8 @@ there is no `staticItemName` (or values differ). Raw Unreal `icon`, `lookup`, an
     "itemCount": 2504,
     "rawMaterialCount": 626,   // items with no / empty recipeIds
     "gatherFirstCount": 27,    // Item.Resource.Ore* / Wood / Fiber / … — terminal even with recipeIds
+    "animalFoodCount": 17,     // items[*].foodAudience === "animal"
+    "prospectorFoodCount": 205,// items[*].foodAudience === "prospector"
     "stationCount": 68,
     "deployableCount": 221,  // items with items[*].deployable
     "shopCount": 40,
@@ -246,6 +248,20 @@ there is no `staticItemName` (or values differ). Raw Unreal `icon`, `lookup`, an
       "iconPath": "Voxels/ITEM_Ore_Oxite",
       "recipeIds": ["Pyritic_Crust_Oxite", "Rock_Golem_Armor_Fragment_Oxite"],
       "gatherFirst": true   // Item.Resource.Ore* — tree stops; conversions are optional
+    },
+    "Food_Animal_Feed": {
+      "id": "Food_Animal_Feed",
+      "displayName": "Seed Animal Feed",
+      "iconPath": "Consumeables/T_ITEM_Animal_Feed",
+      "recipeIds": ["Food_Animal_Feed"],
+      "foodAudience": "animal"   // Manual_Tags Item.AnimalFeed
+    },
+    "Food_Fruit_Pie": {
+      "id": "Food_Fruit_Pie",
+      "displayName": "Fruit Pie",
+      "iconPath": "Consumeables/ITEM_Fruit_Pie",
+      "recipeIds": ["Fruit_Pie"],
+      "foodAudience": "prospector"   // Manual_Tags Item.Consumable.Food.Cooked.Fruit
     },
     "Wood_Refined": {
       "id": "Wood_Refined",
@@ -358,6 +374,23 @@ Excluded on purpose: bare `Item.Resource`, `Item.Resource.Ingot` (refined / craf
 Loader (`processCatalogData`): does **not** alias `recipeData[staticId]` for `gatherFirst` items (and still
 skips “selfish” converters where input id === recipe id). Tree `isRaw` then follows `!recipeData[itemId]`.
 
+### Food audience (`items[*].foodAudience`)
+
+Consumables intended for animals vs prospectors are tagged on `D_ItemsStatic.Manual_Tags` (not on
+`D_Consumable`):
+
+| Tag | Catalog value | Examples |
+|---|---|---|
+| `Item.AnimalFeed` | `"animal"` | Animal feed, gruel, silage |
+| `Item.Consumable.Food` / `Item.Consumable.Food.*` | `"prospector"` | Fruit Pie, cooked meats, berries |
+
+Animal feed also typically uses `Actionable: Animal_Feed` (feed mount only) instead of
+`Generic_Consumable` + `Usable: Consume_Stack_Food`. Food trough / diet tag queries often accept
+**both** `Item.Consumable.Food` and `Item.AnimalFeed`, so prospector food can still be eaten by
+animals — `foodAudience` marks design intent.
+
+Explore filters this via `aud=prospector,animal,other` (other = no `foodAudience`).
+
 ### Semantics
 
 - `acquisition: "shop" | "workshop"` → purchase-only: `tier.method = "purchase_only"`, no `stations` / `ingredients`.
@@ -367,6 +400,9 @@ skips “selfish” converters where input id === recipe id). Tree `isRaw` then 
 - `items` covers every static id referenced as an output or ingredient; raw materials omit `recipeIds`.
 - `flavorText` comes from `D_Itemable.FlavorText` (compact-omitted when empty).
 - `gatherFirst: true` → world-gather primary; omit when false (compact emit).
+- `foodAudience: "animal" | "prospector"` → designed consumer from `Manual_Tags`
+  (`Item.AnimalFeed` vs `Item.Consumable.Food*`); omit when neither applies. Animals can still eat many
+  prospector foods — this is design intent, not exclusive edibility.
 - `tier.talentDisplayName` is the talent's UI label when present (compact-omitted when null).
 - `items[*].deployable` / `stations[*].deployable` — pipe / power / internal-fuel requirements for placeables
   (see §7). Omitted when the item is not a deployable or has nothing to report.
