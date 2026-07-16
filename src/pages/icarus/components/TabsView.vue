@@ -74,7 +74,6 @@ export default {
     data() {
         return {
             activeTabId: icarusStore.activeTabId,
-            maxPlanningTabs: 20,
             editingTabId: null,
             editingTitle: '',
         };
@@ -95,7 +94,7 @@ export default {
     },
     computed: {
         ...mapState(useIcarusStore, ['tabs', 'tabCount', 'activeTab', 'isLoadingRecipes']),
-        ...mapGetters(useIcarusStore, ['planningTabCount']),
+        ...mapGetters(useIcarusStore, ['planningTabCount', 'maxPlanningTabs']),
         storeActiveTabId() {
             return icarusStore.activeTabId;
         },

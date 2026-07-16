@@ -506,7 +506,9 @@ export default {
     }
 
     .stations {
-        margin-left: 0.5rem;
+        margin-left: auto;
+        justify-content: flex-end;
+        text-align: right;
         gap: 0.35rem 0.65rem;
     }
 
@@ -515,6 +517,7 @@ export default {
         opacity: 0.55;
         white-space: nowrap;
         gap: 0.35rem;
+        justify-content: flex-end;
         color: color-mix(in srgb, var(--tree-level-color) 75%, #ffffff);
 
         &.preferred {

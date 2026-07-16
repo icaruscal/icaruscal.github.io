@@ -11,6 +11,7 @@ const DEFAULT_TAB_TITLE = 'Planning';
 const MULTI_TAB_TITLE = 'multi';
 const DASHBOARD_TAB_ID = 'dashboard';
 const DASHBOARD_TAB_TITLE = 'Dashboard';
+const MAX_PLANNING_TABS = 20;
 
 const generateTabId = () => Date.now();
 const generateNewTab = () =>
@@ -90,6 +91,37 @@ const resolveActiveTabId = (tabs, preferredId) => {
     return tabs.find((tab) => tab.isDashboard)?.id ?? tabs[0]?.id ?? DASHBOARD_TAB_ID;
 };
 
+const clonePlain = (value) => JSON.parse(JSON.stringify(value));
+
+const snapshotClosedTab = (tab) => {
+    const normalized = normalizeTab({ ...tab });
+    return {
+        closedId: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+        title: normalized.title || DEFAULT_TAB_TITLE,
+        titleIsCustom: Boolean(normalized.titleIsCustom),
+        isDashboard: false,
+        items: clonePlain(normalized.items || []),
+        treeProgress: clonePlain(normalized.treeProgress || {}),
+        collapsedPaths: clonePlain(normalized.collapsedPaths || {}),
+        recipePreferences: clonePlain(normalized.recipePreferences || {}),
+        closedAt: Date.now(),
+    };
+};
+
+const restoreTabFromSnapshot = (snapshot) =>
+    reactive(
+        normalizeTab({
+            id: generateTabId(),
+            title: snapshot.title || DEFAULT_TAB_TITLE,
+            titleIsCustom: Boolean(snapshot.titleIsCustom),
+            isDashboard: false,
+            items: clonePlain(snapshot.items || []),
+            treeProgress: clonePlain(snapshot.treeProgress || {}),
+            collapsedPaths: clonePlain(snapshot.collapsedPaths || {}),
+            recipePreferences: clonePlain(snapshot.recipePreferences || {}),
+        })
+    );
+
 // * data store
 export const useIcarusStore = defineStore('icarus', {
     state: () => {
@@ -121,9 +153,13 @@ export const useIcarusStore = defineStore('icarus', {
         /** Static item ids (preferred) or recipe ids when static is unavailable. */
         const favorites = useStorage(`${LOCAL_STORAGE_PREFIX}/favorites`, [], localStorage);
 
+        /** Snapshots of closed planning tabs (full state) for dashboard reopen. */
+        const closedTabs = useStorage(`${LOCAL_STORAGE_PREFIX}/closedTabs`, [], localStorage);
+
         return {
             activeTabId,
             tabs,
+            closedTabs,
             settings,
             favorites,
 
@@ -154,6 +190,12 @@ export const useIcarusStore = defineStore('icarus', {
         },
         planningTabCount() {
             return this.planningTabs.length;
+        },
+        maxPlanningTabs() {
+            return MAX_PLANNING_TABS;
+        },
+        canAddPlanningTab() {
+            return this.planningTabCount < MAX_PLANNING_TABS;
         },
         treeLevelColors(state) {
             return state.settings.treeLevelColors !== false;
@@ -231,81 +273,22 @@ export const useIcarusStore = defineStore('icarus', {
             }
             return favorites.length > 0 ? [...favorites, ...rest] : sorted;
         },
-        tabProgressSummaries() {
-            return this.planningTabs.map((tab) => {
-                const progressEntries = Object.values(tab.treeProgress || {});
-                let currentTotal = 0;
-                let requiredTotal = 0;
-                let completedNodes = 0;
-                let trackedNodes = 0;
-
-                if (progressEntries.length > 0) {
-                    progressEntries.forEach((entry) => {
-                        const required = Math.max(0, entry.required ?? 0);
-                        if (required <= 0) {
-                            return;
-                        }
-                        const current = Math.min(Math.max(0, entry.current ?? 0), required);
-                        requiredTotal += required;
-                        currentTotal += current;
-                        trackedNodes += 1;
-                        if (entry.completed || current >= required) {
-                            completedNodes += 1;
-                        }
-                    });
-                }
-
-                if (requiredTotal === 0) {
-                    (tab.items || []).forEach((item) => {
-                        const required = Math.max(0, item.quantity ?? 0);
-                        requiredTotal += required;
-                        trackedNodes += 1;
-                    });
-                }
-
-                const rootItems = (tab.items || []).map((item) => {
-                    const required = Math.max(0, Math.ceil(item.quantity ?? 0));
-                    const entry = tab.treeProgress?.[item.id];
-                    const current = Math.min(Math.max(0, entry?.current ?? 0), required);
-                    return {
-                        id: item.id,
-                        label: this.recipeData[item.id]?.label ?? item.id,
-                        required,
-                        current,
-                        completed: Boolean(entry?.completed) || (required > 0 && current >= required),
-                        percent: required > 0 ? Math.round((current / required) * 100) : 0,
-                    };
-                });
-
-                const percent = requiredTotal > 0 ? Math.round((currentTotal / requiredTotal) * 100) : 0;
-
+        closedTabSummaries() {
+            return (this.closedTabs || []).map((tab) => {
+                const items = tab.items || [];
+                const rootItems = items.map((item) => ({
+                    id: item.id,
+                    label: this.recipeData[item.id]?.label ?? item.id,
+                    quantity: item.quantity ?? 1,
+                }));
                 return {
-                    id: tab.id,
-                    title: tab.title,
-                    itemCount: (tab.items || []).length,
-                    currentTotal,
-                    requiredTotal,
-                    completedNodes,
-                    trackedNodes,
-                    percent,
+                    closedId: tab.closedId,
+                    title: tab.title || DEFAULT_TAB_TITLE,
+                    closedAt: tab.closedAt ?? null,
+                    itemCount: items.length,
                     rootItems,
                 };
             });
-        },
-        overallProgress() {
-            const summaries = this.tabProgressSummaries;
-            const currentTotal = summaries.reduce((sum, tab) => sum + tab.currentTotal, 0);
-            const requiredTotal = summaries.reduce((sum, tab) => sum + tab.requiredTotal, 0);
-            const completedNodes = summaries.reduce((sum, tab) => sum + tab.completedNodes, 0);
-            const trackedNodes = summaries.reduce((sum, tab) => sum + tab.trackedNodes, 0);
-            return {
-                tabCount: summaries.length,
-                currentTotal,
-                requiredTotal,
-                completedNodes,
-                trackedNodes,
-                percent: requiredTotal > 0 ? Math.round((currentTotal / requiredTotal) * 100) : 0,
-            };
         },
     },
     actions: {
@@ -326,10 +309,34 @@ export const useIcarusStore = defineStore('icarus', {
                 return;
             }
 
-            this.tabs.splice(tabIndex, 1);
+            const [removed] = this.tabs.splice(tabIndex, 1);
+            if (removed) {
+                this.closedTabs.unshift(snapshotClosedTab(removed));
+            }
 
             const newTabIndex = Math.min(tabIndex, this.tabs.length - 1);
             this.activeTabId = resolveActiveTabId(this.tabs, this.tabs[newTabIndex]?.id);
+        },
+        restoreClosedTab(closedId) {
+            if (!this.canAddPlanningTab) {
+                return null;
+            }
+
+            const closedIndex = (this.closedTabs || []).findIndex((tab) => tab.closedId === closedId);
+            if (closedIndex === -1) {
+                console.error(`Could not find closed tab with id ${closedId}`, this.closedTabs);
+                return null;
+            }
+
+            const [snapshot] = this.closedTabs.splice(closedIndex, 1);
+            const tab = restoreTabFromSnapshot(snapshot);
+            this.tabs.push(tab);
+            this.syncTabTitle(tab);
+            this.activeTabId = tab.id;
+            return tab;
+        },
+        clearClosedTabs() {
+            this.closedTabs.splice(0, this.closedTabs.length);
         },
         setActiveTab(id) {
             this.activeTabId = resolveActiveTabId(this.tabs, id);
