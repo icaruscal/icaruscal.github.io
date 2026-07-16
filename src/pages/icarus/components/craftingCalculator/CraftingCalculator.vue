@@ -86,13 +86,14 @@
                 />
             </div>
 
-            <div v-if="terminalMaterials.length > 0" class="mt-4">
-                <div class="flex align-items-center">
-                    <h3>Materials</h3>
-                </div>
-                <div>
+            <div
+                v-if="baseMaterials.length > 0 || craftedMaterials.length > 0 || requiredCraftingStations.length > 0"
+                class="summary-columns mt-4"
+            >
+                <div class="summary-column">
+                    <h3>Base Materials</h3>
                     <div
-                        v-for="material in terminalMaterials"
+                        v-for="material in baseMaterials"
                         :key="material.id"
                         class="recipe-item materials pl-0 flex align-items-center"
                     >
@@ -110,22 +111,46 @@
                         <item-detail-button :item-id="material.id" :label="material.label" />
                     </div>
                 </div>
-            </div>
 
-            <div class="flex align-items-center mt-3">
-                <h3>Crafting Stations</h3>
-            </div>
-            <div>
-                <div v-for="componentName in requiredCraftingStations" :key="componentName" class="recipe-item stations pl-0 flex align-items-center">
-                    <div class="flex align-items-center">
-                        <n-image
-                            class="icon"
-                            width="32"
-                            :src="`${gameAssetsUrl}/ItemIcons/${stationIconPath(componentName)}.png`"
-                            :fallback-src="`${gameAssetsUrl}/Images/question-mark.png`"
-                            :preview-disabled="false"
-                        />
-                        <div class="label">{{ stationLabel(componentName) }}</div>
+                <div class="summary-column">
+                    <h3>Crafted Materials</h3>
+                    <div
+                        v-for="material in craftedMaterials"
+                        :key="material.id"
+                        class="recipe-item materials pl-0 flex align-items-center"
+                    >
+                        <div class="relative flex align-items-center">
+                            <n-image
+                                class="icon"
+                                width="32"
+                                :src="`${gameAssetsUrl}/ItemIcons/${materialIconPath(material.id)}.png`"
+                                :fallback-src="`${gameAssetsUrl}/Images/question-mark.png`"
+                                :preview-disabled="false"
+                            />
+                        </div>
+                        <div class="material-qty">{{ material.quantity }}</div>
+                        <div class="label">{{ material.label }}</div>
+                        <item-detail-button :item-id="material.id" :label="material.label" />
+                    </div>
+                </div>
+
+                <div class="summary-column">
+                    <h3>Crafting Stations</h3>
+                    <div
+                        v-for="componentName in requiredCraftingStations"
+                        :key="componentName"
+                        class="recipe-item stations pl-0 flex align-items-center"
+                    >
+                        <div class="flex align-items-center">
+                            <n-image
+                                class="icon"
+                                width="32"
+                                :src="`${gameAssetsUrl}/ItemIcons/${stationIconPath(componentName)}.png`"
+                                :fallback-src="`${gameAssetsUrl}/Images/question-mark.png`"
+                                :preview-disabled="false"
+                            />
+                            <div class="label">{{ stationLabel(componentName) }}</div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -224,9 +249,10 @@ export default {
             return this.tab.recipePreferences ?? {};
         },
         terminalMaterials() {
-            const totals = new Map();
+            const baseTotals = new Map();
+            const craftedTotals = new Map();
 
-            const addTerminal = (node) => {
+            const addTo = (totals, node) => {
                 if (!node?.id) return;
                 const existing = totals.get(node.id);
                 if (existing) {
@@ -240,31 +266,52 @@ export default {
                 });
             };
 
+            const finalize = (totals) =>
+                [...totals.values()]
+                    .map((entry) => ({
+                        ...entry,
+                        quantity: Math.ceil(entry.quantity),
+                    }))
+                    .filter((entry) => entry.quantity > 0)
+                    .sort((a, b) => a.label.localeCompare(b.label));
+
             const walk = (node) => {
                 if (!node) return;
                 const children = node.children || [];
                 if (children.length === 0) {
-                    addTerminal(node);
+                    // Root (or leaf) with nothing further — raw gather / selected raw item.
+                    if (node.isRaw) {
+                        addTo(baseTotals, node);
+                    } else {
+                        addTo(craftedTotals, node);
+                    }
                     return;
                 }
                 children.forEach((child) => {
                     if (child.expanded) {
+                        // Craftable intermediate: list it, then resolve its own inputs.
+                        addTo(craftedTotals, child);
                         walk(child.expanded);
+                    } else if (child.isRaw) {
+                        addTo(baseTotals, child);
                     } else {
-                        addTerminal(child);
+                        addTo(craftedTotals, child);
                     }
                 });
             };
 
             (this.requirementTrees || []).forEach(walk);
 
-            return [...totals.values()]
-                .map((entry) => ({
-                    ...entry,
-                    quantity: Math.ceil(entry.quantity),
-                }))
-                .filter((entry) => entry.quantity > 0)
-                .sort((a, b) => a.label.localeCompare(b.label));
+            return {
+                base: finalize(baseTotals),
+                crafted: finalize(craftedTotals),
+            };
+        },
+        baseMaterials() {
+            return this.terminalMaterials.base;
+        },
+        craftedMaterials() {
+            return this.terminalMaterials.crafted;
         },
     },
     methods: {
@@ -427,6 +474,28 @@ export default {
     max-height: 390px;
     overflow-y: auto;
     padding-right: 0.25rem;
+}
+
+.summary-columns {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem;
+    align-items: start;
+}
+
+.summary-column {
+    min-width: 0;
+
+    h3 {
+        margin-top: 0;
+    }
+}
+
+@media (max-width: 900px) {
+    .summary-columns {
+        grid-template-columns: 1fr;
+        gap: 1.25rem;
+    }
 }
 
 .recipe-item {

@@ -246,25 +246,6 @@
                                         ×{{ recipe.outputCount }}
                                     </span>
                                 </div>
-                                <div v-if="recipe.stations.length" class="item-chip-list recipe-stations">
-                                    <button
-                                        v-for="station in recipe.stations"
-                                        :key="`recipe-${recipe.id}-${station.id}`"
-                                        type="button"
-                                        class="item-chip"
-                                        :class="{ 'is-static': !station.clickable }"
-                                        :disabled="!station.clickable"
-                                        @click="openEntity(station)"
-                                    >
-                                        <n-image
-                                            width="22"
-                                            :src="`${gameAssetsUrl}/ItemIcons/${station.iconPath}.png`"
-                                            :fallback-src="`${gameAssetsUrl}/Images/question-mark.png`"
-                                            :preview-disabled="true"
-                                        />
-                                        <span class="item-chip-label">{{ station.label }}</span>
-                                    </button>
-                                </div>
                                 <div v-if="recipe.ingredients.length" class="item-chip-list">
                                     <button
                                         v-for="ing in recipe.ingredients"
@@ -773,10 +754,6 @@ export default {
 .recipe-name {
     font-weight: 650;
     color: rgba(255, 255, 255, 0.9);
-}
-
-.recipe-stations {
-    margin-bottom: 0.45rem;
 }
 
 .used-in-wrap {
