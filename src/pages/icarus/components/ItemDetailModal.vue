@@ -50,6 +50,11 @@
                         <p v-else class="hero-description muted">No description.</p>
                         <p v-if="detail.flavorText" class="hero-flavor">“{{ detail.flavorText }}”</p>
                     </div>
+                    <deployable-runtime-badges
+                        v-if="detail.deployableBadges.length"
+                        class="hero-runtime"
+                        :badges="detail.deployableBadges"
+                    />
                 </header>
 
                 <div class="split">
@@ -311,6 +316,7 @@ import { mapActions, mapState } from 'pinia';
 import { useIcarusStore } from '@/store/icarus';
 import { buildItemDetail } from '@/utility/icarusData';
 import { GAME_ASSETS_URL } from '@/constants/common';
+import DeployableRuntimeBadges from '@/pages/icarus/components/DeployableRuntimeBadges.vue';
 import ItemLockBadge from '@/pages/icarus/components/ItemLockBadge.vue';
 
 const ACQ_META = {
@@ -324,6 +330,7 @@ const ACQ_META = {
 export default {
     name: 'ItemDetailModal',
     components: {
+        DeployableRuntimeBadges,
         ItemLockBadge,
     },
     data() {
@@ -471,6 +478,14 @@ export default {
 .hero-body {
     min-width: 0;
     flex: 1;
+}
+
+.hero-runtime {
+    flex-shrink: 0;
+    margin-left: auto;
+    padding-left: 0.75rem;
+    align-self: flex-start;
+    min-width: min(16rem, 42%);
 }
 
 .hero-title {

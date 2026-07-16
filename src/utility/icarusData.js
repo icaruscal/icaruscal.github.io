@@ -803,6 +803,216 @@ const formatCostList = (costs = []) =>
 
 const humanizeId = (value) => (value ? String(value).replace(/_/g, ' ') : null);
 
+const DEPLOYABLE_RESOURCE_META = {
+    electricity: {
+        label: 'Electricity',
+        accent: '#f0c14b',
+        iconPath: 'Tools/ITEM_SplineTool_Electricity',
+        vicon: 'Bolt',
+    },
+    water: {
+        label: 'Water',
+        accent: '#5eb8f7',
+        iconPath: 'Deployables/ITEM_SplineTool_Water',
+        vicon: 'Tint',
+    },
+    biofuel: {
+        label: 'Biofuel',
+        accent: '#f07c3a',
+        iconPath: 'Deployables/T_ITEM_Kit_Generator',
+        vicon: 'Fire',
+    },
+    oxygen: {
+        label: 'Oxygen',
+        accent: '#8fd4ff',
+        iconPath: 'Voxels/ITEM_Ore_Oxite',
+        vicon: 'Wind',
+    },
+    crudeOil: {
+        label: 'Crude oil',
+        accent: '#a8843a',
+        iconPath: 'Tools/T_ITEM_SplineTool_Crude_Oil',
+        vicon: 'Industry',
+    },
+    refinedOil: {
+        label: 'Refined oil',
+        accent: '#d4ad3a',
+        iconPath: 'Tools/T_ITEM_SplineTool_Crude_Oil',
+        vicon: 'Industry',
+    },
+    shelter: {
+        label: 'Shelter',
+        accent: '#c4b59a',
+        iconPath: null,
+        vicon: 'Home',
+    },
+    generator: {
+        label: 'Internal fuel',
+        accent: '#f07c3a',
+        iconPath: 'Deployables/T_ITEM_Kit_Generator',
+        vicon: 'Fire',
+    },
+};
+
+function deployableResourceMeta(resource) {
+    return (
+        DEPLOYABLE_RESOURCE_META[resource] ?? {
+            label: humanizeId(resource) || resource,
+            accent: '#a8b0bc',
+            iconPath: null,
+            vicon: 'Box',
+        }
+    );
+}
+
+/** Structured badges for deployable pipe / power UI (item detail header). */
+export function buildDeployableRuntimeBadges(deployable, items = {}) {
+    if (!deployable) return [];
+    const badges = [];
+    const powerMw = deployable.powerDrawMw;
+
+    for (const conn of deployable.connections ?? []) {
+        const meta = deployableResourceMeta(conn.resource);
+        let status;
+        let shortLabel = null;
+        let unit = null;
+        let hint = null;
+
+        if (conn.role === 'produce') {
+            status = 'produces';
+            if (conn.flowRate > 0) {
+                shortLabel = String(conn.flowRate);
+                unit = '/s';
+            }
+            badges.push({
+                key: `conn-${conn.resource}-${conn.role}`,
+                resource: conn.resource,
+                status,
+                shortLabel,
+                unit,
+                hint,
+                label: meta.label,
+                accent: meta.accent,
+                iconPath: meta.iconPath,
+                vicon: 'ArrowUp',
+            });
+            continue;
+        }
+        if (conn.role === 'store') {
+            badges.push({
+                key: `conn-${conn.resource}-${conn.role}`,
+                resource: conn.resource,
+                status: 'storage',
+                shortLabel: null,
+                unit: null,
+                hint: null,
+                label: meta.label,
+                accent: meta.accent,
+                iconPath: meta.iconPath,
+                vicon: meta.vicon,
+            });
+            continue;
+        }
+
+        status = conn.required ? 'required' : 'optional';
+        if (conn.resource === 'electricity') {
+            const rate = conn.flowRate > 0 ? conn.flowRate : powerMw;
+            if (rate > 0) {
+                shortLabel = String(rate);
+                unit = 'mW';
+            }
+        } else if (conn.flowRate > 0) {
+            shortLabel = String(conn.flowRate);
+            unit = '/s';
+        }
+        if (conn.optionalHint) hint = conn.optionalHint;
+
+        badges.push({
+            key: `conn-${conn.resource}-${conn.role}`,
+            resource: conn.resource,
+            status,
+            shortLabel,
+            unit,
+            hint,
+            label: meta.label,
+            accent: meta.accent,
+            iconPath: meta.iconPath,
+            vicon: meta.vicon,
+        });
+    }
+
+    if (deployable.generator) {
+        const gen = deployable.generator;
+        const fuelNames = gen.fuels?.length ? gen.fuels : gen.resource ? [gen.resource] : [];
+        const primaryFuel = fuelNames[0];
+        const fuelMeta =
+            primaryFuel && DEPLOYABLE_RESOURCE_META[String(primaryFuel).toLowerCase()]
+                ? deployableResourceMeta(String(primaryFuel).toLowerCase())
+                : DEPLOYABLE_RESOURCE_META.generator;
+        const rate = gen.generationRate > 0 ? gen.generationRate : null;
+        const fuelItems = fuelNames.map((fuelId) => {
+            const fuelItem = items?.[fuelId] ?? null;
+            return {
+                id: fuelId,
+                displayName: fuelItem?.displayName ?? humanizeId(fuelId) ?? fuelId,
+                iconPath: fuelItem?.iconPath ?? null,
+            };
+        });
+        badges.push({
+            key: `generator-${primaryFuel || 'fuel'}`,
+            resource: 'generator',
+            status: 'internal',
+            shortLabel: rate ? String(rate) : null,
+            unit: rate ? '/s' : null,
+            hint: null,
+            label: fuelMeta.label === 'Internal fuel' ? 'Internal fuel' : `${fuelMeta.label} (internal)`,
+            accent: fuelMeta.accent,
+            iconPath: fuelMeta.iconPath ?? DEPLOYABLE_RESOURCE_META.generator.iconPath,
+            vicon: fuelMeta.vicon ?? DEPLOYABLE_RESOURCE_META.generator.vicon,
+            fuelItems,
+        });
+    }
+
+    if (deployable.requiresShelter) {
+        const meta = DEPLOYABLE_RESOURCE_META.shelter;
+        badges.push({
+            key: 'shelter',
+            resource: 'shelter',
+            status: 'required',
+            shortLabel: null,
+            unit: null,
+            hint: null,
+            label: meta.label,
+            accent: meta.accent,
+            iconPath: meta.iconPath,
+            vicon: meta.vicon,
+        });
+    }
+
+    return badges;
+}
+
+/** Plain-text summary lines (tests / fallbacks). */
+export function formatDeployableRuntimeLines(deployable, items = {}) {
+    return buildDeployableRuntimeBadges(deployable, items).map((badge) => {
+        const parts = [badge.label, STATUS_TEXT_FALLBACK[badge.status] ?? badge.status].filter(Boolean);
+        if (badge.shortLabel) parts.push(badge.unit ? `${badge.shortLabel}${badge.unit}` : badge.shortLabel);
+        if (badge.hint) parts.push(badge.hint);
+        if (badge.fuelItems?.length) {
+            parts.push(badge.fuelItems.map((f) => f.displayName).join(', '));
+        }
+        return parts.join(' · ');
+    });
+}
+
+const STATUS_TEXT_FALLBACK = {
+    required: 'Required',
+    optional: 'Optional',
+    produces: 'Produces',
+    storage: 'Storage',
+    internal: 'Internal',
+};
+
 const stationLabel = (stations, stationId) =>
     stations?.[stationId]?.displayName || stations?.[stationId]?.recipeSetDisplayName || humanizeId(stationId) || stationId;
 
@@ -1170,6 +1380,10 @@ export function buildItemDetail(catalog = {}, itemOrRecipeId) {
         availability.tierLabel = formatTierLabel(earliestTier);
     }
 
+    const deployable =
+        item?.deployable ?? stations[staticId]?.deployable ?? null;
+    const deployableBadges = buildDeployableRuntimeBadges(deployable, items);
+
     return {
         id: staticId,
         displayName: getItemLabel(staticId, { displayName }),
@@ -1179,6 +1393,7 @@ export function buildItemDetail(catalog = {}, itemOrRecipeId) {
         gatherFirst: Boolean(item?.gatherFirst),
         mission: Boolean(item?.mission || sourceRecipes.some((r) => r.mission || r.acquisition === 'mission')),
         locks: normalizeLocks(item?.locks),
+        deployableBadges,
         availability,
         effects: {
             instantStats,

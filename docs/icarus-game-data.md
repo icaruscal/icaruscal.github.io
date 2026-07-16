@@ -156,6 +156,10 @@ fetching / client-joining `D_ProcessorRecipes`, `D_ItemTemplate`, `D_ItemsStatic
 | `Crafting/D_ProcessorRecipes.json` | Recipes, inputs, outputs, stations, shop detection |
 | `Crafting/D_RecipeSets.json` | Station display names / icons (optional if missing) |
 | `Traits/D_Processing.json` | RecipeSet → deployable remap when ids differ (optional) |
+| `Traits/D_Resource.json` | Deployable pipe connections (energy / water / fuel / …) |
+| `Traits/D_Energy.json` / `D_Water.json` / `D_Fuel.json` / `D_Oxygen.json` / `D_CrudeOil.json` / `D_RefinedOil.json` | Per-connection flow rates and optional vs required |
+| `Traits/D_Generator.json` | Internal fuel (biofuel / wood) for devices without a grid connection |
+| `Resources/D_OptionalResourceFlows.json` | UI hints for optional connections (`per recipe`, `for boost`, …) |
 | `Items/D_ItemTemplate.json` | Output template → static item |
 | `Items/D_ItemsStatic.json` | Trait links; ingredient/raw material ids |
 | `Traits/D_Itemable.json` | DisplayName, Description, Icon |
@@ -184,6 +188,7 @@ there is no `staticItemName` (or values differ). Raw Unreal `icon`, `lookup`, an
     "rawMaterialCount": 626,   // items with no / empty recipeIds
     "gatherFirstCount": 27,    // Item.Resource.Ore* / Wood / Fiber / … — terminal even with recipeIds
     "stationCount": 68,
+    "deployableCount": 221,  // items with items[*].deployable
     "shopCount": 40,
     "workshopCount": 334,
     "reviewQueueCount": 199,
@@ -253,6 +258,31 @@ there is no `staticItemName` (or values differ). Raw Unreal `icon`, `lookup`, an
       "displayName": "Pastry",
       "iconPath": "Consumeables/ITEM_Pastry",
       "recipeIds": ["Pastry", "Pastry_Butter"]  // alternate recipes for the same output
+    },
+    "Kitchen_Stove": {
+      "id": "Kitchen_Stove",
+      "displayName": "Biofuel Stove",
+      "iconPath": "Deployables/T_ITEM_Kitchen_Stove",
+      "recipeIds": ["Kitchen_Stove"],
+      "deployable": {
+        "powerDrawMw": 375,
+        "requiresShelter": true,
+        "connections": [
+          {
+            "resource": "water",
+            "role": "consume",
+            "required": false,
+            "optionalHint": "per recipe",
+            "flowRate": 0
+          }
+        ],
+        "generator": {
+          "resource": "Energy",
+          "generationRate": 500,
+          "generationRatio": 50,
+          "fuels": ["Biofuel"]
+        }
+      }
     }
   },
   "stations": {
@@ -261,7 +291,8 @@ there is no `staticItemName` (or values differ). Raw Unreal `icon`, `lookup`, an
       "displayName": "Biofuel Stove",     // prefers deployable item label when a craft recipe exists
       "recipeSetDisplayName": "Kitchen Stove",
       "iconPath": "Deployables/T_ITEM_Kitchen_Stove",
-      "craftRecipeId": "Kitchen_Stove"    // omitted when no craft recipe
+      "craftRecipeId": "Kitchen_Stove",   // omitted when no craft recipe
+      "deployable": { /* same shape as items[*].deployable — copied from linked deployable */ }
     },
     "Cleaning_Device": {
       "id": "Cleaning_Device",
@@ -337,6 +368,8 @@ skips “selfish” converters where input id === recipe id). Tree `isRaw` then 
 - `flavorText` comes from `D_Itemable.FlavorText` (compact-omitted when empty).
 - `gatherFirst: true` → world-gather primary; omit when false (compact emit).
 - `tier.talentDisplayName` is the talent's UI label when present (compact-omitted when null).
+- `items[*].deployable` / `stations[*].deployable` — pipe / power / internal-fuel requirements for placeables
+  (see §7). Omitted when the item is not a deployable or has nothing to report.
 - Loader defaults: missing `purchase` / `modifier` / `instantStats` / `equipGrantedStats` / `flags` / `stations` /
   `ingredients` → `null` or `[]` as appropriate.
 
@@ -359,9 +392,102 @@ Informational flags stay on the recipe; `meta.reviewQueueCount` counts rows with
 | `non_blueprint_talent_tree` | Requirement talent sits in a non-`Blueprint_T*` tree (missions etc). Review. |
 
 Snapshot from the 2026-07 export: **2538** recipes (2164 craft, 40 shop, 334 workshop); **2504** items
-(626 raw, 27 gather-first); **68** stations; 363 grant stats; 59 unknown tier; 199 in review queue.
+(626 raw, 27 gather-first); **68** stations; **221** deployables with runtime data; 363 grant stats; 59 unknown tier; 199 in review queue.
 
-## 6. Misc facts worth remembering
+## 7. Deployable runtime (pipes / power / fuel)
+
+Separate from **recipe** `ResourceInputs` (per-craft water/biofuel/oil costs on `recipes[].ingredients` with
+`table: "Resource"`). Those are craft costs; this section is about **running a placed deployable**.
+
+### Join chain
+
+When a `D_ItemsStatic` row has a `Deployable` trait, the catalog joins:
+
+```text
+D_ItemsStatic
+  ├─ Processing.RowName ──► D_Processing     MaxMilliwattage, bRequiresShelter, RequiresEnergy
+  ├─ Resource.RowName   ──► D_Resource       bHas*Connection + *Flow refs
+  │     └─ EnergyFlow / WaterFlow / FuelFlow / OxygenFlow / CrudeOilFlow / RefinedOilFlow
+  │           ──► D_Energy / D_Water / D_Fuel / D_Oxygen / D_CrudeOil / D_RefinedOil
+  │           ResourceFlowRate, FlowType, bIsOptional, OptionalFlowType
+  │                 ──► D_OptionalResourceFlows (ShortMessage → optionalHint)
+  └─ Generator.RowName  ──► D_Generator     internal inventory fuel — not a pipe
+        GenerationRate, GenerationRatio, TransmutableResources / TransmutableItems → fuels[]
+```
+
+Emitted on **`items[*].deployable`** for every placeable that has usable runtime data (`meta.deployableCount`,
+~221 rows) and copied to **`stations[*].deployable`** when the recipe set links to a deployable item
+(via `D_Processing.DefaultRecipeSet` + static `Processing` / `Deployable` traits).
+
+### Catalog `deployable` shape
+
+| Field | Meaning |
+|---|---|
+| `powerDrawMw` | `D_Processing.MaxMilliwattage` — draw while processing (milliwatts); omit / null when 0 |
+| `requiresShelter` | `D_Processing.bRequiresShelter` |
+| `connections[]` | Pipe/grid hooks from `D_Resource` (omit empty) |
+| `connections[].resource` | `electricity` \| `water` \| `biofuel` \| `oxygen` \| `crudeOil` \| `refinedOil` |
+| `connections[].role` | `consume` \| `produce` \| `store` (from flow `FlowType`) |
+| `connections[].required` | `false` when flow `bIsOptional` (optional pipe) |
+| `connections[].optionalHint` | Parsed `D_OptionalResourceFlows.ShortMessage` (e.g. `per recipe`, `for boost`) |
+| `connections[].flowRate` | Flow `ResourceFlowRate` (units/s). Electricity UI often uses `powerDrawMw` when this is 0 |
+| `generator` | Present when `D_Generator` trait exists — burns inventory items / resource types |
+| `generator.resource` | What the generator produces internally (usually `Energy`) |
+| `generator.generationRate` | Burn / generation rate (game units/s) |
+| `generator.generationRatio` | Optional ratio when set |
+| `generator.fuels` | Accepted fuel ids: `TransmutableResources` values (e.g. `Biofuel`) and/or `TransmutableItems` row names (e.g. `Wood`, `Fiber`) |
+
+Example (`Kitchen_Stove` item):
+
+```jsonc
+"deployable": {
+  "powerDrawMw": 375,
+  "requiresShelter": true,
+  "connections": [
+    { "resource": "water", "role": "consume", "required": false, "optionalHint": "per recipe", "flowRate": 0 }
+  ],
+  "generator": {
+    "resource": "Energy",
+    "generationRate": 500,
+    "generationRatio": 50,
+    "fuels": ["Biofuel"]
+  }
+}
+```
+
+Campfire / stone furnace style devices often have **no** pipe `connections` and only a `generator` with
+item fuels (`Fiber`, `Stick`, `Wood`, `Wood_Refined`, `Coal_Ore`, …).
+
+### UI (item detail modal)
+
+| Piece | Role |
+|---|---|
+| `buildItemDetail` → `deployableBadges` | From `items[id].deployable` (or linked `stations[id].deployable`) |
+| `buildDeployableRuntimeBadges(deployable, items)` | View-model rows in `src/utility/icarusData.js` |
+| `DeployableRuntimeBadges.vue` | Always-visible panel in the hero header (right-aligned); **no tooltips** |
+
+Each badge row shows:
+
+- Resource **icon** (pipe-tool / generator / oxite game icons when available; Font Awesome vicon fallback)
+- **Label** (Electricity, Water, Internal fuel, Shelter, …)
+- **Status**: Required / Optional / Internal / Produces / Storage
+- **Amount** when present (`375 mW`, `2500/s`)
+- **Hint** when present (`per recipe`, `for boost`)
+- For internal fuel: a chip list of every `generator.fuels` entry with **item icon + displayName**
+  (resolved via `catalog.items[fuelId]`)
+
+### Gameplay examples
+
+| Deployable | Electricity | Water | Internal fuel |
+|---|---|---|---|
+| Biofuel Stove (`Kitchen_Stove`) | — | Optional (per recipe) | Biofuel (`generationRate` 500) |
+| Electric Stove | Required (375 mW) | Optional (per recipe) | — |
+| Stone Furnace / Campfire | — | — | Wood / sticks / … (`Basic_Energy_Generator`) |
+| Biofuel Composter | — | Optional (boost, 100/s) | — |
+| Electric Composter | Required (1500 mW) | Optional (boost) | — |
+| Polymerizer | Required | — | — |
+
+## 8. Misc facts worth remembering
 
 - The web app loads `/icarus-game/Data/version.json` first (for game version + `catalogHash`), then
   `/icarus-game/Data/data-catalog.json?v=<catalogHash>` (`src/store/icarus.js` → `processCatalogData`).

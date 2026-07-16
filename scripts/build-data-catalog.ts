@@ -13,8 +13,8 @@
  *
  * Output shape (compact — same key names, sparse omit null/[]):
  *   - recipes[]     craft fields + stats/tier; display via items[staticItemName]
- *   - items{}       displayName / description / iconPath / recipeIds
- *   - stations{}    displayName / recipeSetDisplayName / iconPath / craftRecipeId
+ *   - items{}       displayName / description / iconPath / recipeIds / deployable
+ *   - stations{}    displayName / recipeSetDisplayName / iconPath / craftRecipeId / deployable
  *
  * Not shipped: raw Unreal `icon`, `lookup`, `reviewQueue` (rebuild from items.recipeIds / flags).
  */
@@ -47,12 +47,51 @@ type ItemsStaticRow = {
     Equippable?: RowRef;
     Processing?: RowRef;
     Deployable?: RowRef;
+    Resource?: RowRef;
+    Generator?: RowRef;
     Manual_Tags?: { GameplayTags?: Array<{ TagName?: string }> };
     Metadata?: MetadataBlock | null;
 };
 type ProcessingRow = {
     Name: string;
     DefaultRecipeSet?: RowRef;
+    RequiresEnergy?: boolean;
+    bRequiresShelter?: boolean;
+    MaxMilliwattage?: number;
+};
+type ResourceRow = {
+    Name: string;
+    bHasEnergyConnection?: boolean;
+    EnergyFlow?: RowRef;
+    bHasWaterConnection?: boolean;
+    WaterFlow?: RowRef;
+    bHasFuelConnection?: boolean;
+    FuelFlow?: RowRef;
+    bHasOxygenConnection?: boolean;
+    OxygenFlow?: RowRef;
+    bHasCrudeOilConnection?: boolean;
+    CrudeOilFlow?: RowRef;
+    bHasRefinedOilConnection?: boolean;
+    RefinedOilFlow?: RowRef;
+};
+type ResourceFlowRow = {
+    Name: string;
+    FlowType?: string;
+    ResourceFlowRate?: number;
+    bIsOptional?: boolean;
+    OptionalFlowType?: RowRef;
+};
+type GeneratorRow = {
+    Name: string;
+    Resource?: { Value?: string };
+    GenerationRate?: number;
+    GenerationRatio?: number;
+    TransmutableResources?: Array<{ Value?: string }>;
+    TransmutableItems?: RowRef[];
+};
+type OptionalResourceFlowRow = {
+    Name: string;
+    ShortMessage?: string;
 };
 type ItemableRow = {
     Name: string;
@@ -244,6 +283,30 @@ type CatalogLocks = {
     missions: CatalogLockEntry[];
 };
 
+/** Pipe / grid connection on a deployable (D_Resource + flow tables). */
+type CatalogDeployableConnection = {
+    /** electricity | water | biofuel | oxygen | crudeOil | refinedOil */
+    resource: string;
+    role: 'consume' | 'produce' | 'store';
+    required: boolean;
+    /** Parsed ShortMessage from D_OptionalResourceFlows (e.g. "per recipe", "for boost"). */
+    optionalHint: string | null;
+    flowRate: number | null;
+};
+
+/** Runtime power / pipe requirements for a placed deployable. */
+type CatalogDeployableRuntime = {
+    powerDrawMw: number | null;
+    requiresShelter: boolean;
+    connections: CatalogDeployableConnection[];
+    generator: {
+        resource: string;
+        generationRate: number | null;
+        generationRatio: number | null;
+        fuels: string[];
+    } | null;
+};
+
 /** Display record for a D_ItemsStatic row referenced by recipes / materials. */
 type CatalogItem = {
     id: string;
@@ -262,6 +325,8 @@ type CatalogItem = {
     /** Faction / mission reward item (Manual_Tags FactionMission.*). */
     mission?: boolean;
     locks: CatalogLocks | null;
+    /** Pipe / power requirements when this item is a deployable (D_Deployable trait). */
+    deployable?: CatalogDeployableRuntime;
 };
 
 /** Crafting station (D_RecipeSets) with UI labels/icons. */
@@ -272,6 +337,7 @@ type CatalogStation = {
     iconPath: string | null;
     /** Recipe id to craft this station deployable, if any. */
     craftRecipeId: string | null;
+    deployable?: CatalogDeployableRuntime;
 };
 
 type TalentTierResult = {
@@ -515,6 +581,126 @@ function lookupByName<T extends { Name: string }>(map: Map<string, T>, name: str
     return undefined;
 }
 
+function mergeTableByName<T extends { Name: string }>(
+    table: DataTable<T> | undefined
+): Map<string, T & Record<string, unknown>> {
+    const defaults = (table?.Defaults ?? {}) as Record<string, unknown>;
+    const map = new Map<string, T & Record<string, unknown>>();
+    for (const row of table?.Rows ?? []) {
+        map.set(row.Name, { ...defaults, ...row } as T & Record<string, unknown>);
+    }
+    return map;
+}
+
+const DEPLOYABLE_CONNECTION_SPECS = [
+    { flag: 'bHasEnergyConnection', flowKey: 'EnergyFlow', resource: 'electricity' },
+    { flag: 'bHasWaterConnection', flowKey: 'WaterFlow', resource: 'water' },
+    { flag: 'bHasFuelConnection', flowKey: 'FuelFlow', resource: 'biofuel' },
+    { flag: 'bHasOxygenConnection', flowKey: 'OxygenFlow', resource: 'oxygen' },
+    { flag: 'bHasCrudeOilConnection', flowKey: 'CrudeOilFlow', resource: 'crudeOil' },
+    { flag: 'bHasRefinedOilConnection', flowKey: 'RefinedOilFlow', resource: 'refinedOil' },
+] as const;
+
+function normalizeFlowRole(flowType: string | undefined): 'consume' | 'produce' | 'store' {
+    if (flowType === 'Produce') return 'produce';
+    if (flowType === 'Store') return 'store';
+    return 'consume';
+}
+
+function resolveDeployableRuntime(args: {
+    staticRow: ItemsStaticRow;
+    processingByName: Map<string, ProcessingRow & Record<string, unknown>>;
+    resourceByName: Map<string, ResourceRow & Record<string, unknown>>;
+    flowByTable: Record<string, Map<string, ResourceFlowRow & Record<string, unknown>>>;
+    generatorByName: Map<string, GeneratorRow>;
+    optionalFlowByName: Map<string, OptionalResourceFlowRow>;
+}): CatalogDeployableRuntime | null {
+    const deployableId = args.staticRow.Deployable?.RowName;
+    if (!deployableId || deployableId === 'None') return null;
+
+    const processingName = args.staticRow.Processing?.RowName;
+    const processing =
+        processingName && processingName !== 'None'
+            ? lookupByName(args.processingByName, processingName)
+            : undefined;
+
+    const resourceName = args.staticRow.Resource?.RowName;
+    const resource =
+        resourceName && resourceName !== 'None' ? lookupByName(args.resourceByName, resourceName) : undefined;
+
+    const connections: CatalogDeployableConnection[] = [];
+    if (resource) {
+        for (const spec of DEPLOYABLE_CONNECTION_SPECS) {
+            if (!resource[spec.flag as keyof ResourceRow]) continue;
+            const flowRef = resource[spec.flowKey as keyof ResourceRow] as RowRef | undefined;
+            const flowTable = args.flowByTable[spec.flowKey];
+            const flowRow =
+                flowRef?.RowName && flowRef.RowName !== 'None'
+                    ? lookupByName(flowTable, flowRef.RowName)
+                    : undefined;
+            const optionalType = flowRow?.OptionalFlowType?.RowName;
+            const optionalHint =
+                optionalType && optionalType !== 'None'
+                    ? parseNsLocText(
+                          lookupByName(args.optionalFlowByName, optionalType)?.ShortMessage
+                      )
+                    : null;
+            connections.push({
+                resource: spec.resource,
+                role: normalizeFlowRole(flowRow?.FlowType as string | undefined),
+                required: !(flowRow?.bIsOptional ?? false),
+                optionalHint,
+                flowRate:
+                    typeof flowRow?.ResourceFlowRate === 'number' ? flowRow.ResourceFlowRate : null,
+            });
+        }
+    }
+
+    const generatorName = args.staticRow.Generator?.RowName;
+    const generatorRow =
+        generatorName && generatorName !== 'None'
+            ? lookupByName(args.generatorByName, generatorName)
+            : undefined;
+    const generator = generatorRow
+        ? {
+              resource: generatorRow.Resource?.Value ?? 'Energy',
+              generationRate:
+                  typeof generatorRow.GenerationRate === 'number' ? generatorRow.GenerationRate : null,
+              generationRatio:
+                  typeof generatorRow.GenerationRatio === 'number' ? generatorRow.GenerationRatio : null,
+              fuels: [
+                  ...(generatorRow.TransmutableResources ?? [])
+                      .map((entry) => entry.Value)
+                      .filter((value): value is string => Boolean(value)),
+                  ...(generatorRow.TransmutableItems ?? [])
+                      .map((entry) => entry.RowName)
+                      .filter((name): name is string => Boolean(name && name !== 'None')),
+              ],
+          }
+        : null;
+
+    const powerDrawMw =
+        typeof processing?.MaxMilliwattage === 'number' && processing.MaxMilliwattage > 0
+            ? processing.MaxMilliwattage
+            : null;
+
+    if (
+        connections.length === 0 &&
+        !generator &&
+        !powerDrawMw &&
+        !processing?.bRequiresShelter
+    ) {
+        return null;
+    }
+
+    return {
+        powerDrawMw,
+        requiresShelter: Boolean(processing?.bRequiresShelter),
+        connections,
+        generator,
+    };
+}
+
 async function exists(filePath: string): Promise<boolean> {
     try {
         await fs.access(filePath);
@@ -604,6 +790,15 @@ async function main(): Promise<void> {
         currencyTable,
         recipeSetsTable,
         processingTable,
+        resourceTable,
+        energyTable,
+        waterTable,
+        fuelTable,
+        oxygenTable,
+        crudeOilTable,
+        refinedOilTable,
+        generatorTable,
+        optionalFlowsTable,
         accountFlagsTable,
         prospectListTable,
         dlcPackagesTable,
@@ -621,6 +816,15 @@ async function main(): Promise<void> {
         load<DataTable<MetaCurrencyRow>>('Currency/D_MetaCurrency.json'),
         loadOptional<DataTable<RecipeSetRow>>('Crafting/D_RecipeSets.json'),
         loadOptional<DataTable<ProcessingRow>>('Traits/D_Processing.json'),
+        loadOptional<DataTable<ResourceRow>>('Traits/D_Resource.json'),
+        loadOptional<DataTable<ResourceFlowRow>>('Traits/D_Energy.json'),
+        loadOptional<DataTable<ResourceFlowRow>>('Traits/D_Water.json'),
+        loadOptional<DataTable<ResourceFlowRow>>('Traits/D_Fuel.json'),
+        loadOptional<DataTable<ResourceFlowRow>>('Traits/D_Oxygen.json'),
+        loadOptional<DataTable<ResourceFlowRow>>('Traits/D_CrudeOil.json'),
+        loadOptional<DataTable<ResourceFlowRow>>('Traits/D_RefinedOil.json'),
+        loadOptional<DataTable<GeneratorRow>>('Traits/D_Generator.json'),
+        loadOptional<DataTable<OptionalResourceFlowRow>>('Resources/D_OptionalResourceFlows.json'),
         loadOptional<DataTable<AccountFlagRow>>('Flags/D_AccountFlags.json'),
         loadOptional<DataTable<ProspectRow>>('Prospects/D_ProspectList.json'),
         loadOptional<DataTable<DlcPackageRow>>('DLC/D_DLCPackageData.json'),
@@ -640,6 +844,24 @@ async function main(): Promise<void> {
     const accountFlagsByName = indexByName(accountFlagsTable ?? undefined);
     const prospectsByName = indexByName(prospectListTable ?? undefined);
     const dlcPackagesByName = indexByName(dlcPackagesTable ?? undefined);
+    const processingByName = mergeTableByName(processingTable ?? undefined);
+    const resourceByName = mergeTableByName(resourceTable ?? undefined);
+    const energyByName = mergeTableByName(energyTable ?? undefined);
+    const waterByName = mergeTableByName(waterTable ?? undefined);
+    const fuelByName = mergeTableByName(fuelTable ?? undefined);
+    const oxygenByName = mergeTableByName(oxygenTable ?? undefined);
+    const crudeOilByName = mergeTableByName(crudeOilTable ?? undefined);
+    const refinedOilByName = mergeTableByName(refinedOilTable ?? undefined);
+    const generatorByName = indexByName(generatorTable ?? undefined);
+    const optionalFlowByName = indexByName(optionalFlowsTable ?? undefined);
+    const flowByTable: Record<string, Map<string, ResourceFlowRow & Record<string, unknown>>> = {
+        EnergyFlow: energyByName,
+        WaterFlow: waterByName,
+        FuelFlow: fuelByName,
+        OxygenFlow: oxygenByName,
+        CrudeOilFlow: crudeOilByName,
+        RefinedOilFlow: refinedOilByName,
+    };
     const talentsByNameLower = new Map<string, TalentRow>();
     for (const [name, row] of talentsByName) {
         talentsByNameLower.set(name.toLowerCase(), row);
@@ -1538,6 +1760,39 @@ async function main(): Promise<void> {
         itemsOut[staticId] = emitObject({ ...item });
     }
 
+    // Deployable runtime (pipes / power / internal fuel) for every placeable with D_Deployable.
+    let deployableCount = 0;
+    const deployableResolverArgs = {
+        processingByName,
+        resourceByName,
+        flowByTable,
+        generatorByName,
+        optionalFlowByName,
+    };
+    for (const [staticId, staticRow] of staticByName) {
+        const deployable = resolveDeployableRuntime({ staticRow, ...deployableResolverArgs });
+        if (!deployable) continue;
+        deployableCount += 1;
+        if (!items[staticId]) {
+            const display = resolveStaticDisplay(staticId);
+            const item: CatalogItem = {
+                id: staticId,
+                displayName: display.displayName,
+                description: display.description,
+                flavorText: display.flavorText,
+                iconPath: display.iconPath,
+                recipeIds: lookupByStatic[staticId] ?? [],
+                locks: null,
+                deployable,
+            };
+            items[staticId] = item;
+            itemsOut[staticId] = emitObject({ ...item });
+            continue;
+        }
+        items[staticId].deployable = deployable;
+        itemsOut[staticId] = emitObject({ ...items[staticId] });
+    }
+
     // Stations: all recipe sets used by craft recipes, plus full D_RecipeSets when present.
     for (const row of recipeSetsTable?.Rows ?? []) {
         referencedStationIds.add(row.Name);
@@ -1635,6 +1890,11 @@ async function main(): Promise<void> {
                 toIconPath(recipeSet?.RecipeSetIcon ?? null),
             craftRecipeId,
         };
+        const deployableRuntime =
+            craftItem?.deployable ??
+            (linkedStaticId ? items[linkedStaticId]?.deployable : undefined) ??
+            undefined;
+        if (deployableRuntime) station.deployable = deployableRuntime;
         stationsOut[stationId] = emitObject({ ...station });
     }
 
@@ -1666,6 +1926,7 @@ async function main(): Promise<void> {
             rawMaterialCount,
             gatherFirstCount,
             stationCount: Object.keys(stationsOut).length,
+            deployableCount,
             unknownTierCount: unknownTiers.length,
             reviewQueueCount,
             flagSummary: Object.fromEntries([...flagSummary.entries()].sort((a, b) => b[1] - a[1])),
@@ -1677,6 +1938,8 @@ async function main(): Promise<void> {
                     "'craft' = normal recipe; 'gather' = world edible with Consumable but no craft/shop/workshop recipe; 'mission' = FactionMission-tagged edible with no craft recipe (often shares a display name with a craftable variant); 'shop' = bought in-world with currency (see purchase.shop); 'workshop' = orbital workshop item (see purchase.workshop). Purchase-only items have no tier/station. mission:true marks FactionMission.* items on any acquisition.",
                 iconPath: 'Ready for `${gameAssetsUrl}/ItemIcons/${iconPath}.png`. Omitting iconPath means none / outside Item_Icons.',
                 review: 'meta.reviewQueueCount / flagSummary. Filter recipes whose flags intersect REVIEW_FLAGS for a review list.',
+                deployable:
+                    'items[*].deployable / stations[*].deployable — pipe and power requirements for placeables (D_Resource + D_Processing + D_Generator). connections[].resource is electricity|water|biofuel|oxygen|crudeOil|refinedOil; required=false means optional (see optionalHint). powerDrawMw is processing draw when connected. generator covers internal fuel (biofuel/wood) without a pipe.',
             },
         },
         recipes: recipesOut,

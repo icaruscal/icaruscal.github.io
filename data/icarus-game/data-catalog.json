@@ -8,10 +8,11 @@
     "purchasableCount": 374,
     "shopCount": 40,
     "workshopCount": 334,
-    "itemCount": 2521,
-    "rawMaterialCount": 643,
+    "itemCount": 2551,
+    "rawMaterialCount": 673,
     "gatherFirstCount": 27,
     "stationCount": 68,
+    "deployableCount": 221,
     "unknownTierCount": 59,
     "reviewQueueCount": 199,
     "flagSummary": {
@@ -30,7 +31,8 @@
       "stationDeduction": "If a recipe has no Requirement, tier is the minimum tier among its RecipeSets stations.",
       "acquisition": "'craft' = normal recipe; 'gather' = world edible with Consumable but no craft/shop/workshop recipe; 'mission' = FactionMission-tagged edible with no craft recipe (often shares a display name with a craftable variant); 'shop' = bought in-world with currency (see purchase.shop); 'workshop' = orbital workshop item (see purchase.workshop). Purchase-only items have no tier/station. mission:true marks FactionMission.* items on any acquisition.",
       "iconPath": "Ready for `${gameAssetsUrl}/ItemIcons/${iconPath}.png`. Omitting iconPath means none / outside Item_Icons.",
-      "review": "meta.reviewQueueCount / flagSummary. Filter recipes whose flags intersect REVIEW_FLAGS for a review list."
+      "review": "meta.reviewQueueCount / flagSummary. Filter recipes whose flags intersect REVIEW_FLAGS for a review list.",
+      "deployable": "items[*].deployable / stations[*].deployable — pipe and power requirements for placeables (D_Resource + D_Processing + D_Generator). connections[].resource is electricity|water|biofuel|oxygen|crudeOil|refinedOil; required=false means optional (see optionalHint). powerDrawMw is processing draw when connected. generator covers internal fuel (biofuel/wood) without a pipe."
     }
   },
   "recipes": [
@@ -114106,7 +114108,19 @@
       "iconPath": "Deployables/ITEM_Advanced_Alteration_Bench",
       "recipeIds": [
         "Advanced_Alteration_Bench"
-      ]
+      ],
+      "deployable": {
+        "powerDrawMw": 1500,
+        "requiresShelter": true,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "consume",
+            "required": true,
+            "flowRate": 0
+          }
+        ]
+      }
     },
     "Advanced_Aquarium": {
       "id": "Advanced_Aquarium",
@@ -114116,7 +114130,24 @@
       "iconPath": "Deployables/ITEM_Advanced_Aquarium",
       "recipeIds": [
         "Advanced_Aquarium"
-      ]
+      ],
+      "deployable": {
+        "requiresShelter": false,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "consume",
+            "required": true,
+            "flowRate": 1000
+          },
+          {
+            "resource": "water",
+            "role": "consume",
+            "required": true,
+            "flowRate": 500
+          }
+        ]
+      }
     },
     "Advanced_Armor_Bench": {
       "id": "Advanced_Armor_Bench",
@@ -114126,7 +114157,11 @@
       "iconPath": "Deployables/ITEM_Advanced_Armor_Bench",
       "recipeIds": [
         "Advanced_Armor_Bench"
-      ]
+      ],
+      "deployable": {
+        "powerDrawMw": 2500,
+        "requiresShelter": true
+      }
     },
     "Advanced_Butchery_Bench": {
       "id": "Advanced_Butchery_Bench",
@@ -114218,7 +114253,20 @@
       "iconPath": "Deployables/T_ITEM_Advanced_Kitchen_Bench",
       "recipeIds": [
         "Advanced_Kitchen_Bench"
-      ]
+      ],
+      "deployable": {
+        "powerDrawMw": 500,
+        "requiresShelter": true,
+        "connections": [
+          {
+            "resource": "water",
+            "role": "consume",
+            "required": false,
+            "optionalHint": "per recipe",
+            "flowRate": 0
+          }
+        ]
+      }
     },
     "Advanced_Kitchen_Corner_Bench": {
       "id": "Advanced_Kitchen_Corner_Bench",
@@ -114238,7 +114286,18 @@
       "iconPath": "Deployables/T_ITEM_Advanced_Kitchen_Sink",
       "recipeIds": [
         "Advanced_Kitchen_Sink"
-      ]
+      ],
+      "deployable": {
+        "requiresShelter": false,
+        "connections": [
+          {
+            "resource": "water",
+            "role": "consume",
+            "required": true,
+            "flowRate": 100
+          }
+        ]
+      }
     },
     "Advanced_Kitchen_Storage": {
       "id": "Advanced_Kitchen_Storage",
@@ -114460,7 +114519,11 @@
       "iconPath": "Deployables/ITEM_Alteration_Bench",
       "recipeIds": [
         "Alteration_Bench"
-      ]
+      ],
+      "deployable": {
+        "powerDrawMw": 1000,
+        "requiresShelter": true
+      }
     },
     "Aluminium": {
       "id": "Aluminium",
@@ -115567,7 +115630,11 @@
       "iconPath": "Deployables/T_ITEM_Animal_Bench",
       "recipeIds": [
         "Animal_Bench"
-      ]
+      ],
+      "deployable": {
+        "powerDrawMw": 1000,
+        "requiresShelter": false
+      }
     },
     "Animal_Fat": {
       "id": "Animal_Fat",
@@ -115760,7 +115827,11 @@
       "iconPath": "Deployables/ITEM_Anvil_Bench",
       "recipeIds": [
         "Anvil_Bench"
-      ]
+      ],
+      "deployable": {
+        "powerDrawMw": 1000,
+        "requiresShelter": true
+      }
     },
     "Anvil_Bench_T3": {
       "id": "Anvil_Bench_T3",
@@ -115770,7 +115841,20 @@
       "iconPath": "Deployables/T_ITEM_Anvil_Bench_T3",
       "recipeIds": [
         "Anvil_Bench_T3"
-      ]
+      ],
+      "deployable": {
+        "powerDrawMw": 1500,
+        "requiresShelter": false,
+        "generator": {
+          "resource": "Energy",
+          "generationRate": 2500,
+          "fuels": [
+            "Charcoal",
+            "Coal_Ore",
+            "Meta_Coal"
+          ]
+        }
+      }
     },
     "Anvil_Bench_T4_v2": {
       "id": "Anvil_Bench_T4_v2",
@@ -115780,7 +115864,19 @@
       "iconPath": "Deployables/T_ITEM_Anvil_Bench_T4_v2",
       "recipeIds": [
         "Anvil_Bench_T4"
-      ]
+      ],
+      "deployable": {
+        "powerDrawMw": 2000,
+        "requiresShelter": true,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "consume",
+            "required": true,
+            "flowRate": 0
+          }
+        ]
+      }
     },
     "Any_Water_Container": {
       "id": "Any_Water_Container",
@@ -115926,6 +116022,17 @@
             "displayName": "CURIOSITY"
           }
         ]
+      },
+      "deployable": {
+        "requiresShelter": false,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "consume",
+            "required": true,
+            "flowRate": 1500
+          }
+        ]
       }
     },
     "Ape_Bicep": {
@@ -116065,7 +116172,26 @@
       "iconPath": "Deployables/ITEM_Aquarium",
       "recipeIds": [
         "Aquarium"
-      ]
+      ],
+      "deployable": {
+        "requiresShelter": false,
+        "connections": [
+          {
+            "resource": "water",
+            "role": "consume",
+            "required": true,
+            "flowRate": 250
+          }
+        ],
+        "generator": {
+          "resource": "Energy",
+          "generationRate": 200,
+          "generationRatio": 250,
+          "fuels": [
+            "Biofuel"
+          ]
+        }
+      }
     },
     "ArcticArmor_Arms": {
       "id": "ArcticArmor_Arms",
@@ -116229,7 +116355,11 @@
       "iconPath": "Deployables/T_ITEM_Armor_Bench",
       "recipeIds": [
         "Armor_Bench"
-      ]
+      ],
+      "deployable": {
+        "powerDrawMw": 2500,
+        "requiresShelter": true
+      }
     },
     "Armour_Stand": {
       "id": "Armour_Stand",
@@ -116502,7 +116632,18 @@
       "iconPath": "Deployables/ITEM_Basic_Ceiling_Light",
       "recipeIds": [
         "Basic_Ceiling_Light"
-      ]
+      ],
+      "deployable": {
+        "requiresShelter": false,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "consume",
+            "required": true,
+            "flowRate": 150
+          }
+        ]
+      }
     },
     "Basic_Fertilizer": {
       "id": "Basic_Fertilizer",
@@ -116543,7 +116684,18 @@
       "iconPath": "Deployables/ITEM_Oxidizer",
       "recipeIds": [
         "Basic_Oxite_Dissolver"
-      ]
+      ],
+      "deployable": {
+        "requiresShelter": false,
+        "generator": {
+          "resource": "Oxygen",
+          "generationRate": 10,
+          "generationRatio": 0.10000000149011612,
+          "fuels": [
+            "Oxite"
+          ]
+        }
+      }
     },
     "Basic_Quiver": {
       "id": "Basic_Quiver",
@@ -116571,7 +116723,18 @@
       "recipeIds": [
         "Battery_T3_Shelf",
         "Battery_T3_Shelf_Lithium"
-      ]
+      ],
+      "deployable": {
+        "requiresShelter": false,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "store",
+            "required": true,
+            "flowRate": 1500
+          }
+        ]
+      }
     },
     "Battery_Shelf_T4": {
       "id": "Battery_Shelf_T4",
@@ -116582,7 +116745,18 @@
       "recipeIds": [
         "Battery_T4_Shelf",
         "Battery_T4_Shelf_Lithium"
-      ]
+      ],
+      "deployable": {
+        "requiresShelter": false,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "store",
+            "required": true,
+            "flowRate": 10000
+          }
+        ]
+      }
     },
     "Bauxite": {
       "id": "Bauxite",
@@ -116665,7 +116839,27 @@
       "iconPath": "Deployables/T_ITEM_Beehive",
       "recipeIds": [
         "Beehive"
-      ]
+      ],
+      "deployable": {
+        "requiresShelter": false,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "consume",
+            "required": false,
+            "optionalHint": "for extractor",
+            "flowRate": 500
+          }
+        ],
+        "generator": {
+          "resource": "Energy",
+          "generationRate": 100,
+          "fuels": [
+            "Queen_Bee",
+            "Worker_Bee"
+          ]
+        }
+      }
     },
     "Beehive_BreedingCenter": {
       "id": "Beehive_BreedingCenter",
@@ -116782,7 +116976,26 @@
       "iconPath": "Deployables/T_ITEM_Biofuel_Water_Pump",
       "recipeIds": [
         "Biofuel_Water_Pump"
-      ]
+      ],
+      "deployable": {
+        "requiresShelter": false,
+        "connections": [
+          {
+            "resource": "water",
+            "role": "produce",
+            "required": true,
+            "flowRate": 1000
+          }
+        ],
+        "generator": {
+          "resource": "Energy",
+          "generationRate": 500,
+          "generationRatio": 450,
+          "fuels": [
+            "Biofuel"
+          ]
+        }
+      }
     },
     "Biomass": {
       "id": "Biomass",
@@ -117422,7 +117635,22 @@
       "iconPath": "Deployables/ITEM_Brazier",
       "recipeIds": [
         "Brazier"
-      ]
+      ],
+      "deployable": {
+        "requiresShelter": false,
+        "generator": {
+          "resource": "Energy",
+          "generationRate": 100,
+          "fuels": [
+            "Fiber",
+            "Stick",
+            "Wood_Refined",
+            "Wood",
+            "Coal_Ore",
+            "Packed_Fuel_Brick"
+          ]
+        }
+      }
     },
     "Brick_Sign_Small": {
       "id": "Brick_Sign_Small",
@@ -117572,6 +117800,18 @@
             "displayName": "Industrial Furniture Pack"
           }
         ]
+      },
+      "deployable": {
+        "requiresShelter": false,
+        "generator": {
+          "resource": "Energy",
+          "generationRate": 100,
+          "generationRatio": 10,
+          "fuels": [
+            "Animal_Fat",
+            "Beeswax"
+          ]
+        }
       }
     },
     "Brutalist_CoffeeTable": {
@@ -117698,6 +117938,17 @@
             "displayName": "Industrial Furniture Pack"
           }
         ]
+      },
+      "deployable": {
+        "requiresShelter": false,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "consume",
+            "required": true,
+            "flowRate": 150
+          }
+        ]
       }
     },
     "Brutalist_Lamp_Square": {
@@ -117714,6 +117965,17 @@
           {
             "id": "Industrial_Furniture_Pack",
             "displayName": "Industrial Furniture Pack"
+          }
+        ]
+      },
+      "deployable": {
+        "requiresShelter": false,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "consume",
+            "required": true,
+            "flowRate": 150
           }
         ]
       }
@@ -117961,7 +118223,11 @@
       "iconPath": "Deployables/T_ITEM_Butchery_Bench",
       "recipeIds": [
         "Butchery_Bench"
-      ]
+      ],
+      "deployable": {
+        "powerDrawMw": 500,
+        "requiresShelter": true
+      }
     },
     "Butter": {
       "id": "Butter",
@@ -117998,7 +118264,24 @@
       "iconPath": "Deployables/ITEM_Campfire",
       "recipeIds": [
         "Campfire"
-      ]
+      ],
+      "deployable": {
+        "powerDrawMw": 250,
+        "requiresShelter": false,
+        "generator": {
+          "resource": "Energy",
+          "generationRate": 2500,
+          "fuels": [
+            "Fiber",
+            "Stick",
+            "Wood_Refined",
+            "Wood",
+            "Coal_Ore",
+            "Packed_Fuel_Brick",
+            "Lava_Hunter_Magma"
+          ]
+        }
+      }
     },
     "Canteen": {
       "id": "Canteen",
@@ -118121,7 +118404,11 @@
       "iconPath": "Deployables/ITEM_Carpentry_Bench",
       "recipeIds": [
         "Carpentry_Bench"
-      ]
+      ],
+      "deployable": {
+        "powerDrawMw": 1000,
+        "requiresShelter": true
+      }
     },
     "Carpentry_Bench_T4": {
       "id": "Carpentry_Bench_T4",
@@ -118130,7 +118417,19 @@
       "iconPath": "Deployables/ITEM_Carpentry_Bench_T4",
       "recipeIds": [
         "Carpentry_Bench_T4"
-      ]
+      ],
+      "deployable": {
+        "powerDrawMw": 2000,
+        "requiresShelter": true,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "consume",
+            "required": true,
+            "flowRate": 0
+          }
+        ]
+      }
     },
     "Carrot": {
       "id": "Carrot",
@@ -118185,7 +118484,19 @@
       "recipeIds": [
         "Carved_Candles",
         "Carved_Candles_1"
-      ]
+      ],
+      "deployable": {
+        "requiresShelter": false,
+        "generator": {
+          "resource": "Energy",
+          "generationRate": 100,
+          "generationRatio": 10,
+          "fuels": [
+            "Animal_Fat",
+            "Beeswax"
+          ]
+        }
+      }
     },
     "Carved_Chair_Dining": {
       "id": "Carved_Chair_Dining",
@@ -118245,7 +118556,18 @@
       "iconPath": "Deployables/ITEM_Carved_Desk_Lamp",
       "recipeIds": [
         "Carved_Desk_Lamp"
-      ]
+      ],
+      "deployable": {
+        "requiresShelter": false,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "consume",
+            "required": true,
+            "flowRate": 150
+          }
+        ]
+      }
     },
     "Carved_Display_Cabinet": {
       "id": "Carved_Display_Cabinet",
@@ -118712,7 +119034,20 @@
       "iconPath": "Deployables/ITEM_Cement_Mixer",
       "recipeIds": [
         "Cement_Mixer"
-      ]
+      ],
+      "deployable": {
+        "powerDrawMw": 1000,
+        "requiresShelter": true,
+        "connections": [
+          {
+            "resource": "water",
+            "role": "consume",
+            "required": false,
+            "optionalHint": "for boost",
+            "flowRate": 250
+          }
+        ]
+      }
     },
     "Chainsaw": {
       "id": "Chainsaw",
@@ -118786,7 +119121,18 @@
       "iconPath": "Deployables/T_ITEM_Charging_Device",
       "recipeIds": [
         "Charging_Station"
-      ]
+      ],
+      "deployable": {
+        "requiresShelter": false,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "consume",
+            "required": true,
+            "flowRate": 500
+          }
+        ]
+      }
     },
     "Charging_Device_Wall": {
       "id": "Charging_Device_Wall",
@@ -118796,7 +119142,18 @@
       "iconPath": "Deployables/T_ITEM_Charging_Device_Wall",
       "recipeIds": [
         "Charging_Station_Wall"
-      ]
+      ],
+      "deployable": {
+        "requiresShelter": false,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "consume",
+            "required": true,
+            "flowRate": 250
+          }
+        ]
+      }
     },
     "Checkered_Flag": {
       "id": "Checkered_Flag",
@@ -118861,7 +119218,26 @@
       "iconPath": "Deployables/ITEM_Chemistry_Bench",
       "recipeIds": [
         "Chemistry_Bench"
-      ]
+      ],
+      "deployable": {
+        "powerDrawMw": 2000,
+        "requiresShelter": true,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "consume",
+            "required": true,
+            "flowRate": 0
+          },
+          {
+            "resource": "water",
+            "role": "consume",
+            "required": false,
+            "optionalHint": "per recipe",
+            "flowRate": 0
+          }
+        ]
+      }
     },
     "Chest_Attachment_Oxygen_1": {
       "id": "Chest_Attachment_Oxygen_1",
@@ -119594,7 +119970,20 @@
       "iconPath": "Deployables/ITEM_Composter",
       "recipeIds": [
         "Composter"
-      ]
+      ],
+      "deployable": {
+        "powerDrawMw": 500,
+        "requiresShelter": false,
+        "connections": [
+          {
+            "resource": "water",
+            "role": "consume",
+            "required": false,
+            "optionalHint": "for boost",
+            "flowRate": 100
+          }
+        ]
+      }
     },
     "Composter_Electric": {
       "id": "Composter_Electric",
@@ -119604,7 +119993,26 @@
       "iconPath": "Deployables/ITEM_Composter_Electric",
       "recipeIds": [
         "Composter_Electric"
-      ]
+      ],
+      "deployable": {
+        "powerDrawMw": 1500,
+        "requiresShelter": true,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "consume",
+            "required": true,
+            "flowRate": 0
+          },
+          {
+            "resource": "water",
+            "role": "consume",
+            "required": false,
+            "optionalHint": "for boost",
+            "flowRate": 100
+          }
+        ]
+      }
     },
     "Composter_Wood": {
       "id": "Composter_Wood",
@@ -119614,7 +120022,11 @@
       "iconPath": "Deployables/ITEM_Composter_Wood",
       "recipeIds": [
         "Composter_Wood"
-      ]
+      ],
+      "deployable": {
+        "powerDrawMw": 50,
+        "requiresShelter": false
+      }
     },
     "Compound_Bow": {
       "id": "Compound_Bow",
@@ -119715,7 +120127,33 @@
       "iconPath": "Deployables/ITEM_Concrete_Furnace_V2",
       "recipeIds": [
         "Concrete_Furnace"
-      ]
+      ],
+      "deployable": {
+        "powerDrawMw": 2000,
+        "requiresShelter": true,
+        "connections": [
+          {
+            "resource": "water",
+            "role": "consume",
+            "required": false,
+            "optionalHint": "per recipe",
+            "flowRate": 0
+          }
+        ],
+        "generator": {
+          "resource": "Energy",
+          "generationRate": 2500,
+          "fuels": [
+            "Fiber",
+            "Stick",
+            "Wood_Refined",
+            "Wood",
+            "Coal_Ore",
+            "Packed_Fuel_Brick",
+            "Lava_Hunter_Magma"
+          ]
+        }
+      }
     },
     "Concrete_Half_Pitch": {
       "id": "Concrete_Half_Pitch",
@@ -120083,7 +120521,11 @@
       "iconPath": "Deployables/ITEM_Cooking_Station_V2",
       "recipeIds": [
         "Cooking_Station"
-      ]
+      ],
+      "deployable": {
+        "powerDrawMw": 2500,
+        "requiresShelter": true
+      }
     },
     "Cooler_Large": {
       "id": "Cooler_Large",
@@ -120093,7 +120535,18 @@
       "iconPath": "Deployables/ITEM_Cooler_Large",
       "recipeIds": [
         "Cooler_Large"
-      ]
+      ],
+      "deployable": {
+        "requiresShelter": false,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "consume",
+            "required": true,
+            "flowRate": 250
+          }
+        ]
+      }
     },
     "Copper_Bolt": {
       "id": "Copper_Bolt",
@@ -120197,7 +120650,11 @@
       "iconPath": "Deployables/ITEM_Crafting_Bench",
       "recipeIds": [
         "Crafting_Bench"
-      ]
+      ],
+      "deployable": {
+        "powerDrawMw": 1000,
+        "requiresShelter": true
+      }
     },
     "Cream": {
       "id": "Cream",
@@ -120310,7 +120767,24 @@
       "iconPath": "Deployables/T_ITEM_Crude_Oil_Refiner",
       "recipeIds": [
         "Crude_Oil_Refiner"
-      ]
+      ],
+      "deployable": {
+        "requiresShelter": false,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "consume",
+            "required": true,
+            "flowRate": 1000
+          },
+          {
+            "resource": "crudeOil",
+            "role": "consume",
+            "required": true,
+            "flowRate": 1000
+          }
+        ]
+      }
     },
     "Crumbed_Saltwater_Fillet": {
       "id": "Crumbed_Saltwater_Fillet",
@@ -120369,7 +120843,18 @@
       "iconPath": "Deployables/ITEM_Deep_Freeze",
       "recipeIds": [
         "Deep_Freeze"
-      ]
+      ],
+      "deployable": {
+        "requiresShelter": false,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "consume",
+            "required": true,
+            "flowRate": 2500
+          }
+        ]
+      }
     },
     "Deep_Mining_Drill_Biofuel": {
       "id": "Deep_Mining_Drill_Biofuel",
@@ -120379,7 +120864,18 @@
       "iconPath": "QuestItems/ITEM_Deep_Mining_Drill_Biofuel",
       "recipeIds": [
         "Deep_Mining_Drill_Biofuel"
-      ]
+      ],
+      "deployable": {
+        "requiresShelter": false,
+        "generator": {
+          "resource": "Energy",
+          "generationRate": 1,
+          "generationRatio": 0.75,
+          "fuels": [
+            "Biofuel"
+          ]
+        }
+      }
     },
     "Deep_Mining_Drill_Electric": {
       "id": "Deep_Mining_Drill_Electric",
@@ -120389,7 +120885,18 @@
       "iconPath": "QuestItems/ITEM_Deep_Mining_Drill_Electric",
       "recipeIds": [
         "Deep_Mining_Drill_Electric"
-      ]
+      ],
+      "deployable": {
+        "requiresShelter": false,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "consume",
+            "required": true,
+            "flowRate": 2000
+          }
+        ]
+      }
     },
     "Deep_Mining_Drill_Oil": {
       "id": "Deep_Mining_Drill_Oil",
@@ -120399,7 +120906,18 @@
       "iconPath": "Deployables/T_ITEM_Deep_Mining_Drill_Oil",
       "recipeIds": [
         "Deep_Mining_Drill_Oil"
-      ]
+      ],
+      "deployable": {
+        "requiresShelter": false,
+        "generator": {
+          "resource": "Energy",
+          "generationRate": 1,
+          "generationRatio": 0.75,
+          "fuels": [
+            "Refined_Oil"
+          ]
+        }
+      }
     },
     "Deer_Head": {
       "id": "Deer_Head",
@@ -120445,7 +120963,17 @@
       "iconPath": "Deployables/ITEM_Dehumidifer",
       "recipeIds": [
         "Dehumidifier"
-      ]
+      ],
+      "deployable": {
+        "requiresShelter": false,
+        "generator": {
+          "resource": "Energy",
+          "generationRate": 2500,
+          "fuels": [
+            "Charcoal"
+          ]
+        }
+      }
     },
     "DesertWolf_Head": {
       "id": "DesertWolf_Head",
@@ -120977,7 +121505,11 @@
       "iconPath": "Deployables/ITEM_DryingRack",
       "recipeIds": [
         "Drying_Rack"
-      ]
+      ],
+      "deployable": {
+        "powerDrawMw": 300,
+        "requiresShelter": false
+      }
     },
     "Egg": {
       "id": "Egg",
@@ -121007,7 +121539,19 @@
       "iconPath": "Deployables/ITEM_Electric_Armor_Bench",
       "recipeIds": [
         "Electric_Armor_Bench"
-      ]
+      ],
+      "deployable": {
+        "powerDrawMw": 2500,
+        "requiresShelter": true,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "consume",
+            "required": true,
+            "flowRate": 0
+          }
+        ]
+      }
     },
     "Electric_Dehumidifier_V2": {
       "id": "Electric_Dehumidifier_V2",
@@ -121017,7 +121561,18 @@
       "iconPath": "Deployables/ITEM_Electric_Dehumidifier_V2",
       "recipeIds": [
         "Electric_Dehumidifier"
-      ]
+      ],
+      "deployable": {
+        "requiresShelter": false,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "consume",
+            "required": true,
+            "flowRate": 500
+          }
+        ]
+      }
     },
     "Electric_Fireplace": {
       "id": "Electric_Fireplace",
@@ -121027,7 +121582,19 @@
       "iconPath": "Deployables/T_ITEM_Electric_Fireplace",
       "recipeIds": [
         "Electric_Fireplace"
-      ]
+      ],
+      "deployable": {
+        "powerDrawMw": 450,
+        "requiresShelter": false,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "consume",
+            "required": true,
+            "flowRate": 250
+          }
+        ]
+      }
     },
     "Electric_Fireplace_Cap": {
       "id": "Electric_Fireplace_Cap",
@@ -121057,7 +121624,26 @@
       "iconPath": "Deployables/ITEM_Electric_Furnace_Large",
       "recipeIds": [
         "Electric_Furnace"
-      ]
+      ],
+      "deployable": {
+        "powerDrawMw": 2500,
+        "requiresShelter": true,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "consume",
+            "required": true,
+            "flowRate": 0
+          },
+          {
+            "resource": "water",
+            "role": "consume",
+            "required": false,
+            "optionalHint": "per recipe",
+            "flowRate": 0
+          }
+        ]
+      }
     },
     "Electric_Oxite_Dissolver": {
       "id": "Electric_Oxite_Dissolver",
@@ -121067,7 +121653,32 @@
       "iconPath": "Deployables/T_ITEM_Metal_Oxite_Dissolver",
       "recipeIds": [
         "Electric_Oxite_Dissolver"
-      ]
+      ],
+      "deployable": {
+        "requiresShelter": false,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "consume",
+            "required": true,
+            "flowRate": 1500
+          },
+          {
+            "resource": "water",
+            "role": "consume",
+            "required": true,
+            "flowRate": 500
+          }
+        ],
+        "generator": {
+          "resource": "Oxygen",
+          "generationRate": 500,
+          "generationRatio": 10,
+          "fuels": [
+            "None"
+          ]
+        }
+      }
     },
     "Electric_Stove": {
       "id": "Electric_Stove",
@@ -121077,7 +121688,26 @@
       "iconPath": "Deployables/ITEM_Electric_Stove",
       "recipeIds": [
         "Electric_Stove"
-      ]
+      ],
+      "deployable": {
+        "powerDrawMw": 375,
+        "requiresShelter": true,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "consume",
+            "required": true,
+            "flowRate": 0
+          },
+          {
+            "resource": "water",
+            "role": "consume",
+            "required": false,
+            "optionalHint": "per recipe",
+            "flowRate": 0
+          }
+        ]
+      }
     },
     "Electronics": {
       "id": "Electronics",
@@ -121247,7 +121877,26 @@
       "iconPath": "Deployables/T_ITEM_Enzyme_Cannon_Hub",
       "recipeIds": [
         "Enzyme_Cannon_Hub"
-      ]
+      ],
+      "deployable": {
+        "requiresShelter": false,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "consume",
+            "required": true,
+            "flowRate": 1000
+          }
+        ],
+        "generator": {
+          "resource": "Energy",
+          "generationRate": 100,
+          "fuels": [
+            "Condensed_Enzymes",
+            "Synthetic_Enzymes"
+          ]
+        }
+      }
     },
     "Enzyme_Elixir": {
       "id": "Enzyme_Elixir",
@@ -121316,7 +121965,18 @@
       "iconPath": "Deployables/ITEM_Exotic_Harvester",
       "recipeIds": [
         "Exotic_Harvester"
-      ]
+      ],
+      "deployable": {
+        "requiresShelter": false,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "consume",
+            "required": true,
+            "flowRate": 1500
+          }
+        ]
+      }
     },
     "Exotic_Processor": {
       "id": "Exotic_Processor",
@@ -121326,7 +121986,26 @@
       "iconPath": "Deployables/ITEM_Exotic_Processor",
       "recipeIds": [
         "Exotic_Processor"
-      ]
+      ],
+      "deployable": {
+        "powerDrawMw": 2500,
+        "requiresShelter": true,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "consume",
+            "required": true,
+            "flowRate": 0
+          },
+          {
+            "resource": "water",
+            "role": "consume",
+            "required": false,
+            "optionalHint": "for boost",
+            "flowRate": 100
+          }
+        ]
+      }
     },
     "Exotic_Red": {
       "id": "Exotic_Red",
@@ -121356,7 +122035,18 @@
       "iconPath": "Deployables/T_ITEM_Exotic_Uranium_Collector",
       "recipeIds": [
         "Uranium_Collector"
-      ]
+      ],
+      "deployable": {
+        "requiresShelter": false,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "consume",
+            "required": true,
+            "flowRate": 1500
+          }
+        ]
+      }
     },
     "Explorers_Backpack": {
       "id": "Explorers_Backpack",
@@ -121373,7 +122063,18 @@
       "iconPath": "Deployables/T_ITEM_Exposed_Ceiling_Light",
       "recipeIds": [
         "Exposed_Ceiling_Light"
-      ]
+      ],
+      "deployable": {
+        "requiresShelter": false,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "consume",
+            "required": true,
+            "flowRate": 75
+          }
+        ]
+      }
     },
     "Exposed_Ceiling_Light_Foggy": {
       "id": "Exposed_Ceiling_Light_Foggy",
@@ -121383,7 +122084,18 @@
       "iconPath": "Deployables/T_ITEM_Exposed_Ceiling_Light_Foggy",
       "recipeIds": [
         "Exposed_Ceiling_Light_Foggy"
-      ]
+      ],
+      "deployable": {
+        "requiresShelter": false,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "consume",
+            "required": true,
+            "flowRate": 75
+          }
+        ]
+      }
     },
     "Extractor_Biofuel": {
       "id": "Extractor_Biofuel",
@@ -121393,7 +122105,18 @@
       "iconPath": "Deployables/ITEM_Kit_Extractor",
       "recipeIds": [
         "Extractor_Biofuel"
-      ]
+      ],
+      "deployable": {
+        "requiresShelter": false,
+        "generator": {
+          "resource": "Energy",
+          "generationRate": 1100,
+          "generationRatio": 200,
+          "fuels": [
+            "Biofuel"
+          ]
+        }
+      }
     },
     "Extractor_Electric": {
       "id": "Extractor_Electric",
@@ -121403,14 +122126,35 @@
       "iconPath": "Deployables/ITEM_Extractor_Electric",
       "recipeIds": [
         "Extractor_Electric"
-      ]
+      ],
+      "deployable": {
+        "requiresShelter": false,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "consume",
+            "required": true,
+            "flowRate": 1500
+          }
+        ]
+      }
     },
     "Extractor_Meta": {
       "id": "Extractor_Meta",
       "displayName": "IC-001 Extractor",
       "description": "A portable mining unit powered by the IC-001 Power Source, used to extract resources from Exotics deposits.",
       "flavorText": "Warning: Exotics extraction is known to aggravate nearby wildlife",
-      "iconPath": "Deployables/ITEM_Extractor_Meta"
+      "iconPath": "Deployables/ITEM_Extractor_Meta",
+      "deployable": {
+        "requiresShelter": false,
+        "generator": {
+          "resource": "Energy",
+          "generationRate": 10,
+          "fuels": [
+            "Energy"
+          ]
+        }
+      }
     },
     "Fabricator": {
       "id": "Fabricator",
@@ -121420,7 +122164,20 @@
       "iconPath": "Deployables/ITEM_Fabricator",
       "recipeIds": [
         "Fabricator"
-      ]
+      ],
+      "deployable": {
+        "powerDrawMw": 2500,
+        "requiresShelter": true,
+        "connections": [
+          {
+            "resource": "water",
+            "role": "consume",
+            "required": false,
+            "optionalHint": "per recipe",
+            "flowRate": 0
+          }
+        ]
+      }
     },
     "FactionMission_Tech1": {
       "id": "FactionMission_Tech1",
@@ -121466,7 +122223,18 @@
       "recipeIds": [
         "Mission_Laser"
       ],
-      "mission": true
+      "mission": true,
+      "deployable": {
+        "requiresShelter": false,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "consume",
+            "required": true,
+            "flowRate": 1000
+          }
+        ]
+      }
     },
     "Farmers_Backpack": {
       "id": "Farmers_Backpack",
@@ -121503,7 +122271,19 @@
       "iconPath": "Deployables/ITEM_Farming_Metal",
       "recipeIds": [
         "Iron_Crop_Plot"
-      ]
+      ],
+      "deployable": {
+        "requiresShelter": false,
+        "connections": [
+          {
+            "resource": "water",
+            "role": "consume",
+            "required": false,
+            "optionalHint": "for boost",
+            "flowRate": 15
+          }
+        ]
+      }
     },
     "Farming_CropPlot_T4_v2": {
       "id": "Farming_CropPlot_T4_v2",
@@ -121513,14 +122293,50 @@
       "iconPath": "Deployables/ITEM_Farming_Hydroponic",
       "recipeIds": [
         "Hydro_Crop_Plot"
-      ]
+      ],
+      "deployable": {
+        "requiresShelter": false,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "consume",
+            "required": false,
+            "flowRate": 100
+          },
+          {
+            "resource": "water",
+            "role": "consume",
+            "required": false,
+            "optionalHint": "for boost",
+            "flowRate": 15
+          }
+        ]
+      }
     },
     "Farming_CropPlot_Workshop": {
       "id": "Farming_CropPlot_Workshop",
       "displayName": "Aeroponic Crop Plot",
       "description": "Currently the best option for a farmer on Icarus. It uses a mix of nutrient dense mist and rich soil to promote growth and yield.",
       "flavorText": "Can be connected to both a water and a power network",
-      "iconPath": "Deployables/T_ITEM_Farming_CropPlot_Workshop"
+      "iconPath": "Deployables/T_ITEM_Farming_CropPlot_Workshop",
+      "deployable": {
+        "requiresShelter": false,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "consume",
+            "required": false,
+            "flowRate": 100
+          },
+          {
+            "resource": "water",
+            "role": "consume",
+            "required": false,
+            "optionalHint": "for boost",
+            "flowRate": 15
+          }
+        ]
+      }
     },
     "Fatty_TBone": {
       "id": "Fatty_TBone",
@@ -121814,7 +122630,24 @@
       "iconPath": "Deployables/ITEM_Fireplace",
       "recipeIds": [
         "Fireplace"
-      ]
+      ],
+      "deployable": {
+        "powerDrawMw": 325,
+        "requiresShelter": false,
+        "generator": {
+          "resource": "Energy",
+          "generationRate": 2500,
+          "fuels": [
+            "Fiber",
+            "Stick",
+            "Wood_Refined",
+            "Wood",
+            "Coal_Ore",
+            "Packed_Fuel_Brick",
+            "Lava_Hunter_Magma"
+          ]
+        }
+      }
     },
     "Fireplace_Chimney_Cap": {
       "id": "Fireplace_Chimney_Cap",
@@ -121893,7 +122726,11 @@
       "iconPath": "Deployables/ITEM_Fishing_Bench",
       "recipeIds": [
         "Fishing_Bench"
-      ]
+      ],
+      "deployable": {
+        "powerDrawMw": 1000,
+        "requiresShelter": false
+      }
     },
     "Flame_Thrower": {
       "id": "Flame_Thrower",
@@ -121984,7 +122821,18 @@
       "recipeIds": [
         "Flat_Solar_Panel",
         "Flat_Solar_Panel_Lithium"
-      ]
+      ],
+      "deployable": {
+        "requiresShelter": false,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "produce",
+            "required": true,
+            "flowRate": 6000
+          }
+        ]
+      }
     },
     "Flightless_Tank_Head": {
       "id": "Flightless_Tank_Head",
@@ -122032,7 +122880,32 @@
       "iconPath": "Deployables/T_ITEM_Flow_Meter",
       "recipeIds": [
         "Flow_Meter"
-      ]
+      ],
+      "deployable": {
+        "requiresShelter": false,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "consume",
+            "required": true
+          },
+          {
+            "resource": "water",
+            "role": "consume",
+            "required": true
+          },
+          {
+            "resource": "biofuel",
+            "role": "consume",
+            "required": true
+          },
+          {
+            "resource": "crudeOil",
+            "role": "consume",
+            "required": true
+          }
+        ]
+      }
     },
     "Flying_Tank_Head": {
       "id": "Flying_Tank_Head",
@@ -122482,7 +123355,18 @@
       "iconPath": "Deployables/T_ITEM_Food_Trough_T4",
       "recipeIds": [
         "Food_Trough_T4"
-      ]
+      ],
+      "deployable": {
+        "powerDrawMw": 500,
+        "requiresShelter": false,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "consume",
+            "required": true
+          }
+        ]
+      }
     },
     "Food_Vegetable_Pie": {
       "id": "Food_Vegetable_Pie",
@@ -123003,7 +123887,19 @@
       "iconPath": "Deployables/T_ITEM_Gas_Fireplace",
       "recipeIds": [
         "Gas_Fireplace"
-      ]
+      ],
+      "deployable": {
+        "powerDrawMw": 400,
+        "requiresShelter": false,
+        "generator": {
+          "resource": "Energy",
+          "generationRate": 500,
+          "generationRatio": 500,
+          "fuels": [
+            "Biofuel"
+          ]
+        }
+      }
     },
     "Gas_Fireplace_Cap": {
       "id": "Gas_Fireplace_Cap",
@@ -123751,7 +124647,19 @@
       "iconPath": "Deployables/ITEM_Glassworking_Bench_V2",
       "recipeIds": [
         "Glassworking_Bench"
-      ]
+      ],
+      "deployable": {
+        "powerDrawMw": 1000,
+        "requiresShelter": true,
+        "connections": [
+          {
+            "resource": "water",
+            "role": "consume",
+            "required": false,
+            "flowRate": 0
+          }
+        ]
+      }
     },
     "Glazed_Carrots": {
       "id": "Glazed_Carrots",
@@ -123816,6 +124724,18 @@
             "displayName": "Art Deco Pack"
           }
         ]
+      },
+      "deployable": {
+        "requiresShelter": false,
+        "generator": {
+          "resource": "Energy",
+          "generationRate": 100,
+          "generationRatio": 10,
+          "fuels": [
+            "Animal_Fat",
+            "Beeswax"
+          ]
+        }
       }
     },
     "Gold_Chandelier": {
@@ -123832,6 +124752,17 @@
           {
             "id": "Art_Deco_Pack",
             "displayName": "Art Deco Pack"
+          }
+        ]
+      },
+      "deployable": {
+        "requiresShelter": false,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "consume",
+            "required": true,
+            "flowRate": 150
           }
         ]
       }
@@ -123888,6 +124819,23 @@
             "displayName": "Art Deco Pack"
           }
         ]
+      },
+      "deployable": {
+        "powerDrawMw": 325,
+        "requiresShelter": false,
+        "generator": {
+          "resource": "Energy",
+          "generationRate": 2500,
+          "fuels": [
+            "Fiber",
+            "Stick",
+            "Wood_Refined",
+            "Wood",
+            "Coal_Ore",
+            "Packed_Fuel_Brick",
+            "Lava_Hunter_Magma"
+          ]
+        }
       }
     },
     "Gold_Fireplace_Cap": {
@@ -124128,6 +125076,17 @@
             "displayName": "Art Deco Pack"
           }
         ]
+      },
+      "deployable": {
+        "requiresShelter": false,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "consume",
+            "required": true,
+            "flowRate": 150
+          }
+        ]
       }
     },
     "Gold_Table_10Seater": {
@@ -124234,6 +125193,17 @@
           {
             "id": "Art_Deco_Pack",
             "displayName": "Art Deco Pack"
+          }
+        ]
+      },
+      "deployable": {
+        "requiresShelter": false,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "consume",
+            "required": true,
+            "flowRate": 150
           }
         ]
       }
@@ -124628,7 +125598,18 @@
       "iconPath": "Deployables/ITEM_Heater_Large",
       "recipeIds": [
         "Heater_Large"
-      ]
+      ],
+      "deployable": {
+        "requiresShelter": false,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "consume",
+            "required": true,
+            "flowRate": 250
+          }
+        ]
+      }
     },
     "Heavy_Obsidian_Arms": {
       "id": "Heavy_Obsidian_Arms",
@@ -124748,7 +125729,11 @@
       "iconPath": "Deployables/ITEM_Herbalism_Bench",
       "recipeIds": [
         "Herbalism_Bench"
-      ]
+      ],
+      "deployable": {
+        "powerDrawMw": 500,
+        "requiresShelter": true
+      }
     },
     "Hitching_Post": {
       "id": "Hitching_Post",
@@ -125078,6 +126063,23 @@
             "displayName": "Homestead Decorations Pack"
           }
         ]
+      },
+      "deployable": {
+        "powerDrawMw": 325,
+        "requiresShelter": false,
+        "generator": {
+          "resource": "Energy",
+          "generationRate": 2500,
+          "fuels": [
+            "Fiber",
+            "Stick",
+            "Wood_Refined",
+            "Wood",
+            "Coal_Ore",
+            "Packed_Fuel_Brick",
+            "Lava_Hunter_Magma"
+          ]
+        }
       }
     },
     "Homestead_Fireplace_Bellows": {
@@ -125290,6 +126292,23 @@
             "displayName": "Homestead Decorations Pack"
           }
         ]
+      },
+      "deployable": {
+        "powerDrawMw": 375,
+        "requiresShelter": true,
+        "generator": {
+          "resource": "Energy",
+          "generationRate": 2500,
+          "fuels": [
+            "Fiber",
+            "Stick",
+            "Wood_Refined",
+            "Wood",
+            "Coal_Ore",
+            "Packed_Fuel_Brick",
+            "Lava_Hunter_Magma"
+          ]
+        }
       }
     },
     "Homestead_Kitchen_Bench": {
@@ -125306,6 +126325,19 @@
           {
             "id": "Homestead",
             "displayName": "Homestead Decorations Pack"
+          }
+        ]
+      },
+      "deployable": {
+        "powerDrawMw": 500,
+        "requiresShelter": true,
+        "connections": [
+          {
+            "resource": "water",
+            "role": "consume",
+            "required": false,
+            "optionalHint": "per recipe",
+            "flowRate": 0
           }
         ]
       }
@@ -125326,6 +126358,10 @@
             "displayName": "Homestead Decorations Pack"
           }
         ]
+      },
+      "deployable": {
+        "powerDrawMw": 500,
+        "requiresShelter": true
       }
     },
     "Homestead_Kitchen_Corner": {
@@ -125362,6 +126398,19 @@
             "displayName": "Homestead Decorations Pack"
           }
         ]
+      },
+      "deployable": {
+        "powerDrawMw": 500,
+        "requiresShelter": true,
+        "connections": [
+          {
+            "resource": "water",
+            "role": "consume",
+            "required": false,
+            "optionalHint": "per recipe",
+            "flowRate": 0
+          }
+        ]
       }
     },
     "Homestead_Kitchen_Sink": {
@@ -125378,6 +126427,17 @@
           {
             "id": "Homestead",
             "displayName": "Homestead Decorations Pack"
+          }
+        ]
+      },
+      "deployable": {
+        "requiresShelter": false,
+        "connections": [
+          {
+            "resource": "water",
+            "role": "consume",
+            "required": true,
+            "flowRate": 100
           }
         ]
       }
@@ -125416,6 +126476,27 @@
             "displayName": "Homestead Decorations Pack"
           }
         ]
+      },
+      "deployable": {
+        "powerDrawMw": 375,
+        "requiresShelter": true,
+        "connections": [
+          {
+            "resource": "water",
+            "role": "consume",
+            "required": false,
+            "optionalHint": "per recipe",
+            "flowRate": 0
+          }
+        ],
+        "generator": {
+          "resource": "Energy",
+          "generationRate": 500,
+          "generationRatio": 50,
+          "fuels": [
+            "Biofuel"
+          ]
+        }
       }
     },
     "Homestead_Knitting_Decor": {
@@ -125452,6 +126533,18 @@
             "displayName": "Homestead Decorations Pack"
           }
         ]
+      },
+      "deployable": {
+        "requiresShelter": false,
+        "generator": {
+          "resource": "Energy",
+          "generationRate": 100,
+          "generationRatio": 10,
+          "fuels": [
+            "Animal_Fat",
+            "Beeswax"
+          ]
+        }
       }
     },
     "Homestead_Lamp_Wall": {
@@ -125470,6 +126563,18 @@
             "displayName": "Homestead Decorations Pack"
           }
         ]
+      },
+      "deployable": {
+        "requiresShelter": false,
+        "generator": {
+          "resource": "Energy",
+          "generationRate": 100,
+          "generationRatio": 10,
+          "fuels": [
+            "Animal_Fat",
+            "Beeswax"
+          ]
+        }
       }
     },
     "Homestead_Lantern": {
@@ -125488,6 +126593,18 @@
             "displayName": "Homestead Decorations Pack"
           }
         ]
+      },
+      "deployable": {
+        "requiresShelter": false,
+        "generator": {
+          "resource": "Energy",
+          "generationRate": 100,
+          "generationRatio": 10,
+          "fuels": [
+            "Animal_Fat",
+            "Beeswax"
+          ]
+        }
       }
     },
     "Homestead_Picnic_Table": {
@@ -125540,6 +126657,18 @@
           {
             "id": "Homestead",
             "displayName": "Homestead Decorations Pack"
+          }
+        ]
+      },
+      "deployable": {
+        "requiresShelter": false,
+        "connections": [
+          {
+            "resource": "water",
+            "role": "consume",
+            "required": false,
+            "optionalHint": "for boost",
+            "flowRate": 15
           }
         ]
       }
@@ -125596,6 +126725,17 @@
           {
             "id": "Homestead",
             "displayName": "Homestead Decorations Pack"
+          }
+        ]
+      },
+      "deployable": {
+        "requiresShelter": false,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "consume",
+            "required": true,
+            "flowRate": 500
           }
         ]
       }
@@ -125680,6 +126820,10 @@
             "displayName": "Homestead Decorations Pack"
           }
         ]
+      },
+      "deployable": {
+        "powerDrawMw": 2500,
+        "requiresShelter": true
       }
     },
     "Homestead_Shutter": {
@@ -125752,6 +126896,18 @@
             "displayName": "Homestead Decorations Pack"
           }
         ]
+      },
+      "deployable": {
+        "requiresShelter": false,
+        "generator": {
+          "resource": "Energy",
+          "generationRate": 100,
+          "generationRatio": 100,
+          "fuels": [
+            "Spoiled_Meat",
+            "Spoiled_Plants"
+          ]
+        }
       }
     },
     "Homestead_Spinning_Wheel": {
@@ -125824,6 +126980,18 @@
             "displayName": "Homestead Decorations Pack"
           }
         ]
+      },
+      "deployable": {
+        "requiresShelter": false,
+        "generator": {
+          "resource": "Energy",
+          "generationRate": 100,
+          "generationRatio": 10,
+          "fuels": [
+            "Animal_Fat",
+            "Beeswax"
+          ]
+        }
       }
     },
     "Homestead_Water_Tank": {
@@ -125840,6 +127008,17 @@
           {
             "id": "Homestead",
             "displayName": "Homestead Decorations Pack"
+          }
+        ]
+      },
+      "deployable": {
+        "requiresShelter": false,
+        "connections": [
+          {
+            "resource": "water",
+            "role": "store",
+            "required": true,
+            "flowRate": 1000
           }
         ]
       }
@@ -125898,6 +127077,24 @@
             "displayName": "Homestead Decorations Pack"
           }
         ]
+      },
+      "deployable": {
+        "requiresShelter": false,
+        "connections": [
+          {
+            "resource": "water",
+            "role": "store",
+            "required": true,
+            "flowRate": 1000
+          }
+        ],
+        "generator": {
+          "resource": "Water",
+          "generationRate": 50,
+          "fuels": [
+            "Ice"
+          ]
+        }
       }
     },
     "Homestead_WildFlower_Bluebell": {
@@ -126170,7 +127367,17 @@
       "iconPath": "Deployables/ITEM_IceBox",
       "recipeIds": [
         "IceBox"
-      ]
+      ],
+      "deployable": {
+        "requiresShelter": false,
+        "generator": {
+          "resource": "Energy",
+          "generationRate": 1,
+          "fuels": [
+            "Ice"
+          ]
+        }
+      }
     },
     "IceMammoth_Armor_Arms": {
       "id": "IceMammoth_Armor_Arms",
@@ -126465,7 +127672,18 @@
       "iconPath": "Deployables/T_ITEM_Water_Borer",
       "recipeIds": [
         "Ice_Borer"
-      ]
+      ],
+      "deployable": {
+        "requiresShelter": false,
+        "generator": {
+          "resource": "Energy",
+          "generationRate": 1,
+          "generationRatio": 0.75,
+          "fuels": [
+            "Biofuel"
+          ]
+        }
+      }
     },
     "Ice_Curved_Set": {
       "id": "Ice_Curved_Set",
@@ -127091,7 +128309,22 @@
       "iconPath": "Deployables/ITEM_Kit_Floor_Torch",
       "recipeIds": [
         "Floor_Torch"
-      ]
+      ],
+      "deployable": {
+        "requiresShelter": false,
+        "generator": {
+          "resource": "Energy",
+          "generationRate": 100,
+          "fuels": [
+            "Fiber",
+            "Stick",
+            "Wood_Refined",
+            "Wood",
+            "Coal_Ore",
+            "Packed_Fuel_Brick"
+          ]
+        }
+      }
     },
     "Kit_Generator": {
       "id": "Kit_Generator",
@@ -127101,7 +128334,25 @@
       "iconPath": "Deployables/T_ITEM_Kit_Generator",
       "recipeIds": [
         "Biofuel_Generator"
-      ]
+      ],
+      "deployable": {
+        "requiresShelter": false,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "consume",
+            "required": true
+          }
+        ],
+        "generator": {
+          "resource": "Energy",
+          "generationRate": 5000,
+          "generationRatio": 7500,
+          "fuels": [
+            "Biofuel"
+          ]
+        }
+      }
     },
     "Kit_Machining_Bench": {
       "id": "Kit_Machining_Bench",
@@ -127110,7 +128361,11 @@
       "iconPath": "Deployables/ITEM_Kit_Machining_Bench",
       "recipeIds": [
         "Machining_Bench"
-      ]
+      ],
+      "deployable": {
+        "powerDrawMw": 2500,
+        "requiresShelter": true
+      }
     },
     "Kit_Metal_Cupboard": {
       "id": "Kit_Metal_Cupboard",
@@ -127130,7 +128385,11 @@
       "iconPath": "Deployables/ITEM_Kit_Mortar_And_Pestle",
       "recipeIds": [
         "Mortar_And_Pestle"
-      ]
+      ],
+      "deployable": {
+        "powerDrawMw": 500,
+        "requiresShelter": true
+      }
     },
     "Kit_Oxite_Dissolver": {
       "id": "Kit_Oxite_Dissolver",
@@ -127140,7 +128399,18 @@
       "iconPath": "Deployables/ITEM_Kit_Oxite_Dissolver",
       "recipeIds": [
         "Oxite_Dissolver"
-      ]
+      ],
+      "deployable": {
+        "powerDrawMw": 500,
+        "requiresShelter": true,
+        "generator": {
+          "resource": "Energy",
+          "generationRate": 500,
+          "fuels": [
+            "Sulfur"
+          ]
+        }
+      }
     },
     "Kit_Skinning_Bench": {
       "id": "Kit_Skinning_Bench",
@@ -127150,7 +128420,11 @@
       "iconPath": "Deployables/ITEM_Kit_Skinning_Bench",
       "recipeIds": [
         "Skinning_Bench"
-      ]
+      ],
+      "deployable": {
+        "powerDrawMw": 500,
+        "requiresShelter": true
+      }
     },
     "Kit_Stone_Furnace": {
       "id": "Kit_Stone_Furnace",
@@ -127160,7 +128434,24 @@
       "iconPath": "Deployables/ITEM_Kit_Stone_Furnace",
       "recipeIds": [
         "Stone_Furnace"
-      ]
+      ],
+      "deployable": {
+        "powerDrawMw": 1500,
+        "requiresShelter": true,
+        "generator": {
+          "resource": "Energy",
+          "generationRate": 2500,
+          "fuels": [
+            "Fiber",
+            "Stick",
+            "Wood_Refined",
+            "Wood",
+            "Coal_Ore",
+            "Packed_Fuel_Brick",
+            "Lava_Hunter_Magma"
+          ]
+        }
+      }
     },
     "Kit_Wall_Torch": {
       "id": "Kit_Wall_Torch",
@@ -127170,7 +128461,22 @@
       "iconPath": "Deployables/ITEM_Kit_Wall_Torch",
       "recipeIds": [
         "Wall_Torch"
-      ]
+      ],
+      "deployable": {
+        "requiresShelter": false,
+        "generator": {
+          "resource": "Energy",
+          "generationRate": 100,
+          "fuels": [
+            "Fiber",
+            "Stick",
+            "Wood_Refined",
+            "Wood",
+            "Coal_Ore",
+            "Packed_Fuel_Brick"
+          ]
+        }
+      }
     },
     "Kit_Wood_Cupboard": {
       "id": "Kit_Wood_Cupboard",
@@ -127190,7 +128496,20 @@
       "iconPath": "Deployables/T_ITEM_Kitchen_Bench",
       "recipeIds": [
         "Kitchen_Bench"
-      ]
+      ],
+      "deployable": {
+        "powerDrawMw": 500,
+        "requiresShelter": true,
+        "connections": [
+          {
+            "resource": "water",
+            "role": "consume",
+            "required": false,
+            "optionalHint": "per recipe",
+            "flowRate": 0
+          }
+        ]
+      }
     },
     "Kitchen_Corner_Bench": {
       "id": "Kitchen_Corner_Bench",
@@ -127210,7 +128529,18 @@
       "iconPath": "Deployables/T_ITEM_Kitchen_Sink",
       "recipeIds": [
         "Kitchen_Sink"
-      ]
+      ],
+      "deployable": {
+        "requiresShelter": false,
+        "connections": [
+          {
+            "resource": "water",
+            "role": "consume",
+            "required": true,
+            "flowRate": 100
+          }
+        ]
+      }
     },
     "Kitchen_Storage": {
       "id": "Kitchen_Storage",
@@ -127230,7 +128560,28 @@
       "iconPath": "Deployables/T_ITEM_Kitchen_Stove",
       "recipeIds": [
         "Kitchen_Stove"
-      ]
+      ],
+      "deployable": {
+        "powerDrawMw": 375,
+        "requiresShelter": true,
+        "connections": [
+          {
+            "resource": "water",
+            "role": "consume",
+            "required": false,
+            "optionalHint": "per recipe",
+            "flowRate": 0
+          }
+        ],
+        "generator": {
+          "resource": "Energy",
+          "generationRate": 500,
+          "generationRatio": 50,
+          "fuels": [
+            "Biofuel"
+          ]
+        }
+      }
     },
     "Kiwi_Fruit": {
       "id": "Kiwi_Fruit",
@@ -127432,7 +128783,18 @@
       "iconPath": "Deployables/T_ITEM_Landing_Pad_Player",
       "recipeIds": [
         "Landing_Pad"
-      ]
+      ],
+      "deployable": {
+        "requiresShelter": false,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "consume",
+            "required": true,
+            "flowRate": 500
+          }
+        ]
+      }
     },
     "Landmine": {
       "id": "Landmine",
@@ -127472,7 +128834,24 @@
       "iconPath": "Deployables/ITEM_Large_Advanced_Aquarium",
       "recipeIds": [
         "Large_Advanced_Aquarium"
-      ]
+      ],
+      "deployable": {
+        "requiresShelter": false,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "consume",
+            "required": true,
+            "flowRate": 1000
+          },
+          {
+            "resource": "water",
+            "role": "consume",
+            "required": true,
+            "flowRate": 750
+          }
+        ]
+      }
     },
     "Larkwell_Armor_Alpha_Arms": {
       "id": "Larkwell_Armor_Alpha_Arms",
@@ -127955,7 +129334,18 @@
       "iconPath": "Deployables/ITEM_Light_Worklamp_Omnidirectional",
       "recipeIds": [
         "Worklamp_OmniDirectional"
-      ]
+      ],
+      "deployable": {
+        "requiresShelter": false,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "consume",
+            "required": true,
+            "flowRate": 150
+          }
+        ]
+      }
     },
     "LightningRod_Basic": {
       "id": "LightningRod_Basic",
@@ -127975,7 +129365,17 @@
       "iconPath": "Deployables/T_ITEM_LightningRod_Platinum",
       "recipeIds": [
         "LightningRod_Platinum"
-      ]
+      ],
+      "deployable": {
+        "requiresShelter": false,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "consume",
+            "required": true
+          }
+        ]
+      }
     },
     "Lily": {
       "id": "Lily",
@@ -128389,7 +129789,26 @@
       "iconPath": "Deployables/T_ITEM_Manufacturer",
       "recipeIds": [
         "Manufacturer"
-      ]
+      ],
+      "deployable": {
+        "powerDrawMw": 3000,
+        "requiresShelter": true,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "consume",
+            "required": true,
+            "flowRate": 0
+          },
+          {
+            "resource": "water",
+            "role": "consume",
+            "required": false,
+            "optionalHint": "per recipe",
+            "flowRate": 0
+          }
+        ]
+      }
     },
     "Masonry_Bench": {
       "id": "Masonry_Bench",
@@ -128399,7 +129818,11 @@
       "iconPath": "Deployables/ITEM_Masonry_Bench",
       "recipeIds": [
         "Masonry_Bench"
-      ]
+      ],
+      "deployable": {
+        "powerDrawMw": 1000,
+        "requiresShelter": true
+      }
     },
     "Masonry_Bench_T3": {
       "id": "Masonry_Bench_T3",
@@ -128409,7 +129832,20 @@
       "iconPath": "Deployables/T_ITEM_Masonry_Bench_T3",
       "recipeIds": [
         "Masonry_Bench_T3"
-      ]
+      ],
+      "deployable": {
+        "powerDrawMw": 1000,
+        "requiresShelter": true,
+        "connections": [
+          {
+            "resource": "water",
+            "role": "consume",
+            "required": false,
+            "optionalHint": "for boost",
+            "flowRate": 250
+          }
+        ]
+      }
     },
     "Masonry_Bench_T4": {
       "id": "Masonry_Bench_T4",
@@ -128418,7 +129854,26 @@
       "iconPath": "Deployables/ITEM_Masonry_Bench_T4",
       "recipeIds": [
         "Masonry_Bench_T4"
-      ]
+      ],
+      "deployable": {
+        "powerDrawMw": 2000,
+        "requiresShelter": true,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "consume",
+            "required": true,
+            "flowRate": 0
+          },
+          {
+            "resource": "water",
+            "role": "consume",
+            "required": false,
+            "optionalHint": "for boost",
+            "flowRate": 250
+          }
+        ]
+      }
     },
     "Material_Processor": {
       "id": "Material_Processor",
@@ -128427,7 +129882,19 @@
       "iconPath": "Deployables/ITEM_Material_Processor",
       "recipeIds": [
         "Material_Processor"
-      ]
+      ],
+      "deployable": {
+        "powerDrawMw": 1500,
+        "requiresShelter": true,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "consume",
+            "required": true,
+            "flowRate": 0
+          }
+        ]
+      }
     },
     "Medic_Backpack": {
       "id": "Medic_Backpack",
@@ -128444,7 +129911,20 @@
       "iconPath": "Deployables/T_ITEM_Medicine_Bench",
       "recipeIds": [
         "Medicine_Bench"
-      ]
+      ],
+      "deployable": {
+        "powerDrawMw": 500,
+        "requiresShelter": true,
+        "connections": [
+          {
+            "resource": "water",
+            "role": "consume",
+            "required": false,
+            "optionalHint": "per recipe",
+            "flowRate": 0
+          }
+        ]
+      }
     },
     "MetaResource": {
       "id": "MetaResource",
@@ -128886,7 +130366,24 @@
       "displayName": "MXC Campfire",
       "description": "A simple, prefabricated campfire for heat, light and cooking, designed to remain lit under all conditions.",
       "flavorText": "Ancient technolgy meets modern construction.",
-      "iconPath": "Deployables/T_ITEM_Meta_Campfire_Printed"
+      "iconPath": "Deployables/T_ITEM_Meta_Campfire_Printed",
+      "deployable": {
+        "powerDrawMw": 250,
+        "requiresShelter": false,
+        "generator": {
+          "resource": "Energy",
+          "generationRate": 2500,
+          "fuels": [
+            "Fiber",
+            "Stick",
+            "Wood_Refined",
+            "Wood",
+            "Coal_Ore",
+            "Packed_Fuel_Brick",
+            "Lava_Hunter_Magma"
+          ]
+        }
+      }
     },
     "Meta_Canteen_Shengong": {
       "id": "Meta_Canteen_Shengong",
@@ -129086,7 +130583,24 @@
       "displayName": "MXC Furnace",
       "description": "A premade furnace for all of your basic smelting needs",
       "flavorText": "Basic but gets the job done",
-      "iconPath": "Deployables/T_ITEM_Meta_Furnace_Printed"
+      "iconPath": "Deployables/T_ITEM_Meta_Furnace_Printed",
+      "deployable": {
+        "powerDrawMw": 1500,
+        "requiresShelter": true,
+        "generator": {
+          "resource": "Energy",
+          "generationRate": 2500,
+          "fuels": [
+            "Fiber",
+            "Stick",
+            "Wood_Refined",
+            "Wood",
+            "Coal_Ore",
+            "Packed_Fuel_Brick",
+            "Lava_Hunter_Magma"
+          ]
+        }
+      }
     },
     "Meta_Garlic_Seed": {
       "id": "Meta_Garlic_Seed",
@@ -129473,7 +130987,18 @@
       "displayName": "MXC Oxite Dissolver",
       "description": "A lightweight dissolver to fill a container with Oxygen.  ",
       "flavorText": "Breathe fast, breathe easy, thanks to MXC.  ",
-      "iconPath": "Deployables/T_ITEM_Electric_Oxite_Dissolver"
+      "iconPath": "Deployables/T_ITEM_Electric_Oxite_Dissolver",
+      "deployable": {
+        "powerDrawMw": 500,
+        "requiresShelter": true,
+        "generator": {
+          "resource": "Energy",
+          "generationRate": 500,
+          "fuels": [
+            "Sulfur"
+          ]
+        }
+      }
     },
     "Meta_Oxygen_Gel": {
       "id": "Meta_Oxygen_Gel",
@@ -130060,6 +131585,18 @@
             "displayName": "Industrial Furniture Pack"
           }
         ]
+      },
+      "deployable": {
+        "requiresShelter": false,
+        "generator": {
+          "resource": "Energy",
+          "generationRate": 100,
+          "generationRatio": 10,
+          "fuels": [
+            "Animal_Fat",
+            "Beeswax"
+          ]
+        }
       }
     },
     "Metal_Chair_Dining": {
@@ -130274,6 +131811,17 @@
             "displayName": "Industrial Furniture Pack"
           }
         ]
+      },
+      "deployable": {
+        "requiresShelter": false,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "consume",
+            "required": true,
+            "flowRate": 150
+          }
+        ]
       }
     },
     "Metal_Nightstand": {
@@ -130315,7 +131863,19 @@
       "iconPath": "Deployables/T_ITEM_Biofuel_Oxite_Dissolver",
       "recipeIds": [
         "Metal_Oxite_Dissolver"
-      ]
+      ],
+      "deployable": {
+        "powerDrawMw": 500,
+        "requiresShelter": true,
+        "generator": {
+          "resource": "Energy",
+          "generationRate": 500,
+          "generationRatio": 10,
+          "fuels": [
+            "Biofuel"
+          ]
+        }
+      }
     },
     "Metal_Pickaxe": {
       "id": "Metal_Pickaxe",
@@ -130590,7 +132150,18 @@
       "iconPath": "Deployables/ITEM_Vapour_Condenser",
       "recipeIds": [
         "Mission_AerosolEmitter"
-      ]
+      ],
+      "deployable": {
+        "requiresShelter": false,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "consume",
+            "required": true,
+            "flowRate": 1500
+          }
+        ]
+      }
     },
     "Mission_Alternator": {
       "id": "Mission_Alternator",
@@ -130636,7 +132207,24 @@
       "iconPath": "Props/T_ITEM_Prop_Lab_Stand_B",
       "recipeIds": [
         "Mission_Burner"
-      ]
+      ],
+      "deployable": {
+        "powerDrawMw": 250,
+        "requiresShelter": false,
+        "generator": {
+          "resource": "Energy",
+          "generationRate": 2500,
+          "fuels": [
+            "Fiber",
+            "Stick",
+            "Wood_Refined",
+            "Wood",
+            "Coal_Ore",
+            "Packed_Fuel_Brick",
+            "Lava_Hunter_Magma"
+          ]
+        }
+      }
     },
     "Mission_Communication_Device_T3": {
       "id": "Mission_Communication_Device_T3",
@@ -130741,7 +132329,18 @@
       "recipeIds": [
         "Enzyme_Propagation_Unit"
       ],
-      "mission": true
+      "mission": true,
+      "deployable": {
+        "requiresShelter": false,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "consume",
+            "required": true,
+            "flowRate": 1000
+          }
+        ]
+      }
     },
     "Mission_Enzyme_Virus": {
       "id": "Mission_Enzyme_Virus",
@@ -130828,7 +132427,24 @@
       "recipeIds": [
         "Mission_Incubator"
       ],
-      "mission": true
+      "mission": true,
+      "deployable": {
+        "requiresShelter": false,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "consume",
+            "required": true,
+            "flowRate": 1000
+          },
+          {
+            "resource": "water",
+            "role": "consume",
+            "required": true,
+            "flowRate": 500
+          }
+        ]
+      }
     },
     "Mission_Laser_Part_1": {
       "id": "Mission_Laser_Part_1",
@@ -130918,7 +132534,18 @@
       "recipeIds": [
         "Organic_Analyzer"
       ],
-      "mission": true
+      "mission": true,
+      "deployable": {
+        "requiresShelter": false,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "consume",
+            "required": true,
+            "flowRate": 1000
+          }
+        ]
+      }
     },
     "Mission_Prototype_Laser": {
       "id": "Mission_Prototype_Laser",
@@ -130959,7 +132586,18 @@
       "recipeIds": [
         "Mission_STYX_D_Research2_Bomb"
       ],
-      "mission": true
+      "mission": true,
+      "deployable": {
+        "requiresShelter": false,
+        "generator": {
+          "resource": "Oxygen",
+          "generationRate": 10,
+          "generationRatio": 0.10000000149011612,
+          "fuels": [
+            "Mission_STYX_D_Research2_Abyssal_Oxite"
+          ]
+        }
+      }
     },
     "Mission_STYX_D_Research2_BombParts": {
       "id": "Mission_STYX_D_Research2_BombParts",
@@ -131189,7 +132827,24 @@
       "iconPath": "Deployables/T_ITEM_Natural_Oil_Refiner",
       "recipeIds": [
         "Natural_Oil_Refiner"
-      ]
+      ],
+      "deployable": {
+        "requiresShelter": false,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "consume",
+            "required": true,
+            "flowRate": 1000
+          },
+          {
+            "resource": "biofuel",
+            "role": "consume",
+            "required": true,
+            "flowRate": 1000
+          }
+        ]
+      }
     },
     "Needler_Head": {
       "id": "Needler_Head",
@@ -131414,7 +133069,31 @@
       "iconPath": "Deployables/T_ITEM_Oil_Power_Generator",
       "recipeIds": [
         "Crude_Oil_Power_Generator"
-      ]
+      ],
+      "deployable": {
+        "requiresShelter": false,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "consume",
+            "required": true
+          },
+          {
+            "resource": "crudeOil",
+            "role": "consume",
+            "required": true,
+            "flowRate": 0
+          }
+        ],
+        "generator": {
+          "resource": "Energy",
+          "generationRate": 8000,
+          "generationRatio": 53.29999923706055,
+          "fuels": [
+            "Crude_Oil"
+          ]
+        }
+      }
     },
     "Onion": {
       "id": "Onion",
@@ -131451,7 +133130,24 @@
       "iconPath": "Deployables/T_ITEM_Organic_Extractor",
       "recipeIds": [
         "Organic_Extractor"
-      ]
+      ],
+      "deployable": {
+        "requiresShelter": false,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "consume",
+            "required": true,
+            "flowRate": 1500
+          },
+          {
+            "resource": "biofuel",
+            "role": "store",
+            "required": true,
+            "flowRate": 1000
+          }
+        ]
+      }
     },
     "Organic_Resin": {
       "id": "Organic_Resin",
@@ -132302,7 +133998,19 @@
       "iconPath": "Deployables/T_ITEM_Polymerizer",
       "recipeIds": [
         "Polymerizer"
-      ]
+      ],
+      "deployable": {
+        "powerDrawMw": 2500,
+        "requiresShelter": true,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "consume",
+            "required": true,
+            "flowRate": 0
+          }
+        ]
+      }
     },
     "Portable_Beacon": {
       "id": "Portable_Beacon",
@@ -132322,7 +134030,25 @@
       "iconPath": "Deployables/T_ITEM_Portable_Generator",
       "recipeIds": [
         "Portable_Biofuel_Generator"
-      ]
+      ],
+      "deployable": {
+        "requiresShelter": false,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "consume",
+            "required": true
+          }
+        ],
+        "generator": {
+          "resource": "Energy",
+          "generationRate": 2000,
+          "generationRatio": 2750,
+          "fuels": [
+            "Biofuel"
+          ]
+        }
+      }
     },
     "Portable_Tank_Biofuel": {
       "id": "Portable_Tank_Biofuel",
@@ -132332,7 +134058,18 @@
       "iconPath": "UseableItems/T_ITEM_Portable_Tank_Biofuel",
       "recipeIds": [
         "Portable_Tank_Biofuel"
-      ]
+      ],
+      "deployable": {
+        "requiresShelter": false,
+        "connections": [
+          {
+            "resource": "biofuel",
+            "role": "store",
+            "required": true,
+            "flowRate": 1000
+          }
+        ]
+      }
     },
     "Portable_Tank_Water": {
       "id": "Portable_Tank_Water",
@@ -132342,7 +134079,18 @@
       "iconPath": "UseableItems/T_ITEM_Portable_Tank_Water",
       "recipeIds": [
         "Portable_Tank_Water"
-      ]
+      ],
+      "deployable": {
+        "requiresShelter": false,
+        "connections": [
+          {
+            "resource": "water",
+            "role": "store",
+            "required": true,
+            "flowRate": 1000
+          }
+        ]
+      }
     },
     "PotBellyStove": {
       "id": "PotBellyStove",
@@ -132352,7 +134100,24 @@
       "iconPath": "Deployables/ITEM_PotBellyStove",
       "recipeIds": [
         "PotBellyStove"
-      ]
+      ],
+      "deployable": {
+        "powerDrawMw": 375,
+        "requiresShelter": true,
+        "generator": {
+          "resource": "Energy",
+          "generationRate": 2500,
+          "fuels": [
+            "Fiber",
+            "Stick",
+            "Wood_Refined",
+            "Wood",
+            "Coal_Ore",
+            "Packed_Fuel_Brick",
+            "Lava_Hunter_Magma"
+          ]
+        }
+      }
     },
     "Potato": {
       "id": "Potato",
@@ -132544,7 +134309,31 @@
       "iconPath": "Deployables/T_ITEM_Pump_Jack",
       "recipeIds": [
         "Pump_Jack"
-      ]
+      ],
+      "deployable": {
+        "requiresShelter": false,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "consume",
+            "required": true,
+            "flowRate": 0
+          },
+          {
+            "resource": "crudeOil",
+            "role": "consume",
+            "required": true
+          }
+        ],
+        "generator": {
+          "resource": "Crude_Oil",
+          "generationRate": 200,
+          "generationRatio": 0.20000000298023224,
+          "fuels": [
+            "Energy"
+          ]
+        }
+      }
     },
     "Pumpkin": {
       "id": "Pumpkin",
@@ -132801,7 +134590,18 @@
       "iconPath": "Deployables/ITEM_Radar_Biofuel",
       "recipeIds": [
         "Radar_Biofuel"
-      ]
+      ],
+      "deployable": {
+        "requiresShelter": false,
+        "generator": {
+          "resource": "Energy",
+          "generationRate": 200,
+          "generationRatio": 20,
+          "fuels": [
+            "Biofuel"
+          ]
+        }
+      }
     },
     "Radar_Electric": {
       "id": "Radar_Electric",
@@ -132811,7 +134611,18 @@
       "iconPath": "Deployables/ITEM_Kit_Radar",
       "recipeIds": [
         "Radar"
-      ]
+      ],
+      "deployable": {
+        "requiresShelter": false,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "consume",
+            "required": true,
+            "flowRate": 1000
+          }
+        ]
+      }
     },
     "Radar_Meta": {
       "id": "Radar_Meta",
@@ -132897,7 +134708,17 @@
       "iconPath": "Deployables/ITEM_Rain_Reservoir",
       "recipeIds": [
         "Rain_Reservoir"
-      ]
+      ],
+      "deployable": {
+        "requiresShelter": false,
+        "generator": {
+          "resource": "Water",
+          "generationRate": 50,
+          "fuels": [
+            "Ice"
+          ]
+        }
+      }
     },
     "Rain_Reservoir_T3": {
       "id": "Rain_Reservoir_T3",
@@ -132907,7 +134728,25 @@
       "iconPath": "Deployables/T_ITEM_Rain_Reservoir_T3",
       "recipeIds": [
         "Rain_Reservoir_T3"
-      ]
+      ],
+      "deployable": {
+        "requiresShelter": false,
+        "connections": [
+          {
+            "resource": "water",
+            "role": "store",
+            "required": true,
+            "flowRate": 1000
+          }
+        ],
+        "generator": {
+          "resource": "Water",
+          "generationRate": 50,
+          "fuels": [
+            "Ice"
+          ]
+        }
+      }
     },
     "Ram_Head": {
       "id": "Ram_Head",
@@ -133324,7 +135163,18 @@
       "iconPath": "Deployables/T_ITEM_Raw_Wood_Lamp",
       "recipeIds": [
         "Raw_Wood_Lamp"
-      ]
+      ],
+      "deployable": {
+        "requiresShelter": false,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "consume",
+            "required": true,
+            "flowRate": 150
+          }
+        ]
+      }
     },
     "Raw_Wood_Sign": {
       "id": "Raw_Wood_Sign",
@@ -133528,7 +135378,18 @@
       "iconPath": "Deployables/ITEM_Refrigerator",
       "recipeIds": [
         "Refrigerator"
-      ]
+      ],
+      "deployable": {
+        "requiresShelter": false,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "consume",
+            "required": true,
+            "flowRate": 500
+          }
+        ]
+      }
     },
     "ReinforcedWood_Beam": {
       "id": "ReinforcedWood_Beam",
@@ -133692,7 +135553,18 @@
       "iconPath": "Deployables/ITEM_Repair_Bench",
       "recipeIds": [
         "Repair_Bench"
-      ]
+      ],
+      "deployable": {
+        "requiresShelter": false,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "consume",
+            "required": false,
+            "flowRate": 1500
+          }
+        ]
+      }
     },
     "ResearchEquipment_Centrifuge": {
       "id": "ResearchEquipment_Centrifuge",
@@ -134376,7 +136248,19 @@
       "recipeIds": [
         "Rustic_Candles",
         "Rustic_Candles_1"
-      ]
+      ],
+      "deployable": {
+        "requiresShelter": false,
+        "generator": {
+          "resource": "Energy",
+          "generationRate": 100,
+          "generationRatio": 10,
+          "fuels": [
+            "Animal_Fat",
+            "Beeswax"
+          ]
+        }
+      }
     },
     "Rustic_CoffeeTable": {
       "id": "Rustic_CoffeeTable",
@@ -134416,7 +136300,11 @@
       "iconPath": "Deployables/T_ITEM_Rustic_Decoration_Bench",
       "recipeIds": [
         "Rustic_Decoration_Bench"
-      ]
+      ],
+      "deployable": {
+        "powerDrawMw": 500,
+        "requiresShelter": false
+      }
     },
     "Rustic_DiningChair": {
       "id": "Rustic_DiningChair",
@@ -135303,6 +137191,21 @@
             "displayName": "DRY RUN"
           }
         ]
+      },
+      "deployable": {
+        "requiresShelter": false,
+        "generator": {
+          "resource": "Energy",
+          "generationRate": 100,
+          "fuels": [
+            "Fiber",
+            "Stick",
+            "Wood_Refined",
+            "Wood",
+            "Coal_Ore",
+            "Packed_Fuel_Brick"
+          ]
+        }
       }
     },
     "Sandworm_Trophy_Brazier_Large": {
@@ -135321,6 +137224,21 @@
             "displayName": "DRY RUN"
           }
         ]
+      },
+      "deployable": {
+        "requiresShelter": false,
+        "generator": {
+          "resource": "Energy",
+          "generationRate": 100,
+          "fuels": [
+            "Fiber",
+            "Stick",
+            "Wood_Refined",
+            "Wood",
+            "Coal_Ore",
+            "Packed_Fuel_Brick"
+          ]
+        }
       }
     },
     "Sandworm_Trophy_Head": {
@@ -136300,7 +138218,11 @@
       "iconPath": "Deployables/T_ITEM_Seed_Extractor",
       "recipeIds": [
         "Seed_Extractor"
-      ]
+      ],
+      "deployable": {
+        "powerDrawMw": 500,
+        "requiresShelter": false
+      }
     },
     "Seed_Fertilizer": {
       "id": "Seed_Fertilizer",
@@ -136506,7 +138428,18 @@
       "iconPath": "Deployables/T_ITEM_Basic_Ceiling_Light_Shroud",
       "recipeIds": [
         "Shroud_Light"
-      ]
+      ],
+      "deployable": {
+        "requiresShelter": false,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "consume",
+            "required": true,
+            "flowRate": 250
+          }
+        ]
+      }
     },
     "Sickle": {
       "id": "Sickle",
@@ -136586,7 +138519,18 @@
       "iconPath": "Deployables/T_ITEM_Single_Ceiling_Light",
       "recipeIds": [
         "Single_Ceiling_Light"
-      ]
+      ],
+      "deployable": {
+        "requiresShelter": false,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "consume",
+            "required": true,
+            "flowRate": 75
+          }
+        ]
+      }
     },
     "Sledgehammer_Attachment_ClayYield_1": {
       "id": "Sledgehammer_Attachment_ClayYield_1",
@@ -136969,7 +138913,18 @@
       "iconPath": "Deployables/T_ITEM_Smoker_T3",
       "recipeIds": [
         "T3_Smoker"
-      ]
+      ],
+      "deployable": {
+        "powerDrawMw": 500,
+        "requiresShelter": false,
+        "generator": {
+          "resource": "Energy",
+          "generationRate": 2500,
+          "fuels": [
+            "Charcoal"
+          ]
+        }
+      }
     },
     "Snare_Trap": {
       "id": "Snare_Trap",
@@ -137139,7 +139094,18 @@
         "Solar_Panel",
         "Solar_Panel_Repair",
         "Solar_Panel_Lithium"
-      ]
+      ],
+      "deployable": {
+        "requiresShelter": false,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "produce",
+            "required": true,
+            "flowRate": 6000
+          }
+        ]
+      }
     },
     "SonicDevice": {
       "id": "SonicDevice",
@@ -137149,7 +139115,18 @@
       "recipeIds": [
         "Mission_Sonic_Device"
       ],
-      "mission": true
+      "mission": true,
+      "deployable": {
+        "requiresShelter": false,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "consume",
+            "required": true,
+            "flowRate": 1500
+          }
+        ]
+      }
     },
     "Spawn_Blocker_T2": {
       "id": "Spawn_Blocker_T2",
@@ -137159,7 +139136,19 @@
       "iconPath": "Deployables/ITEM_Spawn_Blocker_T2",
       "recipeIds": [
         "SpawnBlocker_T2"
-      ]
+      ],
+      "deployable": {
+        "requiresShelter": false,
+        "generator": {
+          "resource": "Energy",
+          "generationRate": 100,
+          "generationRatio": 100,
+          "fuels": [
+            "Spoiled_Meat",
+            "Spoiled_Plants"
+          ]
+        }
+      }
     },
     "Spawn_Blocker_T3": {
       "id": "Spawn_Blocker_T3",
@@ -137169,7 +139158,18 @@
       "iconPath": "Deployables/ITEM_Spawn_Blocker_T3",
       "recipeIds": [
         "SpawnBlocker_T3"
-      ]
+      ],
+      "deployable": {
+        "requiresShelter": false,
+        "generator": {
+          "resource": "Energy",
+          "generationRate": 5000,
+          "generationRatio": 4000,
+          "fuels": [
+            "Biofuel"
+          ]
+        }
+      }
     },
     "Spawn_Blocker_T4": {
       "id": "Spawn_Blocker_T4",
@@ -137179,7 +139179,18 @@
       "iconPath": "Deployables/T_ITEM_Spawn_Blocker_T4",
       "recipeIds": [
         "SpawnBlocker_T4"
-      ]
+      ],
+      "deployable": {
+        "requiresShelter": false,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "consume",
+            "required": true,
+            "flowRate": 1500
+          }
+        ]
+      }
     },
     "Speed_Fertilizer": {
       "id": "Speed_Fertilizer",
@@ -137315,7 +139326,18 @@
       "iconPath": "Deployables/ITEM_Spotlight_Tripod",
       "recipeIds": [
         "Spotlight"
-      ]
+      ],
+      "deployable": {
+        "requiresShelter": false,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "consume",
+            "required": true,
+            "flowRate": 150
+          }
+        ]
+      }
     },
     "Squash": {
       "id": "Squash",
@@ -137586,7 +139608,24 @@
       "iconPath": "Deployables/T_ITEM_StoneBrick_Fireplace",
       "recipeIds": [
         "Stone_Brick_Fireplace"
-      ]
+      ],
+      "deployable": {
+        "powerDrawMw": 400,
+        "requiresShelter": false,
+        "generator": {
+          "resource": "Energy",
+          "generationRate": 2500,
+          "fuels": [
+            "Fiber",
+            "Stick",
+            "Wood_Refined",
+            "Wood",
+            "Coal_Ore",
+            "Packed_Fuel_Brick",
+            "Lava_Hunter_Magma"
+          ]
+        }
+      }
     },
     "StoneBrick_Fireplace_Cap": {
       "id": "StoneBrick_Fireplace_Cap",
@@ -138315,7 +140354,27 @@
       "iconPath": "Deployables/T_ITEM_T3_Cleaning_Device",
       "recipeIds": [
         "T3_Cleaning_Device"
-      ]
+      ],
+      "deployable": {
+        "powerDrawMw": 1000,
+        "requiresShelter": true,
+        "connections": [
+          {
+            "resource": "water",
+            "role": "consume",
+            "required": false,
+            "optionalHint": "for boost",
+            "flowRate": 250
+          }
+        ],
+        "generator": {
+          "resource": "Energy",
+          "generationRatio": 200,
+          "fuels": [
+            "Biofuel"
+          ]
+        }
+      }
     },
     "Tackle_Box": {
       "id": "Tackle_Box",
@@ -138439,7 +140498,18 @@
       "iconPath": "Deployables/T_ITEM_Tesla_Coil",
       "recipeIds": [
         "Telsa_Coil"
-      ]
+      ],
+      "deployable": {
+        "requiresShelter": false,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "consume",
+            "required": true,
+            "flowRate": 3000
+          }
+        ]
+      }
     },
     "Thatch_Beam": {
       "id": "Thatch_Beam",
@@ -138628,7 +140698,18 @@
       "iconPath": "Deployables/ITEM_Thumper",
       "recipeIds": [
         "Thumper"
-      ]
+      ],
+      "deployable": {
+        "requiresShelter": false,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "consume",
+            "required": true,
+            "flowRate": 1500
+          }
+        ]
+      }
     },
     "Thumper_Deep": {
       "id": "Thumper_Deep",
@@ -138638,7 +140719,17 @@
       "iconPath": "Deployables/T_ITEM_Thumper_Deep",
       "recipeIds": [
         "Thumper_Deep"
-      ]
+      ],
+      "deployable": {
+        "requiresShelter": false,
+        "generator": {
+          "resource": "Energy",
+          "generationRate": 33,
+          "fuels": [
+            "Refined_Oil"
+          ]
+        }
+      }
     },
     "Thumper_Mini": {
       "id": "Thumper_Mini",
@@ -138975,7 +141066,11 @@
       "iconPath": "Deployables/ITEM_Trophy_Bench",
       "recipeIds": [
         "Trophy_Bench"
-      ]
+      ],
+      "deployable": {
+        "powerDrawMw": 500,
+        "requiresShelter": true
+      }
     },
     "Truffle": {
       "id": "Truffle",
@@ -139066,7 +141161,25 @@
       "iconPath": "Deployables/T_ITEM_Turret_Flamethrower",
       "recipeIds": [
         "Turret_Flamethrower"
-      ]
+      ],
+      "deployable": {
+        "requiresShelter": false,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "consume",
+            "required": true,
+            "flowRate": 3000
+          },
+          {
+            "resource": "biofuel",
+            "role": "consume",
+            "required": false,
+            "optionalHint": "Connect Biofuel",
+            "flowRate": 1000
+          }
+        ]
+      }
     },
     "Turret_Pistol": {
       "id": "Turret_Pistol",
@@ -139076,7 +141189,18 @@
       "iconPath": "Deployables/T_ITEM_Turret_Pistol",
       "recipeIds": [
         "Turret_Pistol"
-      ]
+      ],
+      "deployable": {
+        "requiresShelter": false,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "consume",
+            "required": true,
+            "flowRate": 3000
+          }
+        ]
+      }
     },
     "Tusker_Head": {
       "id": "Tusker_Head",
@@ -139140,7 +141264,26 @@
       "iconPath": "Deployables/T_ITEM_Uranium_Converter",
       "recipeIds": [
         "Uranium_Converter"
-      ]
+      ],
+      "deployable": {
+        "powerDrawMw": 2500,
+        "requiresShelter": true,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "consume",
+            "required": true,
+            "flowRate": 0
+          },
+          {
+            "resource": "water",
+            "role": "consume",
+            "required": false,
+            "optionalHint": "per recipe",
+            "flowRate": 0
+          }
+        ]
+      }
     },
     "Uranium_Generator": {
       "id": "Uranium_Generator",
@@ -139150,7 +141293,25 @@
       "iconPath": "Deployables/T_ITEM_Uranium_Generator",
       "recipeIds": [
         "Uranium_Generator"
-      ]
+      ],
+      "deployable": {
+        "requiresShelter": false,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "consume",
+            "required": true
+          }
+        ],
+        "generator": {
+          "resource": "Energy",
+          "generationRate": 100000,
+          "generationRatio": 10000,
+          "fuels": [
+            "Uranium_Rod"
+          ]
+        }
+      }
     },
     "Uranium_Inert": {
       "id": "Uranium_Inert",
@@ -139280,7 +141441,18 @@
       "iconPath": "Deployables/ITEM_WoodBarrel",
       "recipeIds": [
         "Water_Barrel"
-      ]
+      ],
+      "deployable": {
+        "requiresShelter": false,
+        "connections": [
+          {
+            "resource": "water",
+            "role": "store",
+            "required": true,
+            "flowRate": 1000
+          }
+        ]
+      }
     },
     "Water_Borer": {
       "id": "Water_Borer",
@@ -139290,7 +141462,31 @@
       "iconPath": "Deployables/ITEM_Ice_Borer",
       "recipeIds": [
         "Water_Borer"
-      ]
+      ],
+      "deployable": {
+        "requiresShelter": false,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "consume",
+            "required": true,
+            "flowRate": 0
+          },
+          {
+            "resource": "water",
+            "role": "consume",
+            "required": true
+          }
+        ],
+        "generator": {
+          "resource": "Water",
+          "generationRate": 2000,
+          "generationRatio": 2,
+          "fuels": [
+            "Energy"
+          ]
+        }
+      }
     },
     "Water_Pump": {
       "id": "Water_Pump",
@@ -139299,7 +141495,29 @@
       "iconPath": "Deployables/ITEM_Water_Pump",
       "recipeIds": [
         "Water_Pump"
-      ]
+      ],
+      "deployable": {
+        "requiresShelter": false,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "consume",
+            "required": true,
+            "flowRate": 0
+          },
+          {
+            "resource": "water",
+            "role": "consume",
+            "required": true
+          }
+        ],
+        "generator": {
+          "resource": "Water",
+          "fuels": [
+            "Energy"
+          ]
+        }
+      }
     },
     "Water_Purifier_T1_Ground": {
       "id": "Water_Purifier_T1_Ground",
@@ -139309,7 +141527,17 @@
       "iconPath": "Deployables/T_ITEM_Water_Purifier_T1_2",
       "recipeIds": [
         "Water_Purifier_T1_Ground"
-      ]
+      ],
+      "deployable": {
+        "requiresShelter": false,
+        "generator": {
+          "resource": "Energy",
+          "generationRate": 25000,
+          "fuels": [
+            "Charcoal"
+          ]
+        }
+      }
     },
     "Water_Purifier_T1_Water": {
       "id": "Water_Purifier_T1_Water",
@@ -139319,7 +141547,17 @@
       "iconPath": "Deployables/T_ITEM_Water_Purifier_T1_1",
       "recipeIds": [
         "Water_Purifier_T1_Water"
-      ]
+      ],
+      "deployable": {
+        "requiresShelter": false,
+        "generator": {
+          "resource": "Energy",
+          "generationRate": 25000,
+          "fuels": [
+            "Charcoal"
+          ]
+        }
+      }
     },
     "Water_Purifier_T2": {
       "id": "Water_Purifier_T2",
@@ -139329,7 +141567,25 @@
       "iconPath": "Deployables/T_ITEM_Water_Purifier_T2",
       "recipeIds": [
         "Water_Purifier_T2"
-      ]
+      ],
+      "deployable": {
+        "requiresShelter": false,
+        "connections": [
+          {
+            "resource": "water",
+            "role": "consume",
+            "required": true,
+            "flowRate": 200
+          }
+        ],
+        "generator": {
+          "resource": "Energy",
+          "generationRate": 25000,
+          "fuels": [
+            "Charcoal"
+          ]
+        }
+      }
     },
     "Water_Purifier_T4": {
       "id": "Water_Purifier_T4",
@@ -139339,7 +141595,24 @@
       "iconPath": "Deployables/T_ITEM_Water_Purifier_T4",
       "recipeIds": [
         "Water_Purifier_T4"
-      ]
+      ],
+      "deployable": {
+        "requiresShelter": false,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "consume",
+            "required": true,
+            "flowRate": 1000
+          },
+          {
+            "resource": "water",
+            "role": "consume",
+            "required": true,
+            "flowRate": 500
+          }
+        ]
+      }
     },
     "Water_Sprinkler": {
       "id": "Water_Sprinkler",
@@ -139349,7 +141622,18 @@
       "iconPath": "Deployables/ITEM_Water_Sprinkler",
       "recipeIds": [
         "Water_Sprinkler"
-      ]
+      ],
+      "deployable": {
+        "requiresShelter": false,
+        "connections": [
+          {
+            "resource": "water",
+            "role": "consume",
+            "required": true,
+            "flowRate": 100
+          }
+        ]
+      }
     },
     "Water_Trough": {
       "id": "Water_Trough",
@@ -139377,6 +141661,17 @@
             "displayName": "Creature Comforts Pack"
           }
         ]
+      },
+      "deployable": {
+        "requiresShelter": false,
+        "connections": [
+          {
+            "resource": "water",
+            "role": "consume",
+            "required": true,
+            "flowRate": 250
+          }
+        ]
       }
     },
     "Water_Trough_Large": {
@@ -139387,7 +141682,18 @@
       "iconPath": "Deployables/T_ITEM_Water_Trough_Large",
       "recipeIds": [
         "Water_Trough_Large"
-      ]
+      ],
+      "deployable": {
+        "requiresShelter": false,
+        "connections": [
+          {
+            "resource": "water",
+            "role": "consume",
+            "required": true,
+            "flowRate": 250
+          }
+        ]
+      }
     },
     "Water_Trough_Metal": {
       "id": "Water_Trough_Metal",
@@ -139403,6 +141709,17 @@
           {
             "id": "Creature_Comforts",
             "displayName": "Creature Comforts Pack"
+          }
+        ]
+      },
+      "deployable": {
+        "requiresShelter": false,
+        "connections": [
+          {
+            "resource": "water",
+            "role": "consume",
+            "required": true,
+            "flowRate": 250
           }
         ]
       }
@@ -139423,6 +141740,17 @@
             "displayName": "Creature Comforts Pack"
           }
         ]
+      },
+      "deployable": {
+        "requiresShelter": false,
+        "connections": [
+          {
+            "resource": "water",
+            "role": "consume",
+            "required": true,
+            "flowRate": 250
+          }
+        ]
       }
     },
     "Water_Trough_T4": {
@@ -139433,7 +141761,24 @@
       "iconPath": "Deployables/T_ITEM_Water_Trough_T4",
       "recipeIds": [
         "Water_Trough_T4"
-      ]
+      ],
+      "deployable": {
+        "requiresShelter": false,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "consume",
+            "required": true,
+            "flowRate": 1000
+          },
+          {
+            "resource": "water",
+            "role": "consume",
+            "required": true,
+            "flowRate": 30
+          }
+        ]
+      }
     },
     "Watering_Can": {
       "id": "Watering_Can",
@@ -139568,7 +141913,18 @@
       "iconPath": "Deployables/ITEM_Wind_Turbine",
       "recipeIds": [
         "Wind_Turbine"
-      ]
+      ],
+      "deployable": {
+        "requiresShelter": false,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "produce",
+            "required": true,
+            "flowRate": 1750
+          }
+        ]
+      }
     },
     "Windmill": {
       "id": "Windmill",
@@ -139578,7 +141934,11 @@
       "iconPath": "Deployables/T_ITEM_Windmill",
       "recipeIds": [
         "Windmill"
-      ]
+      ],
+      "deployable": {
+        "powerDrawMw": 1000,
+        "requiresShelter": false
+      }
     },
     "Wine": {
       "id": "Wine",
@@ -139639,7 +141999,24 @@
       "iconPath": "Deployables/T_ITEM_Wood_Burner",
       "recipeIds": [
         "Wood_Burner"
-      ]
+      ],
+      "deployable": {
+        "powerDrawMw": 250,
+        "requiresShelter": false,
+        "generator": {
+          "resource": "Energy",
+          "generationRate": 2500,
+          "fuels": [
+            "Fiber",
+            "Stick",
+            "Wood_Refined",
+            "Wood",
+            "Coal_Ore",
+            "Packed_Fuel_Brick",
+            "Lava_Hunter_Magma"
+          ]
+        }
+      }
     },
     "Wood_Chair": {
       "id": "Wood_Chair",
@@ -140108,7 +142485,19 @@
       "displayName": "MXC Camping Cooker",
       "description": "A convenient cooking solution for a prospector on the go.",
       "flavorText": "Powered By Hydrazine",
-      "iconPath": "Deployables/T_ITEM_Workshop_Cooker"
+      "iconPath": "Deployables/T_ITEM_Workshop_Cooker",
+      "deployable": {
+        "powerDrawMw": 375,
+        "requiresShelter": false,
+        "generator": {
+          "resource": "Energy",
+          "generationRate": 2500,
+          "generationRatio": 2500,
+          "fuels": [
+            "Hydrazine"
+          ]
+        }
+      }
     },
     "Workshop_Dog_A1": {
       "id": "Workshop_Dog_A1",
@@ -140185,7 +142574,18 @@
       "displayName": "MXC Camping Heater",
       "description": "A convenient heating solution for a prospector on the go.",
       "flavorText": "Powered By Hydrazine",
-      "iconPath": "Deployables/T_ITEM_Workshop_Heater"
+      "iconPath": "Deployables/T_ITEM_Workshop_Heater",
+      "deployable": {
+        "requiresShelter": false,
+        "generator": {
+          "resource": "Energy",
+          "generationRate": 2500,
+          "generationRatio": 2500,
+          "fuels": [
+            "Hydrazine"
+          ]
+        }
+      }
     },
     "Workshop_Horse_A1": {
       "id": "Workshop_Horse_A1",
@@ -140321,6 +142721,523 @@
       "recipeIds": [
         "Zebrah_Trophy"
       ]
+    },
+    "Kit_Concrete_Furnace": {
+      "id": "Kit_Concrete_Furnace",
+      "displayName": "Concrete Furnace",
+      "description": "An insulated, high-temperature furnace for smelting a wide range of materials including steel.",
+      "flavorText": "Icarus\\'s oxygen levels may slow combustion, but ceramic insulation produces temperatures sufficient for smelting more advanced alloys.",
+      "iconPath": "Deployables/ITEM_Kit_Concrete_Furnace",
+      "deployable": {
+        "powerDrawMw": 2000,
+        "requiresShelter": true,
+        "connections": [
+          {
+            "resource": "water",
+            "role": "consume",
+            "required": false,
+            "optionalHint": "per recipe",
+            "flowRate": 0
+          }
+        ],
+        "generator": {
+          "resource": "Energy",
+          "generationRate": 2500,
+          "fuels": [
+            "Fiber",
+            "Stick",
+            "Wood_Refined",
+            "Wood",
+            "Coal_Ore",
+            "Packed_Fuel_Brick",
+            "Lava_Hunter_Magma"
+          ]
+        }
+      }
+    },
+    "Kit_Electric_Furnace": {
+      "id": "Kit_Electric_Furnace",
+      "displayName": "Electric Furnace",
+      "description": "A laboratory grade arc furnace, smelts basic and advanced materials alike.",
+      "flavorText": "Does a helmet count as safety goggles?",
+      "iconPath": "Deployables/ITEM_Kit_Electric_Furnace",
+      "deployable": {
+        "powerDrawMw": 2500,
+        "requiresShelter": true,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "consume",
+            "required": true,
+            "flowRate": 0
+          },
+          {
+            "resource": "water",
+            "role": "consume",
+            "required": false,
+            "optionalHint": "per recipe",
+            "flowRate": 0
+          }
+        ]
+      }
+    },
+    "Cooking_Station": {
+      "id": "Cooking_Station",
+      "displayName": "Cooking Station",
+      "description": "A food preparation and butchering bench.",
+      "flavorText": "While it may not deliver high cuisine, the Cooking Station rewards the attentions of an attentive chef with a swifter, more sustaining food supply.",
+      "iconPath": "Deployables/ITEM_Cooking_Station",
+      "deployable": {
+        "powerDrawMw": 2500,
+        "requiresShelter": true
+      }
+    },
+    "Light_Worklamp_Directional": {
+      "id": "Light_Worklamp_Directional",
+      "displayName": "Directional Worklamp",
+      "description": "A basic lamp for illuminating a large area.",
+      "iconPath": "Deployables/ITEM_Light_Worklamp_Directional",
+      "deployable": {
+        "requiresShelter": false,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "consume",
+            "required": true,
+            "flowRate": 150
+          }
+        ]
+      }
+    },
+    "FirePit": {
+      "id": "FirePit",
+      "displayName": "Firepit",
+      "description": "A large, stone-lined pit for swift cooking and heating.",
+      "flavorText": "Flashroast a steak or an entire mammoth forequarter.",
+      "iconPath": "Deployables/ITEM_FirePit",
+      "deployable": {
+        "powerDrawMw": 275,
+        "requiresShelter": false,
+        "generator": {
+          "resource": "Energy",
+          "generationRate": 2500,
+          "fuels": [
+            "Fiber",
+            "Stick",
+            "Wood_Refined",
+            "Wood",
+            "Coal_Ore",
+            "Packed_Fuel_Brick",
+            "Lava_Hunter_Magma"
+          ]
+        }
+      }
+    },
+    "Glassworking_Bench": {
+      "id": "Glassworking_Bench",
+      "displayName": "Glassworking Bench",
+      "description": "Tools for creating glass items and construction elements.",
+      "flavorText": "True glass-making originated in the Indus Valley in 1700 BCE, passing into the Mediterranean, then Africa and the rest of the world, before extending through space to Icarus in the mid 22nd century.",
+      "iconPath": "Deployables/ITEM_Glassworking_Bench",
+      "deployable": {
+        "powerDrawMw": 1000,
+        "requiresShelter": true,
+        "connections": [
+          {
+            "resource": "water",
+            "role": "consume",
+            "required": false,
+            "flowRate": 0
+          }
+        ]
+      }
+    },
+    "Faction_Mission_Drill": {
+      "id": "Faction_Mission_Drill",
+      "displayName": "Biofuel Drill",
+      "description": "A portable, heavy duty boring rig powered by biofuel.",
+      "flavorText": "Driven by bio-diesel, this micro-derrick design was adapted from asteroid mining equipment used in the early 22nd century.",
+      "iconPath": "Deployables/ITEM_Kit_Extractor",
+      "deployable": {
+        "requiresShelter": false,
+        "generator": {
+          "resource": "Energy",
+          "generationRate": 1,
+          "fuels": [
+            "Biofuel"
+          ]
+        }
+      }
+    },
+    "Electric_Dehumidifier": {
+      "id": "Electric_Dehumidifier",
+      "displayName": "Electric Dehumidifier",
+      "description": "Diminishes such health risks as cave sickness, while also seeming to dispel cave worms.",
+      "flavorText": "Whether cave worms are offended by the sudden aridity it produces, or the high pitched whine, research is yet to confirm.",
+      "iconPath": "Deployables/ITEM_Electric_Dehumidifier",
+      "deployable": {
+        "requiresShelter": false,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "consume",
+            "required": true,
+            "flowRate": 500
+          }
+        ]
+      }
+    },
+    "WaterWheel_Generator": {
+      "id": "WaterWheel_Generator",
+      "displayName": "Water Wheel",
+      "description": "A combined wheel and generator, turns fluid motion into angular momentum.",
+      "flavorText": "Still one of humanity\\'s greatest ideas.",
+      "iconPath": "Deployables/ITEM_WaterWheel_Generator",
+      "deployable": {
+        "requiresShelter": false,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "produce",
+            "required": true,
+            "flowRate": 2000
+          }
+        ]
+      }
+    },
+    "Basic_Wall_Light": {
+      "id": "Basic_Wall_Light",
+      "displayName": "Basic Wall Light",
+      "description": "A wall-mounted lamp, providing wide illumination, needing power.",
+      "flavorText": "\"Darkness cannot drive out darkness.\"",
+      "iconPath": "Deployables/ITEM_Basic_Wall_Light",
+      "deployable": {
+        "requiresShelter": false,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "consume",
+            "required": true,
+            "flowRate": 150
+          }
+        ]
+      }
+    },
+    "Faction_Mission_WallDrill": {
+      "id": "Faction_Mission_WallDrill",
+      "displayName": "Tunnelling Drill",
+      "description": "An industrial-grade, portable electric mining rig designed for horizontal aperture drilling.",
+      "flavorText": "This micro-derrick rig was adapted from Inaris-designed asteroid mining equipment used in the early 22nd century.",
+      "iconPath": "QuestItems/ITEM_Faction_Mission_WallDrill",
+      "deployable": {
+        "requiresShelter": false,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "consume",
+            "required": true,
+            "flowRate": 1000
+          }
+        ]
+      }
+    },
+    "Faction_MIssion_Analyzer": {
+      "id": "Faction_MIssion_Analyzer",
+      "displayName": "Electric Composter",
+      "description": "Advanced biofuel unit for accelerated production.",
+      "flavorText": "An upshot of the Climate Emergency was a focus on efficient, sustainable technology that squeezes every ounce of energy from nature.",
+      "iconPath": "Deployables/ITEM_Composter_Electric",
+      "deployable": {
+        "powerDrawMw": 1500,
+        "requiresShelter": true,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "consume",
+            "required": true,
+            "flowRate": 1000
+          },
+          {
+            "resource": "water",
+            "role": "consume",
+            "required": true,
+            "flowRate": 100
+          }
+        ]
+      }
+    },
+    "Mission_Analyzer_Egg": {
+      "id": "Mission_Analyzer_Egg",
+      "displayName": "Organic Matter Analyzer",
+      "description": "Scans and locates nearby organic matter of the same type.",
+      "flavorText": "Another machine designed by a scientist who has never stepped foot on Icarus.",
+      "iconPath": "QuestItems/ITEM_Mission_Analyzer_Egg",
+      "deployable": {
+        "requiresShelter": false,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "consume",
+            "required": true,
+            "flowRate": 1000
+          }
+        ]
+      }
+    },
+    "Filletting_Station": {
+      "id": "Filletting_Station",
+      "displayName": "Basic Fishing Bench",
+      "description": "A place to craft Rods and Lures and to fillet Fish that you\\'ve caught.",
+      "flavorText": "The stench of this bench...",
+      "iconPath": "Deployables/ITEM_Fishing_Bench",
+      "deployable": {
+        "powerDrawMw": 1000,
+        "requiresShelter": false
+      }
+    },
+    "Anvil_Bench_T4": {
+      "id": "Anvil_Bench_T4",
+      "displayName": "Foundry",
+      "description": "An impressive foundry powered by electricity for crafting various higher quality weapons and tools.",
+      "flavorText": "The UDA states that it has been at least seven days since the last accident using this piece of equipment...",
+      "iconPath": "Deployables/T_ITEM_Anvil_Bench_T4",
+      "deployable": {
+        "powerDrawMw": 2000,
+        "requiresShelter": true,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "consume",
+            "required": true,
+            "flowRate": 0
+          }
+        ]
+      }
+    },
+    "Single_Wall_Light": {
+      "id": "Single_Wall_Light",
+      "displayName": "Single Wall Light",
+      "description": "A simple wall light.",
+      "flavorText": "A simple light for your lighting needs.",
+      "iconPath": "Deployables/T_ITEM_Single_Wall_Light",
+      "deployable": {
+        "requiresShelter": false,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "consume",
+            "required": true,
+            "flowRate": 75
+          }
+        ]
+      }
+    },
+    "Exposed_Wall_Light": {
+      "id": "Exposed_Wall_Light",
+      "displayName": "Exposed Wall Light",
+      "description": "A classic exposed light bulb.",
+      "flavorText": "A simple light for your lighting needs.",
+      "iconPath": "Deployables/T_ITEM_Exposed_Wall_Light",
+      "deployable": {
+        "requiresShelter": false,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "consume",
+            "required": true,
+            "flowRate": 75
+          }
+        ]
+      }
+    },
+    "Exposed_Wall_Light_Foggy": {
+      "id": "Exposed_Wall_Light_Foggy",
+      "displayName": "Frosted Wall Light",
+      "description": "A classic exposed light bulb.",
+      "flavorText": "A simple light for your lighting needs.",
+      "iconPath": "Deployables/T_ITEM_Exposed_Wall_Light_Foggy",
+      "deployable": {
+        "requiresShelter": false,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "consume",
+            "required": true,
+            "flowRate": 75
+          }
+        ]
+      }
+    },
+    "Mission_Generator_NoDestroy": {
+      "id": "Mission_Generator_NoDestroy",
+      "displayName": "Biofuel Generator",
+      "description": "An efficient, if basic biofuel-driven electric generator.",
+      "flavorText": "Literally or figuratively, we\\'ve come a long way from the Faraday Disc.",
+      "iconPath": "Deployables/T_ITEM_Kit_Generator",
+      "deployable": {
+        "requiresShelter": false,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "consume",
+            "required": true
+          }
+        ],
+        "generator": {
+          "resource": "Energy",
+          "generationRate": 5000,
+          "generationRatio": 7500,
+          "fuels": [
+            "Biofuel"
+          ]
+        }
+      }
+    },
+    "Enemy_Turret_Pistol": {
+      "id": "Enemy_Turret_Pistol",
+      "displayName": "Blackmarket Automative Defence Turret (Pistol)",
+      "description": "A turret that fires on anyone not registered to the system, fires pistol ammo.",
+      "flavorText": "This design is marked as \"experimental\" by the Lagos Group - The UDA is not liable for any injuries caused by this unit.",
+      "iconPath": "Deployables/T_ITEM_Turret_Pistol",
+      "deployable": {
+        "requiresShelter": false,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "consume",
+            "required": true,
+            "flowRate": 500
+          }
+        ]
+      }
+    },
+    "Mission_Enzyme_Propogation_Unit": {
+      "id": "Mission_Enzyme_Propogation_Unit",
+      "displayName": "Enzyme Propagation Unit",
+      "description": "A device which disperses a modified terraforming enzyme into the surrounding environment for creature experimentation",
+      "flavorText": "Enzymes are nothing but trouble...",
+      "iconPath": "Deployables/T_ITEM_Enzyme_Propagation_Unit",
+      "deployable": {
+        "requiresShelter": false,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "consume",
+            "required": true,
+            "flowRate": 500
+          }
+        ]
+      }
+    },
+    "Mission_Enzyme_Propogation_Hub": {
+      "id": "Mission_Enzyme_Propogation_Hub",
+      "displayName": "Enzyme Propagation Hub",
+      "description": "A device which disperses a modified terraforming enzyme into the surrounding environment for creature experimentation",
+      "flavorText": "Enzymes are nothing but trouble...",
+      "iconPath": "Deployables/T_ITEM_Enzyme_Propagation_Unit",
+      "deployable": {
+        "requiresShelter": false,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "consume",
+            "required": true,
+            "flowRate": 500
+          }
+        ]
+      }
+    },
+    "Prop_Mortar_And_Pestle": {
+      "id": "Prop_Mortar_And_Pestle",
+      "displayName": "Sterile Mortar & Pestle",
+      "description": "A mortar and pestle used for grinding up elements.",
+      "flavorText": "Science!",
+      "iconPath": "Props/T_ITEM_Prop_Mortar_And_Pestle",
+      "deployable": {
+        "powerDrawMw": 500,
+        "requiresShelter": true
+      }
+    },
+    "Mission_TPS_Communication_Tower": {
+      "id": "Mission_TPS_Communication_Tower",
+      "displayName": "TPS Communication Tower",
+      "description": "Intercepting Communication Signals within the Area",
+      "iconPath": "Deployables/T_ITEM_Bunker_Antenna",
+      "deployable": {
+        "requiresShelter": false,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "consume",
+            "required": true,
+            "flowRate": 500
+          }
+        ]
+      }
+    },
+    "Enemy_Turret_Flamethrower": {
+      "id": "Enemy_Turret_Flamethrower",
+      "displayName": "Blackmarket Automative Defence Turret (Flamethrower)",
+      "description": "A modified turret which fires a steady stream of flame at nearby enemies.",
+      "flavorText": "This design is marked as \"experimental\" by the Lagos Group - The UDA is not liable for any injuries caused by this unit.",
+      "iconPath": "Deployables/T_ITEM_Turret_Flamethrower",
+      "deployable": {
+        "requiresShelter": false,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "consume",
+            "required": true,
+            "flowRate": 500
+          }
+        ]
+      }
+    },
+    "Eden_NPC_Hunter": {
+      "id": "Eden_NPC_Hunter",
+      "displayName": "Predator Control Specialist Liardet",
+      "description": "UDA assigned Specialist who deals in all manner of Creatures within the area. Will buy Vestiges.",
+      "deployable": {
+        "powerDrawMw": 100000,
+        "requiresShelter": false
+      }
+    },
+    "Eden_NPC_Norex": {
+      "id": "Eden_NPC_Norex",
+      "displayName": "Norex Liaison \\'Agent\\'",
+      "description": "A Norex representative who deals in the trading of Biomass. Buys creature parts.",
+      "flavorText": "Why was it programmed with such an attitude?!",
+      "deployable": {
+        "powerDrawMw": 100000,
+        "requiresShelter": false
+      }
+    },
+    "Eden_NPC_Farmer": {
+      "id": "Eden_NPC_Farmer",
+      "displayName": "Cultivation Specialist Henrickson",
+      "description": "UDA assigned Specialist who deals in all manner of Plants growable on Icarus. Will buy Crops.",
+      "deployable": {
+        "powerDrawMw": 100000,
+        "requiresShelter": false
+      }
+    },
+    "Eden_NPC_Fisher": {
+      "id": "Eden_NPC_Fisher",
+      "displayName": "Chief Fisheries Officer Dunski",
+      "description": "UDA assigned Specialist who deals in all manner of Aquatic Life on Icarus. Will buy Fish.",
+      "deployable": {
+        "powerDrawMw": 100000,
+        "requiresShelter": false
+      }
+    },
+    "Eden_NPC_Chef": {
+      "id": "Eden_NPC_Chef",
+      "displayName": "Food Shop",
+      "description": "The Food shop of the Culinary Specialist. ",
+      "deployable": {
+        "powerDrawMw": 100000,
+        "requiresShelter": false
+      }
     }
   },
   "stations": {
@@ -140329,14 +143246,30 @@
       "displayName": "Advanced Alteration Bench",
       "recipeSetDisplayName": "Advanced Alteration Bench",
       "iconPath": "Deployables/ITEM_Advanced_Alteration_Bench",
-      "craftRecipeId": "Advanced_Alteration_Bench"
+      "craftRecipeId": "Advanced_Alteration_Bench",
+      "deployable": {
+        "powerDrawMw": 1500,
+        "requiresShelter": true,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "consume",
+            "required": true,
+            "flowRate": 0
+          }
+        ]
+      }
     },
     "Advanced_Armor_Bench": {
       "id": "Advanced_Armor_Bench",
       "displayName": "Advanced Textiles Bench",
       "recipeSetDisplayName": "Advanced Textiles Bench",
       "iconPath": "Deployables/ITEM_Advanced_Armor_Bench",
-      "craftRecipeId": "Advanced_Armor_Bench"
+      "craftRecipeId": "Advanced_Armor_Bench",
+      "deployable": {
+        "powerDrawMw": 2500,
+        "requiresShelter": true
+      }
     },
     "Advanced_Butchery_Bench": {
       "id": "Advanced_Butchery_Bench",
@@ -140350,89 +143283,197 @@
       "displayName": "Marble Kitchen Bench",
       "recipeSetDisplayName": "Advanced Kitchen Bench",
       "iconPath": "Deployables/T_ITEM_Advanced_Kitchen_Bench",
-      "craftRecipeId": "Advanced_Kitchen_Bench"
+      "craftRecipeId": "Advanced_Kitchen_Bench",
+      "deployable": {
+        "powerDrawMw": 500,
+        "requiresShelter": true,
+        "connections": [
+          {
+            "resource": "water",
+            "role": "consume",
+            "required": false,
+            "optionalHint": "per recipe",
+            "flowRate": 0
+          }
+        ]
+      }
     },
     "Alteration_Bench": {
       "id": "Alteration_Bench",
       "displayName": "Alteration Bench",
       "recipeSetDisplayName": "Alteration Bench",
       "iconPath": "Deployables/ITEM_Alteration_Bench",
-      "craftRecipeId": "Alteration_Bench"
+      "craftRecipeId": "Alteration_Bench",
+      "deployable": {
+        "powerDrawMw": 1000,
+        "requiresShelter": true
+      }
     },
     "Animal_Bench": {
       "id": "Animal_Bench",
       "displayName": "Ranching Station",
       "recipeSetDisplayName": "Ranching Station",
       "iconPath": "Deployables/T_ITEM_Animal_Bench",
-      "craftRecipeId": "Animal_Bench"
+      "craftRecipeId": "Animal_Bench",
+      "deployable": {
+        "powerDrawMw": 1000,
+        "requiresShelter": false
+      }
     },
     "Anvil_Bench": {
       "id": "Anvil_Bench",
       "displayName": "Anvil Bench",
       "recipeSetDisplayName": "Anvil Bench",
       "iconPath": "Deployables/ITEM_Anvil_Bench",
-      "craftRecipeId": "Anvil_Bench"
+      "craftRecipeId": "Anvil_Bench",
+      "deployable": {
+        "powerDrawMw": 1000,
+        "requiresShelter": true
+      }
     },
     "Anvil_Bench_T3": {
       "id": "Anvil_Bench_T3",
       "displayName": "Forge",
       "recipeSetDisplayName": "Forge",
       "iconPath": "Deployables/T_ITEM_Anvil_Bench_T3",
-      "craftRecipeId": "Anvil_Bench_T3"
+      "craftRecipeId": "Anvil_Bench_T3",
+      "deployable": {
+        "powerDrawMw": 1500,
+        "requiresShelter": false,
+        "generator": {
+          "resource": "Energy",
+          "generationRate": 2500,
+          "fuels": [
+            "Charcoal",
+            "Coal_Ore",
+            "Meta_Coal"
+          ]
+        }
+      }
     },
     "Anvil_Bench_T4": {
       "id": "Anvil_Bench_T4",
       "displayName": "Foundry",
       "recipeSetDisplayName": "Foundry",
       "iconPath": "Deployables/T_ITEM_Anvil_Bench_T4_v2",
-      "craftRecipeId": "Anvil_Bench_T4"
+      "craftRecipeId": "Anvil_Bench_T4",
+      "deployable": {
+        "powerDrawMw": 2000,
+        "requiresShelter": true,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "consume",
+            "required": true,
+            "flowRate": 0
+          }
+        ]
+      }
     },
     "Armor_Bench": {
       "id": "Armor_Bench",
       "displayName": "Textiles Bench",
       "recipeSetDisplayName": "Textiles Bench",
       "iconPath": "Deployables/T_ITEM_Armor_Bench",
-      "craftRecipeId": "Armor_Bench"
+      "craftRecipeId": "Armor_Bench",
+      "deployable": {
+        "powerDrawMw": 2500,
+        "requiresShelter": true
+      }
     },
     "Biomass_Exchange": {
       "id": "Biomass_Exchange",
       "displayName": "Norex Liaison \\'Agent\\'",
-      "recipeSetDisplayName": "Biomass Exchange"
+      "recipeSetDisplayName": "Biomass Exchange",
+      "deployable": {
+        "powerDrawMw": 100000,
+        "requiresShelter": false
+      }
     },
     "Butchery_Bench": {
       "id": "Butchery_Bench",
       "displayName": "Butchery Bench",
       "recipeSetDisplayName": "Butchery Bench",
       "iconPath": "Deployables/T_ITEM_Butchery_Bench",
-      "craftRecipeId": "Butchery_Bench"
+      "craftRecipeId": "Butchery_Bench",
+      "deployable": {
+        "powerDrawMw": 500,
+        "requiresShelter": true
+      }
     },
     "Campfire": {
       "id": "Campfire",
       "displayName": "Campfire",
       "recipeSetDisplayName": "Campfire",
       "iconPath": "Deployables/ITEM_Campfire",
-      "craftRecipeId": "Campfire"
+      "craftRecipeId": "Campfire",
+      "deployable": {
+        "powerDrawMw": 250,
+        "requiresShelter": false,
+        "generator": {
+          "resource": "Energy",
+          "generationRate": 2500,
+          "fuels": [
+            "Fiber",
+            "Stick",
+            "Wood_Refined",
+            "Wood",
+            "Coal_Ore",
+            "Packed_Fuel_Brick",
+            "Lava_Hunter_Magma"
+          ]
+        }
+      }
     },
     "Carpentry_Bench": {
       "id": "Carpentry_Bench",
       "displayName": "Carpentry Bench",
       "recipeSetDisplayName": "Carpentry Bench",
       "iconPath": "Deployables/ITEM_Carpentry_Bench",
-      "craftRecipeId": "Carpentry_Bench"
+      "craftRecipeId": "Carpentry_Bench",
+      "deployable": {
+        "powerDrawMw": 1000,
+        "requiresShelter": true
+      }
     },
     "Carpentry_Bench_T4": {
       "id": "Carpentry_Bench_T4",
       "displayName": "Electric Carpentry Bench",
       "recipeSetDisplayName": "Electric Carpentry Bench",
       "iconPath": "Deployables/ITEM_Carpentry_Bench_T4",
-      "craftRecipeId": "Carpentry_Bench_T4"
+      "craftRecipeId": "Carpentry_Bench_T4",
+      "deployable": {
+        "powerDrawMw": 2000,
+        "requiresShelter": true,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "consume",
+            "required": true,
+            "flowRate": 0
+          }
+        ]
+      }
     },
     "Cement_Mixer": {
       "id": "Cement_Mixer",
       "displayName": "Cement Mixer",
       "recipeSetDisplayName": "Cement Mixer",
       "iconPath": "Deployables/ITEM_Cement_Mixer",
-      "craftRecipeId": "Cement_Mixer"
+      "craftRecipeId": "Cement_Mixer",
+      "deployable": {
+        "powerDrawMw": 1000,
+        "requiresShelter": true,
+        "connections": [
+          {
+            "resource": "water",
+            "role": "consume",
+            "required": false,
+            "optionalHint": "for boost",
+            "flowRate": 250
+          }
+        ]
+      }
     },
     "Character": {
       "id": "Character",
@@ -140444,96 +143485,276 @@
       "displayName": "Chemistry Bench",
       "recipeSetDisplayName": "Chemistry Bench",
       "iconPath": "Deployables/ITEM_Chemistry_Bench",
-      "craftRecipeId": "Chemistry_Bench"
+      "craftRecipeId": "Chemistry_Bench",
+      "deployable": {
+        "powerDrawMw": 2000,
+        "requiresShelter": true,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "consume",
+            "required": true,
+            "flowRate": 0
+          },
+          {
+            "resource": "water",
+            "role": "consume",
+            "required": false,
+            "optionalHint": "per recipe",
+            "flowRate": 0
+          }
+        ]
+      }
     },
     "Cleaning_Device": {
       "id": "Cleaning_Device",
       "displayName": "Biofuel Bio-Cleaner",
       "recipeSetDisplayName": "Cleaning Device",
       "iconPath": "Deployables/T_ITEM_T3_Cleaning_Device",
-      "craftRecipeId": "T3_Cleaning_Device"
+      "craftRecipeId": "T3_Cleaning_Device",
+      "deployable": {
+        "powerDrawMw": 1000,
+        "requiresShelter": true,
+        "connections": [
+          {
+            "resource": "water",
+            "role": "consume",
+            "required": false,
+            "optionalHint": "for boost",
+            "flowRate": 250
+          }
+        ],
+        "generator": {
+          "resource": "Energy",
+          "generationRatio": 200,
+          "fuels": [
+            "Biofuel"
+          ]
+        }
+      }
     },
     "Composter": {
       "id": "Composter",
       "displayName": "Biofuel Composter",
       "recipeSetDisplayName": "Composter",
       "iconPath": "Deployables/ITEM_Composter",
-      "craftRecipeId": "Composter"
+      "craftRecipeId": "Composter",
+      "deployable": {
+        "powerDrawMw": 500,
+        "requiresShelter": false,
+        "connections": [
+          {
+            "resource": "water",
+            "role": "consume",
+            "required": false,
+            "optionalHint": "for boost",
+            "flowRate": 100
+          }
+        ]
+      }
     },
     "Composter_Wood": {
       "id": "Composter_Wood",
       "displayName": "Wood Composter",
       "recipeSetDisplayName": "Wood Composter",
       "iconPath": "Deployables/ITEM_Composter_Wood",
-      "craftRecipeId": "Composter_Wood"
+      "craftRecipeId": "Composter_Wood",
+      "deployable": {
+        "powerDrawMw": 50,
+        "requiresShelter": false
+      }
     },
     "Concrete_Furnace": {
       "id": "Concrete_Furnace",
       "displayName": "Concrete Furnace",
       "recipeSetDisplayName": "Concrete Furnace",
       "iconPath": "Deployables/ITEM_Concrete_Furnace_V2",
-      "craftRecipeId": "Concrete_Furnace"
+      "craftRecipeId": "Concrete_Furnace",
+      "deployable": {
+        "powerDrawMw": 2000,
+        "requiresShelter": true,
+        "connections": [
+          {
+            "resource": "water",
+            "role": "consume",
+            "required": false,
+            "optionalHint": "per recipe",
+            "flowRate": 0
+          }
+        ],
+        "generator": {
+          "resource": "Energy",
+          "generationRate": 2500,
+          "fuels": [
+            "Fiber",
+            "Stick",
+            "Wood_Refined",
+            "Wood",
+            "Coal_Ore",
+            "Packed_Fuel_Brick",
+            "Lava_Hunter_Magma"
+          ]
+        }
+      }
     },
     "Cooking_Station": {
       "id": "Cooking_Station",
       "displayName": "Cooking Station",
       "recipeSetDisplayName": "Cooking Station",
       "iconPath": "Deployables/ITEM_Cooking_Station_V2",
-      "craftRecipeId": "Cooking_Station"
+      "craftRecipeId": "Cooking_Station",
+      "deployable": {
+        "powerDrawMw": 2500,
+        "requiresShelter": true
+      }
     },
     "Crafting_Bench": {
       "id": "Crafting_Bench",
       "displayName": "Crafting Bench",
       "recipeSetDisplayName": "Crafting Bench",
       "iconPath": "Deployables/ITEM_Crafting_Bench",
-      "craftRecipeId": "Crafting_Bench"
+      "craftRecipeId": "Crafting_Bench",
+      "deployable": {
+        "powerDrawMw": 1000,
+        "requiresShelter": true
+      }
     },
     "Crops_Exchange": {
       "id": "Crops_Exchange",
       "displayName": "Cultivation Specialist Henrickson",
-      "recipeSetDisplayName": "Crops Exchange"
+      "recipeSetDisplayName": "Crops Exchange",
+      "deployable": {
+        "powerDrawMw": 100000,
+        "requiresShelter": false
+      }
     },
     "Drying_Rack": {
       "id": "Drying_Rack",
       "displayName": "Drying Rack",
       "recipeSetDisplayName": "Drying Rack",
       "iconPath": "Deployables/ITEM_DryingRack",
-      "craftRecipeId": "Drying_Rack"
+      "craftRecipeId": "Drying_Rack",
+      "deployable": {
+        "powerDrawMw": 300,
+        "requiresShelter": false
+      }
     },
     "Electric_Armor_Bench": {
       "id": "Electric_Armor_Bench",
       "displayName": "Electric Textiles Bench",
       "recipeSetDisplayName": "Electric Textiles Bench",
       "iconPath": "Deployables/ITEM_Electric_Armor_Bench",
-      "craftRecipeId": "Electric_Armor_Bench"
+      "craftRecipeId": "Electric_Armor_Bench",
+      "deployable": {
+        "powerDrawMw": 2500,
+        "requiresShelter": true,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "consume",
+            "required": true,
+            "flowRate": 0
+          }
+        ]
+      }
     },
     "Electric_Furnace": {
       "id": "Electric_Furnace",
       "displayName": "Electric Furnace",
       "recipeSetDisplayName": "Electric Furnace",
       "iconPath": "Deployables/ITEM_Electric_Furnace_Large",
-      "craftRecipeId": "Electric_Furnace"
+      "craftRecipeId": "Electric_Furnace",
+      "deployable": {
+        "powerDrawMw": 2500,
+        "requiresShelter": true,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "consume",
+            "required": true,
+            "flowRate": 0
+          },
+          {
+            "resource": "water",
+            "role": "consume",
+            "required": false,
+            "optionalHint": "per recipe",
+            "flowRate": 0
+          }
+        ]
+      }
     },
     "Electric_Stove": {
       "id": "Electric_Stove",
       "displayName": "Electric Stove",
       "recipeSetDisplayName": "Electric Stove",
       "iconPath": "Deployables/ITEM_Electric_Stove",
-      "craftRecipeId": "Electric_Stove"
+      "craftRecipeId": "Electric_Stove",
+      "deployable": {
+        "powerDrawMw": 375,
+        "requiresShelter": true,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "consume",
+            "required": true,
+            "flowRate": 0
+          },
+          {
+            "resource": "water",
+            "role": "consume",
+            "required": false,
+            "optionalHint": "per recipe",
+            "flowRate": 0
+          }
+        ]
+      }
     },
     "Exotic_Processor": {
       "id": "Exotic_Processor",
       "displayName": "Organic Residue Cleanser",
       "recipeSetDisplayName": "Exotic Processor",
       "iconPath": "Deployables/ITEM_Exotic_Processor",
-      "craftRecipeId": "Exotic_Processor"
+      "craftRecipeId": "Exotic_Processor",
+      "deployable": {
+        "powerDrawMw": 2500,
+        "requiresShelter": true,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "consume",
+            "required": true,
+            "flowRate": 0
+          },
+          {
+            "resource": "water",
+            "role": "consume",
+            "required": false,
+            "optionalHint": "for boost",
+            "flowRate": 100
+          }
+        ]
+      }
     },
     "Fabricator": {
       "id": "Fabricator",
       "displayName": "Fabricator",
       "recipeSetDisplayName": "Fabricator",
       "iconPath": "Deployables/ITEM_Fabricator",
-      "craftRecipeId": "Fabricator"
+      "craftRecipeId": "Fabricator",
+      "deployable": {
+        "powerDrawMw": 2500,
+        "requiresShelter": true,
+        "connections": [
+          {
+            "resource": "water",
+            "role": "consume",
+            "required": false,
+            "optionalHint": "per recipe",
+            "flowRate": 0
+          }
+        ]
+      }
     },
     "Firepit": {
       "id": "Firepit",
@@ -140545,32 +143766,59 @@
     "Fish_Exchange": {
       "id": "Fish_Exchange",
       "displayName": "Chief Fisheries Officer Dunski",
-      "recipeSetDisplayName": "Fish Exchange"
+      "recipeSetDisplayName": "Fish Exchange",
+      "deployable": {
+        "powerDrawMw": 100000,
+        "requiresShelter": false
+      }
     },
     "Fishing_Bench_Recipes": {
       "id": "Fishing_Bench_Recipes",
       "displayName": "Basic Fishing Bench",
       "recipeSetDisplayName": "Basic Fishing Bench",
-      "iconPath": "Deployables/ITEM_Fishing_Bench"
+      "iconPath": "Deployables/ITEM_Fishing_Bench",
+      "deployable": {
+        "powerDrawMw": 1000,
+        "requiresShelter": false
+      }
     },
     "Fishing_Bench_Rods": {
       "id": "Fishing_Bench_Rods",
       "displayName": "Basic Fishing Bench",
       "recipeSetDisplayName": "Basic Fishing Bench",
       "iconPath": "Deployables/ITEM_Fishing_Bench",
-      "craftRecipeId": "Fishing_Bench"
+      "craftRecipeId": "Fishing_Bench",
+      "deployable": {
+        "powerDrawMw": 1000,
+        "requiresShelter": false
+      }
     },
     "Food_Shop": {
       "id": "Food_Shop",
       "displayName": "Food Shop",
-      "recipeSetDisplayName": "Food Shop"
+      "recipeSetDisplayName": "Food Shop",
+      "deployable": {
+        "powerDrawMw": 100000,
+        "requiresShelter": false
+      }
     },
     "Food_Trough_T4": {
       "id": "Food_Trough_T4",
       "displayName": "Electronic Food Trough",
       "recipeSetDisplayName": "Electronic Food Trough",
       "iconPath": "Deployables/T_ITEM_Food_Trough_T4",
-      "craftRecipeId": "Food_Trough_T4"
+      "craftRecipeId": "Food_Trough_T4",
+      "deployable": {
+        "powerDrawMw": 500,
+        "requiresShelter": false,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "consume",
+            "required": true
+          }
+        ]
+      }
     },
     "Generator_Fuel": {
       "id": "Generator_Fuel",
@@ -140583,77 +143831,211 @@
       "displayName": "Glassworking Bench",
       "recipeSetDisplayName": "Glassworking Bench",
       "iconPath": "Deployables/ITEM_Glassworking_Bench_V2",
-      "craftRecipeId": "Glassworking_Bench"
+      "craftRecipeId": "Glassworking_Bench",
+      "deployable": {
+        "powerDrawMw": 1000,
+        "requiresShelter": true,
+        "connections": [
+          {
+            "resource": "water",
+            "role": "consume",
+            "required": false,
+            "flowRate": 0
+          }
+        ]
+      }
     },
     "Herbalism_Bench": {
       "id": "Herbalism_Bench",
       "displayName": "Herbalism Bench",
       "recipeSetDisplayName": "Herbalism Bench",
       "iconPath": "Deployables/ITEM_Herbalism_Bench",
-      "craftRecipeId": "Herbalism_Bench"
+      "craftRecipeId": "Herbalism_Bench",
+      "deployable": {
+        "powerDrawMw": 500,
+        "requiresShelter": true
+      }
     },
     "Kitchen_Bench": {
       "id": "Kitchen_Bench",
       "displayName": "Kitchen Bench",
       "recipeSetDisplayName": "Kitchen Bench",
       "iconPath": "Deployables/T_ITEM_Kitchen_Bench",
-      "craftRecipeId": "Kitchen_Bench"
+      "craftRecipeId": "Kitchen_Bench",
+      "deployable": {
+        "powerDrawMw": 500,
+        "requiresShelter": true,
+        "connections": [
+          {
+            "resource": "water",
+            "role": "consume",
+            "required": false,
+            "optionalHint": "per recipe",
+            "flowRate": 0
+          }
+        ]
+      }
     },
     "Kitchen_Stove": {
       "id": "Kitchen_Stove",
       "displayName": "Biofuel Stove",
       "recipeSetDisplayName": "Kitchen Stove",
       "iconPath": "Deployables/T_ITEM_Kitchen_Stove",
-      "craftRecipeId": "Kitchen_Stove"
+      "craftRecipeId": "Kitchen_Stove",
+      "deployable": {
+        "powerDrawMw": 375,
+        "requiresShelter": true,
+        "connections": [
+          {
+            "resource": "water",
+            "role": "consume",
+            "required": false,
+            "optionalHint": "per recipe",
+            "flowRate": 0
+          }
+        ],
+        "generator": {
+          "resource": "Energy",
+          "generationRate": 500,
+          "generationRatio": 50,
+          "fuels": [
+            "Biofuel"
+          ]
+        }
+      }
     },
     "Machining_Bench": {
       "id": "Machining_Bench",
       "displayName": "Machining Bench",
       "recipeSetDisplayName": "Machining Bench",
       "iconPath": "Deployables/ITEM_Kit_Machining_Bench",
-      "craftRecipeId": "Machining_Bench"
+      "craftRecipeId": "Machining_Bench",
+      "deployable": {
+        "powerDrawMw": 2500,
+        "requiresShelter": true
+      }
     },
     "Manufacturer": {
       "id": "Manufacturer",
       "displayName": "Manufacturer",
       "recipeSetDisplayName": "Manufacturer",
       "iconPath": "Deployables/T_ITEM_Manufacturer",
-      "craftRecipeId": "Manufacturer"
+      "craftRecipeId": "Manufacturer",
+      "deployable": {
+        "powerDrawMw": 3000,
+        "requiresShelter": true,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "consume",
+            "required": true,
+            "flowRate": 0
+          },
+          {
+            "resource": "water",
+            "role": "consume",
+            "required": false,
+            "optionalHint": "per recipe",
+            "flowRate": 0
+          }
+        ]
+      }
     },
     "Masonry_Bench": {
       "id": "Masonry_Bench",
       "displayName": "Masonry Bench",
       "recipeSetDisplayName": "Masonry Bench",
       "iconPath": "Deployables/ITEM_Masonry_Bench",
-      "craftRecipeId": "Masonry_Bench"
+      "craftRecipeId": "Masonry_Bench",
+      "deployable": {
+        "powerDrawMw": 1000,
+        "requiresShelter": true
+      }
     },
     "Masonry_Bench_T3": {
       "id": "Masonry_Bench_T3",
       "displayName": "Advanced Masonry Bench",
       "recipeSetDisplayName": "Advanced Masonry Bench",
       "iconPath": "Deployables/T_ITEM_Masonry_Bench_T3",
-      "craftRecipeId": "Masonry_Bench_T3"
+      "craftRecipeId": "Masonry_Bench_T3",
+      "deployable": {
+        "powerDrawMw": 1000,
+        "requiresShelter": true,
+        "connections": [
+          {
+            "resource": "water",
+            "role": "consume",
+            "required": false,
+            "optionalHint": "for boost",
+            "flowRate": 250
+          }
+        ]
+      }
     },
     "Masonry_Bench_T4": {
       "id": "Masonry_Bench_T4",
       "displayName": "Electric Masonry Bench",
       "recipeSetDisplayName": "Electric Masonry Bench",
       "iconPath": "Deployables/ITEM_Masonry_Bench_T4",
-      "craftRecipeId": "Masonry_Bench_T4"
+      "craftRecipeId": "Masonry_Bench_T4",
+      "deployable": {
+        "powerDrawMw": 2000,
+        "requiresShelter": true,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "consume",
+            "required": true,
+            "flowRate": 0
+          },
+          {
+            "resource": "water",
+            "role": "consume",
+            "required": false,
+            "optionalHint": "for boost",
+            "flowRate": 250
+          }
+        ]
+      }
     },
     "Material_Processor": {
       "id": "Material_Processor",
       "displayName": "Material Processor",
       "recipeSetDisplayName": "Material Processor",
       "iconPath": "Deployables/ITEM_Material_Processor",
-      "craftRecipeId": "Material_Processor"
+      "craftRecipeId": "Material_Processor",
+      "deployable": {
+        "powerDrawMw": 1500,
+        "requiresShelter": true,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "consume",
+            "required": true,
+            "flowRate": 0
+          }
+        ]
+      }
     },
     "Medicine_Bench": {
       "id": "Medicine_Bench",
       "displayName": "Medicine Bench",
       "recipeSetDisplayName": "Medicine Bench",
       "iconPath": "Deployables/T_ITEM_Medicine_Bench",
-      "craftRecipeId": "Medicine_Bench"
+      "craftRecipeId": "Medicine_Bench",
+      "deployable": {
+        "powerDrawMw": 500,
+        "requiresShelter": true,
+        "connections": [
+          {
+            "resource": "water",
+            "role": "consume",
+            "required": false,
+            "optionalHint": "per recipe",
+            "flowRate": 0
+          }
+        ]
+      }
     },
     "Meta_Extractor": {
       "id": "Meta_Extractor",
@@ -140666,35 +144048,91 @@
       "displayName": "Biofuel Oxite Dissolver",
       "recipeSetDisplayName": "Metal Oxite Dissolver",
       "iconPath": "Deployables/T_ITEM_Biofuel_Oxite_Dissolver",
-      "craftRecipeId": "Metal_Oxite_Dissolver"
+      "craftRecipeId": "Metal_Oxite_Dissolver",
+      "deployable": {
+        "powerDrawMw": 500,
+        "requiresShelter": true,
+        "generator": {
+          "resource": "Energy",
+          "generationRate": 500,
+          "generationRatio": 10,
+          "fuels": [
+            "Biofuel"
+          ]
+        }
+      }
     },
     "Mortar_And_Pestle": {
       "id": "Mortar_And_Pestle",
       "displayName": "Mortar and Pestle",
       "recipeSetDisplayName": "Mortar And Pestle",
       "iconPath": "Deployables/ITEM_Kit_Mortar_And_Pestle",
-      "craftRecipeId": "Mortar_And_Pestle"
+      "craftRecipeId": "Mortar_And_Pestle",
+      "deployable": {
+        "powerDrawMw": 500,
+        "requiresShelter": true
+      }
     },
     "Oxite_Dissolver": {
       "id": "Oxite_Dissolver",
       "displayName": "Oxite Dissolver",
       "recipeSetDisplayName": "Oxite Dissolver",
       "iconPath": "Deployables/ITEM_Kit_Oxite_Dissolver",
-      "craftRecipeId": "Oxite_Dissolver"
+      "craftRecipeId": "Oxite_Dissolver",
+      "deployable": {
+        "powerDrawMw": 500,
+        "requiresShelter": true,
+        "generator": {
+          "resource": "Energy",
+          "generationRate": 500,
+          "fuels": [
+            "Sulfur"
+          ]
+        }
+      }
     },
     "Polymerizer": {
       "id": "Polymerizer",
       "displayName": "Polymerizer",
       "recipeSetDisplayName": "Polymerizer",
       "iconPath": "Deployables/T_ITEM_Polymerizer",
-      "craftRecipeId": "Polymerizer"
+      "craftRecipeId": "Polymerizer",
+      "deployable": {
+        "powerDrawMw": 2500,
+        "requiresShelter": true,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "consume",
+            "required": true,
+            "flowRate": 0
+          }
+        ]
+      }
     },
     "PotBellyStove": {
       "id": "PotBellyStove",
       "displayName": "Potbelly Stove",
       "recipeSetDisplayName": "Potbelly Stove",
       "iconPath": "Deployables/ITEM_PotBellyStove",
-      "craftRecipeId": "PotBellyStove"
+      "craftRecipeId": "PotBellyStove",
+      "deployable": {
+        "powerDrawMw": 375,
+        "requiresShelter": true,
+        "generator": {
+          "resource": "Energy",
+          "generationRate": 2500,
+          "fuels": [
+            "Fiber",
+            "Stick",
+            "Wood_Refined",
+            "Wood",
+            "Coal_Ore",
+            "Packed_Fuel_Brick",
+            "Lava_Hunter_Magma"
+          ]
+        }
+      }
     },
     "Rain_Collector": {
       "id": "Rain_Collector",
@@ -140712,42 +144150,93 @@
       "displayName": "Repair Bench",
       "recipeSetDisplayName": "Repair Bench",
       "iconPath": "Deployables/ITEM_Repair_Bench",
-      "craftRecipeId": "Repair_Bench"
+      "craftRecipeId": "Repair_Bench",
+      "deployable": {
+        "requiresShelter": false,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "consume",
+            "required": false,
+            "flowRate": 1500
+          }
+        ]
+      }
     },
     "Rustic_Decorations_Bench": {
       "id": "Rustic_Decorations_Bench",
       "displayName": "Decoration Bench",
       "recipeSetDisplayName": "Decoration Bench",
       "iconPath": "Deployables/T_ITEM_Rustic_Decoration_Bench",
-      "craftRecipeId": "Rustic_Decoration_Bench"
+      "craftRecipeId": "Rustic_Decoration_Bench",
+      "deployable": {
+        "powerDrawMw": 500,
+        "requiresShelter": false
+      }
     },
     "Seed_Extractor": {
       "id": "Seed_Extractor",
       "displayName": "Seed Extractor",
       "recipeSetDisplayName": "Seed Extractor",
       "iconPath": "Deployables/T_ITEM_Seed_Extractor",
-      "craftRecipeId": "Seed_Extractor"
+      "craftRecipeId": "Seed_Extractor",
+      "deployable": {
+        "powerDrawMw": 500,
+        "requiresShelter": false
+      }
     },
     "Skinning_Bench": {
       "id": "Skinning_Bench",
       "displayName": "Skinning Bench",
       "recipeSetDisplayName": "Skinning Bench",
       "iconPath": "Deployables/ITEM_Kit_Skinning_Bench",
-      "craftRecipeId": "Skinning_Bench"
+      "craftRecipeId": "Skinning_Bench",
+      "deployable": {
+        "powerDrawMw": 500,
+        "requiresShelter": true
+      }
     },
     "Stone_Furnace": {
       "id": "Stone_Furnace",
       "displayName": "Stone Furnace",
       "recipeSetDisplayName": "Stone Furnace",
       "iconPath": "Deployables/ITEM_Kit_Stone_Furnace",
-      "craftRecipeId": "Stone_Furnace"
+      "craftRecipeId": "Stone_Furnace",
+      "deployable": {
+        "powerDrawMw": 1500,
+        "requiresShelter": true,
+        "generator": {
+          "resource": "Energy",
+          "generationRate": 2500,
+          "fuels": [
+            "Fiber",
+            "Stick",
+            "Wood_Refined",
+            "Wood",
+            "Coal_Ore",
+            "Packed_Fuel_Brick",
+            "Lava_Hunter_Magma"
+          ]
+        }
+      }
     },
     "T3_Smoker": {
       "id": "T3_Smoker",
       "displayName": "Smoker",
       "recipeSetDisplayName": "Smoker",
       "iconPath": "Deployables/T_ITEM_Smoker_T3",
-      "craftRecipeId": "T3_Smoker"
+      "craftRecipeId": "T3_Smoker",
+      "deployable": {
+        "powerDrawMw": 500,
+        "requiresShelter": false,
+        "generator": {
+          "resource": "Energy",
+          "generationRate": 2500,
+          "fuels": [
+            "Charcoal"
+          ]
+        }
+      }
     },
     "T4_Smoker": {
       "id": "T4_Smoker",
@@ -140760,19 +144249,46 @@
       "displayName": "Trophy Bench",
       "recipeSetDisplayName": "Trophy Bench",
       "iconPath": "Deployables/ITEM_Trophy_Bench",
-      "craftRecipeId": "Trophy_Bench"
+      "craftRecipeId": "Trophy_Bench",
+      "deployable": {
+        "powerDrawMw": 500,
+        "requiresShelter": true
+      }
     },
     "Uranium_Coverter": {
       "id": "Uranium_Coverter",
       "displayName": "Nuclear Centrifuge",
       "recipeSetDisplayName": "Nuclear Centrifuge",
       "iconPath": "Deployables/T_ITEM_Uranium_Converter",
-      "craftRecipeId": "Uranium_Converter"
+      "craftRecipeId": "Uranium_Converter",
+      "deployable": {
+        "powerDrawMw": 2500,
+        "requiresShelter": true,
+        "connections": [
+          {
+            "resource": "electricity",
+            "role": "consume",
+            "required": true,
+            "flowRate": 0
+          },
+          {
+            "resource": "water",
+            "role": "consume",
+            "required": false,
+            "optionalHint": "per recipe",
+            "flowRate": 0
+          }
+        ]
+      }
     },
     "Vestige_Exchange": {
       "id": "Vestige_Exchange",
       "displayName": "Predator Control Specialist Liardet",
-      "recipeSetDisplayName": "Vestige Exchange"
+      "recipeSetDisplayName": "Vestige Exchange",
+      "deployable": {
+        "powerDrawMw": 100000,
+        "requiresShelter": false
+      }
     },
     "WaterPurifierT2": {
       "id": "WaterPurifierT2",
