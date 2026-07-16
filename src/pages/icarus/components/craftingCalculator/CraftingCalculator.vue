@@ -31,6 +31,11 @@
                         <div class="flex-grow-1">
                             <div class="flex align-items-center pb-1">
                                 <div class="flex-shrink flex align-items-center">
+                                    <favorite-star-button
+                                        :item-id="recipeData[item.id]?.itemStaticId || item.id"
+                                        :label="recipeData[item.id]?.label"
+                                        size="sm"
+                                    />
                                     <item-modifier-tooltip :recipe="recipeData[item.id]">
                                         <div class="label text-overflow-ellipsis" :data-item-id="item.id">
                                             {{ recipeData[item.id]?.label }}
@@ -150,6 +155,11 @@
                                 :preview-disabled="false"
                             />
                             <div class="label">{{ stationLabel(componentName) }}</div>
+                            <item-detail-button
+                                v-if="stationDetailId(componentName)"
+                                :item-id="stationDetailId(componentName)"
+                                :label="stationLabel(componentName)"
+                            />
                         </div>
                     </div>
                 </div>
@@ -173,6 +183,7 @@ import CraftingTree from './CraftingTree.vue';
 import ItemModifierTooltip from './ItemModifierTooltip.vue';
 import QuantityStepper from './QuantityStepper.vue';
 import RecipeVariantPicker from './RecipeVariantPicker.vue';
+import FavoriteStarButton from '@/pages/icarus/components/FavoriteStarButton.vue';
 import ItemDetailButton from '@/pages/icarus/components/ItemDetailButton.vue';
 import { useIcarusStore } from '@/store/icarus';
 import {
@@ -189,6 +200,7 @@ export default {
     components: {
         ComponentSourcePicker,
         CraftingTree,
+        FavoriteStarButton,
         ItemDetailButton,
         ItemModifierTooltip,
         QuantityStepper,
@@ -335,6 +347,14 @@ export default {
                 recipeData: this.recipeData,
             });
             return this.stations[stationId]?.iconPath ?? this.recipeData[craftRecipeId]?.iconPath ?? '';
+        },
+        stationDetailId(stationId) {
+            const craftRecipeId = getStationCraftRecipeId(stationId, {
+                stations: this.stations,
+                recipeData: this.recipeData,
+            });
+            if (!craftRecipeId) return null;
+            return this.recipeData[craftRecipeId]?.itemStaticId || craftRecipeId;
         },
         sortInputs() {
             this.tab.items.sort((a, b) => {

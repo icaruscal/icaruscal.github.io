@@ -118,10 +118,14 @@ export const useIcarusStore = defineStore('icarus', {
             { mergeDefaults: true }
         );
 
+        /** Static item ids (preferred) or recipe ids when static is unavailable. */
+        const favorites = useStorage(`${LOCAL_STORAGE_PREFIX}/favorites`, [], localStorage);
+
         return {
             activeTabId,
             tabs,
             settings,
+            favorites,
 
             itemTemplateData: {},
             itemStaticData: {},
@@ -210,7 +214,22 @@ export const useIcarusStore = defineStore('icarus', {
                     highlightedLabel: result.matches ? generateHighlightedText(result.item.label, result.matches?.[0]?.indices) : result.item.label,
                 }));
             }
-            return this.sortedRecipeOptions;
+
+            const sorted = this.sortedRecipeOptions;
+            if (!state.favorites?.length) {
+                return sorted;
+            }
+
+            const favorites = [];
+            const rest = [];
+            for (const option of sorted) {
+                if (this.isFavorite(option.itemStaticId || option.id)) {
+                    favorites.push(option);
+                } else {
+                    rest.push(option);
+                }
+            }
+            return favorites.length > 0 ? [...favorites, ...rest] : sorted;
         },
         tabProgressSummaries() {
             return this.planningTabs.map((tab) => {
@@ -474,6 +493,40 @@ export const useIcarusStore = defineStore('icarus', {
         },
         closeItemDetail() {
             this.itemDetailId = null;
+        },
+
+        /** Prefer D_ItemsStatic id so explorer / calculator / detail share one favorite key. */
+        resolveFavoriteKey(itemOrRecipeId) {
+            if (!itemOrRecipeId) return null;
+            if (this.itemStaticData?.[itemOrRecipeId]) {
+                return itemOrRecipeId;
+            }
+            const recipe = this.recipeData?.[itemOrRecipeId];
+            if (recipe?.itemStaticId) {
+                return recipe.itemStaticId;
+            }
+            const food = this.foodConsumables?.find(
+                (entry) => entry.id === itemOrRecipeId || entry.staticItemName === itemOrRecipeId
+            );
+            if (food?.staticItemName) {
+                return food.staticItemName;
+            }
+            return itemOrRecipeId;
+        },
+        isFavorite(itemOrRecipeId) {
+            const key = this.resolveFavoriteKey(itemOrRecipeId);
+            if (!key) return false;
+            return this.favorites.some((fav) => this.resolveFavoriteKey(fav) === key);
+        },
+        toggleFavorite(itemOrRecipeId) {
+            const key = this.resolveFavoriteKey(itemOrRecipeId);
+            if (!key) return;
+            const existingIndex = this.favorites.findIndex((fav) => this.resolveFavoriteKey(fav) === key);
+            if (existingIndex >= 0) {
+                this.favorites.splice(existingIndex, 1);
+            } else {
+                this.favorites.push(key);
+            }
         },
     },
 });

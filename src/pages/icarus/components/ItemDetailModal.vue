@@ -28,6 +28,11 @@
                     </div>
                     <div class="hero-body">
                         <h2 class="hero-title">
+                            <favorite-star-button
+                                :item-id="detail.id"
+                                :label="detail.displayName"
+                                size="lg"
+                            />
                             {{ detail.displayName }}
                             <item-lock-badge :locks="detail.locks" :item-id="detail.id" size="lg" />
                         </h2>
@@ -317,6 +322,7 @@ import { useIcarusStore } from '@/store/icarus';
 import { buildItemDetail } from '@/utility/icarusData';
 import { GAME_ASSETS_URL } from '@/constants/common';
 import DeployableRuntimeBadges from '@/pages/icarus/components/DeployableRuntimeBadges.vue';
+import FavoriteStarButton from '@/pages/icarus/components/FavoriteStarButton.vue';
 import ItemLockBadge from '@/pages/icarus/components/ItemLockBadge.vue';
 
 const ACQ_META = {
@@ -331,6 +337,7 @@ export default {
     name: 'ItemDetailModal',
     components: {
         DeployableRuntimeBadges,
+        FavoriteStarButton,
         ItemLockBadge,
     },
     data() {

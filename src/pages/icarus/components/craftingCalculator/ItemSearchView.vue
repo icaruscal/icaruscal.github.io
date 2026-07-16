@@ -50,7 +50,12 @@
                                 />
                                 <div v-if="recipeData[item.id]?.outputQuantity > 1" class="item-counter">x{{ recipeData[item.id].outputQuantity }}</div>
                             </div>
-                            <div class="flex-shrink" style="min-width: 0">
+                            <div class="flex-shrink flex align-items-center" style="min-width: 0">
+                                <favorite-star-button
+                                    :item-id="recipeData[item.id]?.itemStaticId || item.id"
+                                    :label="item.label"
+                                    size="sm"
+                                />
                                 <div class="label text-overflow-ellipsis" v-bind:item-id="item.id">
                                     <span v-if="item.highlightedLabel" v-html="item.highlightedLabel"></span>
                                     <span v-else>{{ item.label }}</span>
@@ -90,6 +95,7 @@ import { Plus } from '@vicons/fa';
 
 import { useIcarusStore } from '@/store/icarus';
 import { GAME_ASSETS_URL } from '@/constants/common';
+import FavoriteStarButton from '@/pages/icarus/components/FavoriteStarButton.vue';
 import ItemDetailButton from '@/pages/icarus/components/ItemDetailButton.vue';
 import ItemLockBadge from '@/pages/icarus/components/ItemLockBadge.vue';
 import ItemModifierTooltip from './ItemModifierTooltip.vue';
@@ -100,6 +106,7 @@ export default {
     name: 'CraftingToolItemSelector',
     components: {
         Plus,
+        FavoriteStarButton,
         ItemDetailButton,
         ItemLockBadge,
         ItemModifierTooltip,

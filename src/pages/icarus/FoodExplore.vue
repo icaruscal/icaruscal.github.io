@@ -127,6 +127,10 @@
 
                         <div class="filter-block toggles">
                             <div class="toggle-row">
+                                <span>Favorites only</span>
+                                <n-switch v-model:value="filters.favoritesOnly" size="small" />
+                            </div>
+                            <div class="toggle-row">
                                 <span>Has lasting buff</span>
                                 <n-switch v-model:value="filters.hasBuffOnly" size="small" />
                             </div>
@@ -188,6 +192,11 @@
                                 />
                                 <div class="food-meta flex-1">
                                     <div class="food-name-row flex align-items-center">
+                                        <favorite-star-button
+                                            :item-id="food.staticItemName || food.id"
+                                            :label="food.label"
+                                            size="sm"
+                                        />
                                         <n-tooltip v-if="foodTooltip(food)" trigger="hover" placement="top-start">
                                             <template #trigger>
                                                 <div class="food-name food-name--hoverable">{{ food.label }}</div>
@@ -297,6 +306,7 @@ import { Plus } from '@vicons/fa';
 import { mapState, mapGetters, mapActions } from 'pinia';
 import { useIcarusStore } from '@/store/icarus';
 import { GAME_ASSETS_URL } from '@/constants/common';
+import FavoriteStarButton from '@/pages/icarus/components/FavoriteStarButton.vue';
 import ItemDetailButton from '@/pages/icarus/components/ItemDetailButton.vue';
 import ItemLockBadge from '@/pages/icarus/components/ItemLockBadge.vue';
 
@@ -313,6 +323,7 @@ const DEFAULT_FILTERS = () => ({
     buffMatchMode: 'and',
     hasBuffOnly: false,
     hasNegativeOnly: false,
+    favoritesOnly: false,
 });
 
 const compareNullableNumber = (a, b, direction = 1) => {
@@ -360,6 +371,7 @@ export default {
     name: 'FoodExplore',
     components: {
         Plus,
+        FavoriteStarButton,
         ItemDetailButton,
         ItemLockBadge,
     },
@@ -380,7 +392,7 @@ export default {
         };
     },
     computed: {
-        ...mapState(useIcarusStore, ['foodConsumables', 'isLoadingRecipes', 'recipeData']),
+        ...mapState(useIcarusStore, ['foodConsumables', 'isLoadingRecipes', 'recipeData', 'favorites']),
         ...mapGetters(useIcarusStore, ['foodBuffStatOptions', 'planningTabs']),
         addToCalculatorOptions() {
             const tabChildren = this.planningTabs.map((tab) => ({
@@ -436,6 +448,12 @@ export default {
                 if (tier < tierMin || tier > tierMax) return false;
                 if (food.foodRecovery < foodMin || food.foodRecovery > foodMax) return false;
                 if (food.waterRecovery < waterMin || food.waterRecovery > waterMax) return false;
+
+                if (this.filters.favoritesOnly) {
+                    void this.favorites;
+                    const favoriteId = food.staticItemName || food.id;
+                    if (!this.isFavorite(favoriteId)) return false;
+                }
 
                 if (this.filters.hasBuffOnly && !food.hasBuff) return false;
                 if (this.filters.hasNegativeOnly && !food.hasNegativeStat) return false;
@@ -573,6 +591,11 @@ export default {
                             : nameNode;
 
                         const children = [
+                            h(FavoriteStarButton, {
+                                itemId: row.staticItemName || row.id,
+                                label: row.label,
+                                size: 'sm',
+                            }),
                             labeled,
                             h(ItemLockBadge, {
                                 locks: row.locks,
@@ -765,7 +788,7 @@ export default {
         },
     },
     methods: {
-        ...mapActions(useIcarusStore, ['addItemToTab', 'openItemInNewTab']),
+        ...mapActions(useIcarusStore, ['addItemToTab', 'openItemInNewTab', 'isFavorite']),
         resetFilters() {
             this.filters = DEFAULT_FILTERS();
             this.filters.food = [this.foodBounds.min, this.foodBounds.max];
@@ -884,13 +907,20 @@ export default {
 .explore-layout {
     display: grid;
     grid-template-columns: minmax(16rem, 20rem) minmax(0, 1fr);
+    grid-template-areas: 'filters results';
     gap: 1rem;
     align-items: start;
 }
 
 .filters-panel {
+    grid-area: filters;
     position: sticky;
     top: 3.25rem;
+}
+
+.results-panel {
+    grid-area: results;
+    min-width: 0;
 }
 
 .filter-block {
@@ -1193,13 +1223,18 @@ export default {
     line-height: 1.4;
 }
 
-@media (max-width: 900px) {
+@media (max-width: 1200px) {
     .explore-layout {
         grid-template-columns: 1fr;
+        grid-template-areas:
+            'filters'
+            'results';
     }
 
     .filters-panel {
         position: static;
+        max-height: min(50vh, 28rem);
+        overflow-y: auto;
     }
 }
 </style>

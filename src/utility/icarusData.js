@@ -716,13 +716,32 @@ const isExploreConsumable = (recipe = {}) => {
 };
 
 /**
+ * Prefer the primary craft recipe when multiple recipes produce the same static item
+ * (e.g. Crispy_Bacon vs Crispy_Bacon_Butter).
+ */
+const preferExploreRecipe = (candidate, existing, item = null) => {
+    const recipeIds = item?.recipeIds ?? [];
+    const primaryId = recipeIds[0];
+    if (primaryId) {
+        if (candidate.id === primaryId) return true;
+        if (existing.id === primaryId) return false;
+    }
+    if (candidate.staticItemName && candidate.id === candidate.staticItemName) return true;
+    if (existing.staticItemName && existing.id === existing.staticItemName) return false;
+    if (candidate.acquisition === 'craft' && existing.acquisition !== 'craft') return true;
+    if (existing.acquisition === 'craft' && candidate.acquisition !== 'craft') return false;
+    return false;
+};
+
+/**
  * Consumable rows from the catalog for Food/Medicine Explore.
  * Includes craft, gather, shop, workshop, and mission sources.
+ * One row per static item (alternate recipes for the same output are collapsed).
  */
 export function buildFoodConsumables(catalog = {}) {
     const items = catalog.items ?? {};
     const stations = catalog.stations ?? {};
-    const foods = [];
+    const foodsByKey = new Map();
 
     for (const recipe of catalog.recipes ?? []) {
         if (!isExploreConsumable(recipe)) {
@@ -742,7 +761,7 @@ export function buildFoodConsumables(catalog = {}) {
         const stationLabels = (recipe.stations ?? []).map((id) => stations[id]?.displayName ?? stations[id]?.recipeSetDisplayName ?? id);
         const isFood = isFoodOrDrink(instantStats);
 
-        foods.push({
+        const row = {
             id: recipe.id,
             staticItemName: recipe.staticItemName ?? null,
             label: getItemLabel(recipe.id, { displayName: recipe.displayName ?? item?.displayName }),
@@ -772,11 +791,16 @@ export function buildFoodConsumables(catalog = {}) {
             modifierName: recipe.modifier?.displayName ?? recipe.modifier?.name ?? null,
             modifierDescription: recipe.modifier?.description ?? null,
             grantedStatKeys: grantedStats.map((stat) => stat.key),
-        });
+        };
+
+        const key = row.staticItemName || row.id;
+        const existing = foodsByKey.get(key);
+        if (!existing || preferExploreRecipe(row, existing, item)) {
+            foodsByKey.set(key, row);
+        }
     }
 
-    foods.sort((a, b) => a.label.localeCompare(b.label));
-    return foods;
+    return [...foodsByKey.values()].sort((a, b) => a.label.localeCompare(b.label));
 }
 
 /** Whether a recipe has consumable / equip effects worth showing in a hover tooltip. */
