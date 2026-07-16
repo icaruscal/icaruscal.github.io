@@ -263,6 +263,18 @@ export default {
         terminalMaterials() {
             const baseTotals = new Map();
             const craftedTotals = new Map();
+            const progress = this.treeProgress;
+
+            const isInFabrication = (path) => {
+                const entry = progress[path];
+                if (!entry) return false;
+                return (
+                    Boolean(entry.inFabrication) ||
+                    Boolean(entry.readyAtLocation) ||
+                    Boolean(entry.completed) ||
+                    (entry.required > 0 && (entry.current ?? 0) >= entry.required)
+                );
+            };
 
             const addTo = (totals, node) => {
                 if (!node?.id) return;
@@ -287,8 +299,8 @@ export default {
                     .filter((entry) => entry.quantity > 0)
                     .sort((a, b) => a.label.localeCompare(b.label));
 
-            const walk = (node) => {
-                if (!node) return;
+            const walk = (node, path) => {
+                if (!node || isInFabrication(path)) return;
                 const children = node.children || [];
                 if (children.length === 0) {
                     // Root (or leaf) with nothing further — raw gather / selected raw item.
@@ -300,10 +312,12 @@ export default {
                     return;
                 }
                 children.forEach((child) => {
+                    const childPath = `${path}/${child.id}`;
+                    if (isInFabrication(childPath)) return;
                     if (child.expanded) {
                         // Craftable intermediate: list it, then resolve its own inputs.
                         addTo(craftedTotals, child);
-                        walk(child.expanded);
+                        walk(child.expanded, childPath);
                     } else if (child.isRaw) {
                         addTo(baseTotals, child);
                     } else {
@@ -312,7 +326,7 @@ export default {
                 });
             };
 
-            (this.requirementTrees || []).forEach(walk);
+            (this.requirementTrees || []).forEach((tree) => walk(tree, tree.id));
 
             return {
                 base: finalize(baseTotals),
