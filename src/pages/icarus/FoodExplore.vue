@@ -168,131 +168,168 @@
 
                     <div v-if="filteredFoods.length === 0" class="empty-state">No foods match these filters.</div>
 
-                    <n-data-table
-                        v-else-if="viewMode === 'table'"
-                        class="food-table"
-                        size="small"
-                        :bordered="false"
-                        :single-line="false"
-                        :columns="tableColumns"
-                        :data="filteredFoods"
-                        :row-key="(row) => row.id"
-                        :scroll-x="tableScrollX"
-                    />
+                    <template v-else>
+                        <n-text v-if="hasMoreResults" depth="3" class="page-status mb-2">
+                            Showing {{ pagedFoods.length }} of {{ sortedFoods.length }}
+                        </n-text>
 
-                    <div v-else class="food-grid">
-                        <article v-for="food in sortedFoods" :key="food.id" class="food-card">
-                            <div class="food-card-top flex">
-                                <n-image
-                                    class="food-icon"
-                                    width="48"
-                                    :src="`${gameAssetsUrl}/ItemIcons/${food.iconPath}.png`"
-                                    :fallback-src="`${gameAssetsUrl}/Images/question-mark.png`"
-                                    :preview-disabled="true"
-                                />
-                                <div class="food-meta flex-1">
-                                    <div class="food-name-row flex align-items-center">
-                                        <favorite-star-button
-                                            :item-id="food.staticItemName || food.id"
-                                            :label="food.label"
-                                            size="sm"
-                                        />
-                                        <n-tooltip v-if="foodTooltip(food)" trigger="hover" placement="top-start">
-                                            <template #trigger>
-                                                <div class="food-name food-name--hoverable">{{ food.label }}</div>
-                                            </template>
-                                            <div class="name-tooltip">
-                                                <div v-if="food.description">{{ food.description }}</div>
-                                                <div v-if="food.modifierDescription" :class="{ 'mt-1': food.description }">
-                                                    {{ food.modifierDescription }}
-                                                </div>
-                                            </div>
-                                        </n-tooltip>
-                                        <div v-else class="food-name">{{ food.label }}</div>
-                                        <item-lock-badge
-                                            :locks="food.locks"
-                                            :item-id="food.staticItemName || food.id"
-                                            :recipe-id="food.id"
-                                            size="sm"
-                                        />
-                                        <item-detail-button
-                                            :item-id="food.staticItemName || food.id"
-                                            :label="food.label"
-                                        />
-                                        <n-dropdown
-                                            v-if="craftRecipeId(food)"
-                                            trigger="click"
-                                            placement="bottom-start"
-                                            :options="addToCalculatorOptions"
-                                            @select="(key) => onAddToCalculator(key, food)"
+                        <n-data-table
+                            v-if="viewMode === 'table'"
+                            class="food-table"
+                            size="small"
+                            :bordered="false"
+                            :single-line="false"
+                            :columns="tableColumns"
+                            :data="pagedFoods"
+                            :row-key="(row) => row.id"
+                            :scroll-x="tableScrollX"
+                        />
+
+                        <div v-else class="food-grid">
+                            <article
+                                v-for="food in pagedFoods"
+                                :key="food.id"
+                                class="food-card"
+                                :class="{ 'is-active': isCardActive(food) }"
+                                @pointerenter="onCardEnter(food)"
+                                @pointerleave="onCardLeave(food)"
+                                @focusin="onCardEnter(food)"
+                                @focusout="onCardFocusOut($event, food)"
+                            >
+                                <div
+                                    v-if="isCardActive(food)"
+                                    class="food-card-actions flex align-items-center"
+                                >
+                                    <favorite-star-button
+                                        :item-id="food.staticItemName || food.id"
+                                        :label="food.label"
+                                        size="sm"
+                                    />
+                                    <item-lock-badge
+                                        v-if="cardHasLocks(food)"
+                                        :locks="food.locks"
+                                        :item-id="food.staticItemName || food.id"
+                                        :recipe-id="food.id"
+                                        size="sm"
+                                    />
+                                    <item-detail-button
+                                        :item-id="food.staticItemName || food.id"
+                                        :label="food.label"
+                                    />
+                                    <n-dropdown
+                                        v-if="craftRecipeId(food)"
+                                        trigger="click"
+                                        placement="bottom-start"
+                                        :options="addToCalculatorOptions"
+                                        @select="(key) => onAddToCalculator(key, food)"
+                                        @update:show="(show) => onAddMenuShow(show, food)"
+                                    >
+                                        <n-button
+                                            class="add-calc-btn"
+                                            size="tiny"
+                                            quaternary
+                                            circle
+                                            type="primary"
+                                            @click.stop
                                         >
-                                            <n-button
-                                                class="add-calc-btn"
-                                                size="tiny"
-                                                quaternary
-                                                circle
-                                                type="primary"
-                                                @click.stop
+                                            <n-icon size="12">
+                                                <Plus />
+                                            </n-icon>
+                                        </n-button>
+                                    </n-dropdown>
+                                </div>
+                                <div
+                                    v-else-if="cardHintFavorite(food) || cardHasLocks(food)"
+                                    class="food-card-hints flex align-items-center"
+                                    aria-hidden="true"
+                                >
+                                    <span v-if="cardHintFavorite(food)" class="hint-fav">★</span>
+                                    <span v-if="cardHasLocks(food)" class="hint-lock">!</span>
+                                </div>
+
+                                <div class="food-card-top flex">
+                                    <img
+                                        class="food-icon"
+                                        width="48"
+                                        height="48"
+                                        loading="lazy"
+                                        decoding="async"
+                                        alt=""
+                                        :src="`${gameAssetsUrl}/ItemIcons/${food.iconPath}.png`"
+                                        @error="onIconError"
+                                    />
+                                    <div class="food-meta flex-1">
+                                        <div
+                                            class="food-name"
+                                            :class="{ 'food-name--hoverable': foodTooltip(food) }"
+                                            :title="foodTooltip(food) || undefined"
+                                        >
+                                            {{ food.label }}
+                                        </div>
+                                        <div class="food-tags flex flex-wrap">
+                                            <span class="chip" :class="`chip--${categoryTagType(food.category)}`">
+                                                {{ categoryLabel(food.category) }}
+                                            </span>
+                                            <span class="chip" :class="`chip--${acquisitionTagType(food.acquisition)}`">
+                                                {{ acquisitionLabel(food.acquisition) }}
+                                            </span>
+                                            <span
+                                                v-if="food.mission && food.acquisition !== 'mission'"
+                                                class="chip chip--primary"
                                             >
-                                                <n-icon size="12">
-                                                    <Plus />
-                                                </n-icon>
-                                            </n-button>
-                                        </n-dropdown>
-                                    </div>
-                                    <div class="food-tags flex flex-wrap">
-                                        <n-tag size="small" :bordered="false" :type="categoryTagType(food.category)">
-                                            {{ categoryLabel(food.category) }}
-                                        </n-tag>
-                                        <n-tag size="small" :bordered="false" :type="acquisitionTagType(food.acquisition)">
-                                            {{ acquisitionLabel(food.acquisition) }}
-                                        </n-tag>
-                                        <n-tag v-if="food.mission && food.acquisition !== 'mission'" size="small" :bordered="false" type="primary">
-                                            Mission
-                                        </n-tag>
-                                        <n-tag v-if="food.tier != null" size="small" :bordered="false">T{{ food.tier }}</n-tag>
-                                        <n-tag v-if="food.lifetimeMinutes != null" size="small" :bordered="false" type="info">
-                                            {{ food.lifetimeMinutes }}m buff
-                                        </n-tag>
+                                                Mission
+                                            </span>
+                                            <span v-if="food.tier != null" class="chip">T{{ food.tier }}</span>
+                                            <span v-if="food.lifetimeMinutes != null" class="chip chip--info">
+                                                {{ food.lifetimeMinutes }}m buff
+                                            </span>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
 
-                            <div class="stat-row recovery">
-                                <span v-if="food.foodRecovery" class="stat-pill food">+{{ food.foodRecovery }} Food</span>
-                                <span v-if="food.waterRecovery" class="stat-pill water">+{{ food.waterRecovery }} Water</span>
-                                <span v-if="food.healthRecovery" class="stat-pill health">+{{ food.healthRecovery }} Health</span>
-                                <span v-if="food.staminaRecovery" class="stat-pill stamina">+{{ food.staminaRecovery }} Stamina</span>
-                                <span v-if="food.oxygenRecovery" class="stat-pill oxygen">+{{ food.oxygenRecovery }} Oxygen</span>
-                                <span
-                                    v-for="stat in otherInstantStats(food)"
-                                    :key="`i-${stat.key}`"
-                                    class="stat-pill"
-                                    :class="statClass(stat.value)"
-                                >
-                                    {{ stat.display || `${stat.key} ${stat.value}` }}
-                                </span>
-                            </div>
+                                <div class="stat-row recovery">
+                                    <span v-if="food.foodRecovery" class="stat-pill food">+{{ food.foodRecovery }} Food</span>
+                                    <span v-if="food.waterRecovery" class="stat-pill water">+{{ food.waterRecovery }} Water</span>
+                                    <span v-if="food.healthRecovery" class="stat-pill health">+{{ food.healthRecovery }} Health</span>
+                                    <span v-if="food.staminaRecovery" class="stat-pill stamina">+{{ food.staminaRecovery }} Stamina</span>
+                                    <span v-if="food.oxygenRecovery" class="stat-pill oxygen">+{{ food.oxygenRecovery }} Oxygen</span>
+                                    <span
+                                        v-for="stat in otherInstantStats(food)"
+                                        :key="`i-${stat.key}`"
+                                        class="stat-pill"
+                                        :class="statClass(stat.value)"
+                                    >
+                                        {{ stat.display || `${stat.key} ${stat.value}` }}
+                                    </span>
+                                </div>
 
-                            <div v-if="food.modifierDescription && !food.grantedStats.length" class="buff-desc">
-                                {{ food.modifierDescription }}
-                            </div>
+                                <div v-if="food.modifierDescription && !food.grantedStats.length" class="buff-desc">
+                                    {{ food.modifierDescription }}
+                                </div>
 
-                            <ul v-if="food.grantedStats.length" class="buff-list">
-                                <li
-                                    v-for="stat in food.grantedStats"
-                                    :key="stat.key"
-                                    :class="['buff-stat', statClass(stat.value)]"
-                                >
-                                    {{ stat.display || `${stat.key}: ${stat.value}` }}
-                                </li>
-                            </ul>
+                                <ul v-if="food.grantedStats.length" class="buff-list">
+                                    <li
+                                        v-for="stat in food.grantedStats"
+                                        :key="stat.key"
+                                        :class="['buff-stat', statClass(stat.value)]"
+                                    >
+                                        {{ stat.display || `${stat.key}: ${stat.value}` }}
+                                    </li>
+                                </ul>
 
-                            <div v-if="food.stationLabels.length" class="stations">
-                                {{ food.stationLabels.join(' · ') }}
-                            </div>
-                        </article>
-                    </div>
+                                <div v-if="food.stationLabels.length" class="stations">
+                                    {{ food.stationLabels.join(' · ') }}
+                                </div>
+                            </article>
+                        </div>
+
+                        <div
+                            v-if="hasMoreResults"
+                            ref="loadMoreSentinel"
+                            class="load-more-sentinel"
+                            aria-hidden="true"
+                        />
+                    </template>
                 </section>
             </div>
         </n-spin>
@@ -309,6 +346,7 @@ import { GAME_ASSETS_URL } from '@/constants/common';
 import FavoriteStarButton from '@/pages/icarus/components/FavoriteStarButton.vue';
 import ItemDetailButton from '@/pages/icarus/components/ItemDetailButton.vue';
 import ItemLockBadge from '@/pages/icarus/components/ItemLockBadge.vue';
+import { hasItemLocks } from '@/utility/icarusData';
 import {
     createDefaultExploreFilters,
     exploreQueriesEqual,
@@ -317,6 +355,7 @@ import {
 } from '@/utility/exploreQuery';
 
 const DEFAULT_FILTERS = createDefaultExploreFilters;
+const RESULTS_PAGE_SIZE = 48;
 
 const compareNullableNumber = (a, b, direction = 1) => {
     const left = a == null ? Number.NEGATIVE_INFINITY : a;
@@ -385,6 +424,11 @@ export default {
             rangeKeysFromQuery: new Set(),
             suppressQuerySync: false,
             querySyncTimer: null,
+            resultsShown: RESULTS_PAGE_SIZE,
+            hoveredCardId: null,
+            cardMenuOpenId: null,
+            cardLeaveTimer: null,
+            loadMoreObserver: null,
         };
     },
     computed: {
@@ -512,6 +556,12 @@ export default {
                     list.sort((a, b) => a.label.localeCompare(b.label));
             }
             return list;
+        },
+        pagedFoods() {
+            return this.sortedFoods.slice(0, this.resultsShown);
+        },
+        hasMoreResults() {
+            return this.sortedFoods.length > this.resultsShown;
         },
         selectedBuffLimitFilters() {
             const labelByKey = new Map(this.foodBuffStatOptions.map((opt) => [opt.value, opt.label]));
@@ -797,15 +847,28 @@ export default {
         filters: {
             deep: true,
             handler() {
+                this.resetResultsPagination();
                 this.scheduleQuerySync(true);
             },
         },
         sortBy() {
+            this.resetResultsPagination();
             this.scheduleQuerySync(false);
         },
         viewMode() {
             this.scheduleQuerySync(false);
+            this.$nextTick(() => this.setupInfiniteScroll());
         },
+        hasMoreResults(hasMore) {
+            if (hasMore) {
+                this.$nextTick(() => this.setupInfiniteScroll());
+            } else {
+                this.teardownInfiniteScroll();
+            }
+        },
+    },
+    mounted() {
+        this.$nextTick(() => this.setupInfiniteScroll());
     },
     created() {
         this.hydrateFromRouteQuery();
@@ -815,9 +878,102 @@ export default {
             clearTimeout(this.querySyncTimer);
             this.querySyncTimer = null;
         }
+        if (this.cardLeaveTimer) {
+            clearTimeout(this.cardLeaveTimer);
+            this.cardLeaveTimer = null;
+        }
+        this.teardownInfiniteScroll();
     },
     methods: {
         ...mapActions(useIcarusStore, ['addItemToTab', 'openItemInNewTab', 'isFavorite']),
+        resetResultsPagination() {
+            this.resultsShown = RESULTS_PAGE_SIZE;
+            this.hoveredCardId = null;
+            this.cardMenuOpenId = null;
+        },
+        showMoreResults() {
+            if (!this.hasMoreResults) return;
+            const before = this.resultsShown;
+            this.resultsShown = Math.min(this.resultsShown + RESULTS_PAGE_SIZE, this.sortedFoods.length);
+            if (this.resultsShown === before) return;
+            // Keep filling until the sentinel leaves the viewport (short first pages).
+            this.$nextTick(() => this.loadMoreIfSentinelVisible());
+        },
+        loadMoreIfSentinelVisible() {
+            if (!this.hasMoreResults) return;
+            const sentinel = this.$refs.loadMoreSentinel;
+            if (!sentinel) return;
+            const bottomSlack = 320;
+            if (sentinel.getBoundingClientRect().top <= window.innerHeight + bottomSlack) {
+                this.showMoreResults();
+            }
+        },
+        setupInfiniteScroll() {
+            this.teardownInfiniteScroll();
+            if (typeof IntersectionObserver === 'undefined') return;
+            const sentinel = this.$refs.loadMoreSentinel;
+            if (!sentinel) return;
+
+            this.loadMoreObserver = new IntersectionObserver(
+                (entries) => {
+                    if (!entries.some((entry) => entry.isIntersecting)) return;
+                    this.showMoreResults();
+                },
+                {
+                    root: null,
+                    rootMargin: '320px 0px',
+                    threshold: 0,
+                }
+            );
+            this.loadMoreObserver.observe(sentinel);
+        },
+        teardownInfiniteScroll() {
+            if (!this.loadMoreObserver) return;
+            this.loadMoreObserver.disconnect();
+            this.loadMoreObserver = null;
+        },
+        isCardActive(food) {
+            return this.hoveredCardId === food.id || this.cardMenuOpenId === food.id;
+        },
+        cardHasLocks(food) {
+            return hasItemLocks(food.locks);
+        },
+        cardHintFavorite(food) {
+            void this.favorites;
+            return this.isFavorite(food.staticItemName || food.id);
+        },
+        onCardEnter(food) {
+            if (this.cardLeaveTimer) {
+                clearTimeout(this.cardLeaveTimer);
+                this.cardLeaveTimer = null;
+            }
+            this.hoveredCardId = food.id;
+        },
+        onCardLeave(food) {
+            this.cardLeaveTimer = setTimeout(() => {
+                this.cardLeaveTimer = null;
+                if (this.hoveredCardId === food.id && this.cardMenuOpenId !== food.id) {
+                    this.hoveredCardId = null;
+                }
+            }, 180);
+        },
+        onCardFocusOut(event, food) {
+            const next = event.relatedTarget;
+            if (next && event.currentTarget.contains(next)) return;
+            this.onCardLeave(food);
+        },
+        onAddMenuShow(show, food) {
+            this.cardMenuOpenId = show ? food.id : null;
+            if (show) {
+                this.hoveredCardId = food.id;
+            }
+        },
+        onIconError(event) {
+            const img = event?.target;
+            if (!img || img.dataset.fallbackApplied) return;
+            img.dataset.fallbackApplied = '1';
+            img.src = `${this.gameAssetsUrl}/Images/question-mark.png`;
+        },
         hydrateFromRouteQuery() {
             this.suppressQuerySync = true;
             const { filters, sortBy, viewMode, rangeKeysFromQuery } = queryToExploreState(this.$route.query, {
@@ -871,6 +1027,7 @@ export default {
             this.boundsReady = true;
             this.sortBy = 'name';
             this.viewMode = 'cards';
+            this.resetResultsPagination();
         },
         craftRecipeId(food) {
             if (!food || food.acquisition !== 'craft') {
@@ -1076,6 +1233,18 @@ export default {
     font-style: italic;
 }
 
+.page-status {
+    display: block;
+    font-size: 0.8rem;
+}
+
+.load-more-sentinel {
+    width: 100%;
+    height: 1px;
+    margin-top: 0.5rem;
+    pointer-events: none;
+}
+
 .food-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));
@@ -1083,26 +1252,65 @@ export default {
 }
 
 .food-card {
+    position: relative;
     padding: 0.85rem;
     background: rgba(255, 255, 255, 0.03);
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 6px;
+
+    &.is-active {
+        border-color: rgba(255, 255, 255, 0.18);
+        background: rgba(255, 255, 255, 0.045);
+    }
+}
+
+.food-card-actions,
+.food-card-hints {
+    position: absolute;
+    top: 0.45rem;
+    right: 0.45rem;
+    z-index: 1;
+    gap: 0.1rem;
+}
+
+.food-card-hints {
+    pointer-events: none;
+    opacity: 0.7;
+    font-size: 0.75rem;
+    line-height: 1;
+    gap: 0.25rem;
+}
+
+.hint-fav {
+    color: #e6c35c;
+}
+
+.hint-lock {
+    color: #f0a0a0;
+    font-weight: 700;
 }
 
 .food-icon {
     margin-right: 0.75rem;
     flex-shrink: 0;
+    width: 48px;
+    height: 48px;
+    object-fit: contain;
+    display: block;
 }
 
 .food-name {
     font-weight: 650;
     line-height: 1.25;
-    margin-bottom: 0;
+    margin-bottom: 0.35rem;
+    padding-right: 2.5rem;
+    min-width: 0;
 
     &--hoverable {
         cursor: help;
         border-bottom: 1px dotted rgba(255, 255, 255, 0.35);
         width: fit-content;
+        max-width: 100%;
     }
 }
 
@@ -1115,6 +1323,7 @@ export default {
 
     .food-name {
         margin-bottom: 0;
+        padding-right: 0;
         min-width: 0;
     }
 }
@@ -1125,6 +1334,42 @@ export default {
 
 .food-tags {
     gap: 0.3rem;
+}
+
+.chip {
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.72rem;
+    line-height: 1.2;
+    padding: 0.12rem 0.4rem;
+    border-radius: 3px;
+    color: rgba(255, 255, 255, 0.75);
+    background: rgba(255, 255, 255, 0.08);
+
+    &--success {
+        color: #a8e6a3;
+        background: rgba(99, 180, 90, 0.18);
+    }
+
+    &--warning {
+        color: #e6d48a;
+        background: rgba(180, 150, 60, 0.18);
+    }
+
+    &--info {
+        color: #8ec8f0;
+        background: rgba(70, 140, 200, 0.18);
+    }
+
+    &--primary {
+        color: #b8c4f0;
+        background: rgba(90, 110, 200, 0.2);
+    }
+
+    &--error {
+        color: #f0a0a0;
+        background: rgba(200, 80, 80, 0.18);
+    }
 }
 
 .stat-row {
