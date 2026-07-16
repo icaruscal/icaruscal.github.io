@@ -32,6 +32,15 @@ export default {
     created() {
         useIcarusStore().loadRecipeData();
     },
+    watch: {
+        '$route.query.item': {
+            immediate: true,
+            handler(value) {
+                const id = Array.isArray(value) ? value[0] : value;
+                useIcarusStore().setItemDetailId(id || null);
+            },
+        },
+    },
 };
 </script>
 

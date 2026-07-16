@@ -9,12 +9,22 @@
         @update:show="onShowUpdate"
     >
         <template #header>
-            <span class="modal-header-label">Item details</span>
+            <div class="modal-header-row">
+                <button
+                    v-if="canGoBackItemDetail"
+                    type="button"
+                    class="modal-back-btn"
+                    @click="backItemDetail"
+                >
+                    ← Back
+                </button>
+                <span class="modal-header-label">Item details</span>
+            </div>
         </template>
 
         <div v-if="!detail" class="item-detail empty">Item not found.</div>
 
-        <div v-else class="item-detail-scroll">
+        <div v-else ref="detailScroll" class="item-detail-scroll">
             <div class="item-detail">
                 <header class="hero">
                     <div class="hero-icon-wrap">
@@ -316,7 +326,8 @@
 </template>
 
 <script>
-import { mapActions, mapState } from 'pinia';
+import { mapActions, mapGetters, mapState } from 'pinia';
+import { nextTick } from 'vue';
 
 import { useIcarusStore } from '@/store/icarus';
 import { buildItemDetail } from '@/utility/icarusData';
@@ -347,6 +358,7 @@ export default {
     },
     computed: {
         ...mapState(useIcarusStore, ['itemDetailId', 'dataCatalog']),
+        ...mapGetters(useIcarusStore, ['canGoBackItemDetail']),
         show() {
             return Boolean(this.itemDetailId);
         },
@@ -387,8 +399,16 @@ export default {
             };
         },
     },
+    watch: {
+        itemDetailId() {
+            nextTick(() => {
+                const el = this.$refs.detailScroll;
+                if (el) el.scrollTop = 0;
+            });
+        },
+    },
     methods: {
-        ...mapActions(useIcarusStore, ['openItemDetail', 'closeItemDetail']),
+        ...mapActions(useIcarusStore, ['openItemDetail', 'closeItemDetail', 'backItemDetail']),
         onShowUpdate(value) {
             if (!value) this.closeItemDetail();
         },
@@ -427,6 +447,32 @@ export default {
 </script>
 
 <style lang="scss" scoped>
+.modal-header-row {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    min-width: 0;
+}
+
+.modal-back-btn {
+    flex-shrink: 0;
+    margin: 0;
+    padding: 0.2rem 0.45rem;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.06);
+    color: rgba(255, 255, 255, 0.78);
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    cursor: pointer;
+
+    &:hover {
+        background: rgba(255, 255, 255, 0.1);
+        color: rgba(255, 255, 255, 0.95);
+    }
+}
+
 .modal-header-label {
     font-size: 0.8rem;
     font-weight: 600;

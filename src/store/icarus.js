@@ -4,7 +4,21 @@ import { useStorage } from '@vueuse/core';
 import { useFuse } from '@vueuse/integrations/useFuse';
 
 import { LOCAL_STORAGE_PREFIX } from '@/constants/common';
+import router from '@/router/router';
 import { formatGameVersionExtractedAt, formatGameVersionLabel, formatGameVersionShort, generateHighlightedText, processCatalogData, buildFoodConsumables } from '@/utility/icarusData';
+
+/** Normalize `?item=` from Vue Router query (string | string[]). */
+const queryItemId = (query) => {
+    const value = query?.item;
+    if (Array.isArray(value)) return value[0] || null;
+    return value || null;
+};
+
+const queryWithoutItem = (query) => {
+    const next = { ...query };
+    delete next.item;
+    return next;
+};
 
 // utility methods
 const DEFAULT_TAB_TITLE = 'Planning';
@@ -179,9 +193,14 @@ export const useIcarusStore = defineStore('icarus', {
             recipeSearch: '',
             /** Static item id (or recipe id) open in the item detail modal. */
             itemDetailId: null,
+            /** Number of router pushes since the item modal opened (for Back / Close). */
+            itemDetailOpenDepth: 0,
+            /** True while unwinding history on close (ignore route item until stripped). */
+            itemDetailClosing: false,
         };
     },
     getters: {
+        canGoBackItemDetail: (state) => state.itemDetailOpenDepth > 1,
         activeTab: (state) => findTab(state.activeTabId, state.tabs),
         dashboardTab: (state) => state.tabs.find((tab) => tab.isDashboard),
         planningTabs: (state) => state.tabs.filter((tab) => !tab.isDashboard),
@@ -494,12 +513,75 @@ export const useIcarusStore = defineStore('icarus', {
             console.log({ itemStaticData, itemTableData, stations, recipeData, foodConsumables: this.foodConsumables.length, meta: catalog.meta, gameVersion: this.gameVersion });
             console.log(`Processed data in ${performance.now() - startTime}ms`);
         },
+        /** Mirror `?item=` into store (route is source of truth). */
+        setItemDetailId(itemOrRecipeId) {
+            const id = itemOrRecipeId || null;
+            if (this.itemDetailClosing) {
+                if (!id) {
+                    this.itemDetailClosing = false;
+                    this.itemDetailId = null;
+                    this.itemDetailOpenDepth = 0;
+                }
+                return;
+            }
+            this.itemDetailId = id;
+            if (!id) {
+                this.itemDetailOpenDepth = 0;
+                return;
+            }
+            const stateDepth = window.history.state?.itemDetailOpenDepth;
+            if (typeof stateDepth === 'number') {
+                this.itemDetailOpenDepth = stateDepth;
+            } else if (!this.itemDetailOpenDepth) {
+                // Deep link / refresh: no push depth of our own.
+                this.itemDetailOpenDepth = 0;
+            }
+        },
         openItemDetail(itemOrRecipeId) {
             if (!itemOrRecipeId) return;
+            const route = router.currentRoute.value;
+            const current = queryItemId(route.query);
+            if (current === itemOrRecipeId) return;
+
+            const wasOpen = Boolean(current);
+            const nextDepth = wasOpen ? this.itemDetailOpenDepth + 1 : 1;
+            this.itemDetailClosing = false;
+            this.itemDetailOpenDepth = nextDepth;
             this.itemDetailId = itemOrRecipeId;
+
+            router.push({
+                query: { ...route.query, item: itemOrRecipeId },
+                state: { itemDetailOpenDepth: nextDepth },
+            });
+        },
+        backItemDetail() {
+            if (this.itemDetailOpenDepth <= 1) return;
+            router.back();
         },
         closeItemDetail() {
+            const depth = this.itemDetailOpenDepth;
+            this.itemDetailClosing = true;
+            this.itemDetailOpenDepth = 0;
             this.itemDetailId = null;
+
+            const stripItemFromQuery = () => {
+                const route = router.currentRoute.value;
+                if (!queryItemId(route.query)) {
+                    this.itemDetailClosing = false;
+                    return;
+                }
+                router.replace({ query: queryWithoutItem(route.query) });
+            };
+
+            if (depth > 0) {
+                const removeHook = router.afterEach(() => {
+                    removeHook();
+                    stripItemFromQuery();
+                });
+                router.go(-depth);
+            } else {
+                stripItemFromQuery();
+            }
         },
 
         /** Prefer D_ItemsStatic id so explorer / calculator / detail share one favorite key. */

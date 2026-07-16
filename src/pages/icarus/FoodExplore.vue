@@ -309,22 +309,14 @@ import { GAME_ASSETS_URL } from '@/constants/common';
 import FavoriteStarButton from '@/pages/icarus/components/FavoriteStarButton.vue';
 import ItemDetailButton from '@/pages/icarus/components/ItemDetailButton.vue';
 import ItemLockBadge from '@/pages/icarus/components/ItemLockBadge.vue';
+import {
+    createDefaultExploreFilters,
+    exploreQueriesEqual,
+    exploreStateToQuery,
+    queryToExploreState,
+} from '@/utility/exploreQuery';
 
-const DEFAULT_FILTERS = () => ({
-    search: '',
-    categories: { food: true, medicine: true },
-    sources: { craft: true, gather: true, mission: true, shop: true, workshop: true },
-    tier: [0, 5],
-    food: [0, 400],
-    water: [0, 400],
-    duration: [0, 400],
-    buffKeys: [],
-    buffLimits: {},
-    buffMatchMode: 'and',
-    hasBuffOnly: false,
-    hasNegativeOnly: false,
-    favoritesOnly: false,
-});
+const DEFAULT_FILTERS = createDefaultExploreFilters;
 
 const compareNullableNumber = (a, b, direction = 1) => {
     const left = a == null ? Number.NEGATIVE_INFINITY : a;
@@ -389,6 +381,10 @@ export default {
                 { label: 'Tier', value: 'tierAsc' },
             ],
             boundsReady: false,
+            /** Range keys present in the landing URL (skip overwriting when bounds load). */
+            rangeKeysFromQuery: new Set(),
+            suppressQuerySync: false,
+            querySyncTimer: null,
         };
     },
     computed: {
@@ -775,10 +771,22 @@ export default {
             immediate: true,
             handler(list) {
                 if (!list.length || this.boundsReady) return;
-                this.filters.food = [this.foodBounds.min, this.foodBounds.max];
-                this.filters.water = [this.waterBounds.min, this.waterBounds.max];
-                this.filters.duration = [this.durationBounds.min, this.durationBounds.max];
+                if (!this.rangeKeysFromQuery.has('food')) {
+                    this.filters.food = [this.foodBounds.min, this.foodBounds.max];
+                }
+                if (!this.rangeKeysFromQuery.has('water')) {
+                    this.filters.water = [this.waterBounds.min, this.waterBounds.max];
+                }
+                if (!this.rangeKeysFromQuery.has('duration')) {
+                    this.filters.duration = [this.durationBounds.min, this.durationBounds.max];
+                }
                 this.boundsReady = true;
+                if (this.filters.buffKeys?.length) {
+                    this.syncBuffLimits(this.filters.buffKeys);
+                }
+                this.$nextTick(() => {
+                    this.syncFiltersToRoute();
+                });
             },
         },
         'filters.buffKeys': {
@@ -786,15 +794,83 @@ export default {
                 this.syncBuffLimits(keys ?? []);
             },
         },
+        filters: {
+            deep: true,
+            handler() {
+                this.scheduleQuerySync(true);
+            },
+        },
+        sortBy() {
+            this.scheduleQuerySync(false);
+        },
+        viewMode() {
+            this.scheduleQuerySync(false);
+        },
+    },
+    created() {
+        this.hydrateFromRouteQuery();
+    },
+    beforeUnmount() {
+        if (this.querySyncTimer) {
+            clearTimeout(this.querySyncTimer);
+            this.querySyncTimer = null;
+        }
     },
     methods: {
         ...mapActions(useIcarusStore, ['addItemToTab', 'openItemInNewTab', 'isFavorite']),
+        hydrateFromRouteQuery() {
+            this.suppressQuerySync = true;
+            const { filters, sortBy, viewMode, rangeKeysFromQuery } = queryToExploreState(this.$route.query, {
+                foodBounds: this.foodConsumables.length ? this.foodBounds : null,
+                waterBounds: this.foodConsumables.length ? this.waterBounds : null,
+                durationBounds: this.foodConsumables.length ? this.durationBounds : null,
+            });
+            this.filters = filters;
+            this.sortBy = sortBy;
+            this.viewMode = viewMode;
+            this.rangeKeysFromQuery = rangeKeysFromQuery;
+            this.$nextTick(() => {
+                this.suppressQuerySync = false;
+            });
+        },
+        scheduleQuerySync(debounceSearch) {
+            if (this.suppressQuerySync || !this.boundsReady) return;
+            if (this.querySyncTimer) {
+                clearTimeout(this.querySyncTimer);
+                this.querySyncTimer = null;
+            }
+            const delay = debounceSearch ? 200 : 0;
+            this.querySyncTimer = setTimeout(() => {
+                this.querySyncTimer = null;
+                this.syncFiltersToRoute();
+            }, delay);
+        },
+        syncFiltersToRoute() {
+            if (this.suppressQuerySync || !this.boundsReady) return;
+            const item = this.$route.query.item;
+            const itemId = Array.isArray(item) ? item[0] : item;
+            const nextQuery = exploreStateToQuery({
+                filters: this.filters,
+                sortBy: this.sortBy,
+                viewMode: this.viewMode,
+                foodBounds: this.foodBounds,
+                waterBounds: this.waterBounds,
+                durationBounds: this.durationBounds,
+                getBuffBounds: (key) => getBuffValueBounds(this.foodConsumables, key),
+                itemId: itemId || null,
+            });
+            if (exploreQueriesEqual(nextQuery, this.$route.query)) return;
+            this.$router.replace({ query: nextQuery });
+        },
         resetFilters() {
             this.filters = DEFAULT_FILTERS();
             this.filters.food = [this.foodBounds.min, this.foodBounds.max];
             this.filters.water = [this.waterBounds.min, this.waterBounds.max];
             this.filters.duration = [this.durationBounds.min, this.durationBounds.max];
+            this.rangeKeysFromQuery = new Set();
             this.boundsReady = true;
+            this.sortBy = 'name';
+            this.viewMode = 'cards';
         },
         craftRecipeId(food) {
             if (!food || food.acquisition !== 'craft') {
@@ -825,6 +901,9 @@ export default {
             }
         },
         syncBuffLimits(keys) {
+            if (!this.foodConsumables?.length) {
+                return;
+            }
             const next = { ...this.filters.buffLimits };
             const selected = new Set(keys);
             for (const key of Object.keys(next)) {
