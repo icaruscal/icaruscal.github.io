@@ -5,7 +5,7 @@ import { useFuse } from '@vueuse/integrations/useFuse';
 
 import { LOCAL_STORAGE_PREFIX } from '@/constants/common';
 import router from '@/router/router';
-import { formatGameVersionExtractedAt, formatGameVersionLabel, formatGameVersionShort, generateHighlightedText, processCatalogData, buildFoodConsumables } from '@/utility/icarusData';
+import { formatGameVersionExtractedAt, formatGameVersionLabel, formatGameVersionShort, generateHighlightedText, processCatalogData, buildFoodConsumables, buildGearItems } from '@/utility/icarusData';
 
 /** Normalize `?item=` from Vue Router query (string | string[]). */
 const queryItemId = (query) => {
@@ -185,6 +185,7 @@ export const useIcarusStore = defineStore('icarus', {
             recipeData: {},
             recipeOptions: [],
             foodConsumables: [],
+            gearItems: [],
             /** Full `data-catalog.json` for item detail / reverse lookups. */
             dataCatalog: null,
             isLoadingRecipes: false,
@@ -243,6 +244,22 @@ export const useIcarusStore = defineStore('icarus', {
             }
             return [...labels.entries()]
                 .filter(([value]) => value !== 'BaseFoodStomachSlots_+')
+                .map(([value, label]) => ({ value, label }))
+                .sort((a, b) => a.label.localeCompare(b.label));
+        },
+        gearStatOptions(state) {
+            const labels = new Map();
+            for (const gear of state.gearItems) {
+                for (const stat of gear.gearStats) {
+                    // Keys ending in `_?` are internal boolean flags without display text.
+                    if (stat.key.endsWith('_?')) continue;
+                    if (!labels.has(stat.key)) {
+                        const base = (stat.display || stat.key).replace(/^[+-]?\d+(?:\.\d+)?%?\s*/, '').trim();
+                        labels.set(stat.key, base || stat.key);
+                    }
+                }
+            }
+            return [...labels.entries()]
                 .map(([value, label]) => ({ value, label }))
                 .sort((a, b) => a.label.localeCompare(b.label));
         },
@@ -503,6 +520,7 @@ export const useIcarusStore = defineStore('icarus', {
             this.stations = stations ?? {};
             this.recipeData = recipeData;
             this.foodConsumables = buildFoodConsumables(catalog);
+            this.gearItems = buildGearItems(catalog);
             this.dataCatalog = catalog;
             // Use Set to deduplicate: aliased entries (e.g. "Refined_Wood" / "Wood_Refined")
             // share the same object reference so Set collapses them to one search result.

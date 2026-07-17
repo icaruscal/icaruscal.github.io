@@ -291,6 +291,62 @@
                     </section>
                 </div>
 
+                <section v-if="(detail.combatRows?.length ?? 0) > 0" class="panel panel-full">
+                    <h3 class="panel-title">Combat</h3>
+                    <div class="pill-row">
+                        <span
+                            v-for="row in detail.combatRows"
+                            :key="`c-${row.key}`"
+                            class="stat-pill combat"
+                        >
+                            {{ row.display }}
+                        </span>
+                    </div>
+                </section>
+
+                <section v-if="detail.armour" class="panel panel-full">
+                    <h3 class="panel-title">
+                        Armor
+                        <span v-if="detail.armour.armourType" class="panel-count">
+                            {{ humanize(detail.armour.armourType) }}
+                        </span>
+                    </h3>
+                    <div v-if="detail.armour.setId" class="armour-set-meta">
+                        Set: {{ humanize(detail.armour.setId) }}
+                    </div>
+                    <div v-if="detail.armour.stats.length" class="pill-row">
+                        <span
+                            v-for="stat in detail.armour.stats"
+                            :key="`a-${stat.key}`"
+                            class="stat-pill"
+                            :class="statPillClass(stat)"
+                        >
+                            {{ stat.display || `${stat.key}: ${stat.value}` }}
+                        </span>
+                    </div>
+                    <div v-if="detail.armour.setBonus" class="armour-set-bonus">
+                        <div class="effect-label">
+                            Set bonus
+                            <span class="effect-meta">
+                                {{ detail.armour.setBonus.requiredGear }} pieces
+                            </span>
+                        </div>
+                        <p v-if="detail.armour.setBonus.description" class="effect-desc">
+                            {{ detail.armour.setBonus.description }}
+                        </p>
+                        <div v-if="detail.armour.setBonus.stats.length" class="pill-row">
+                            <span
+                                v-for="stat in detail.armour.setBonus.stats"
+                                :key="`sb-${stat.key}`"
+                                class="stat-pill"
+                                :class="statPillClass(stat)"
+                            >
+                                {{ stat.display || `${stat.key}: ${stat.value}` }}
+                            </span>
+                        </div>
+                    </div>
+                </section>
+
                 <section class="panel panel-used-in">
                     <h3 class="panel-title">
                         Used in
@@ -733,18 +789,39 @@ export default {
     color: rgba(255, 255, 255, 0.55);
 }
 
+.armour-set-meta {
+    margin: 0 0 0.45rem;
+    font-size: 0.78rem;
+    color: rgba(255, 255, 255, 0.55);
+}
+
+.armour-set-bonus {
+    margin-top: 0.55rem;
+    padding-top: 0.55rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.panel-full {
+    width: 100%;
+}
+
 .pill-row {
     display: flex;
     flex-wrap: wrap;
+    align-items: flex-start;
     gap: 0.3rem;
 }
 
 .stat-pill {
+    flex: 0 0 auto;
+    width: max-content;
+    max-width: 100%;
     font-size: 0.74rem;
     padding: 0.18rem 0.45rem;
     border-radius: 4px;
     background: rgba(255, 255, 255, 0.06);
     color: rgba(255, 255, 255, 0.8);
+    white-space: normal;
 
     &.food {
         color: #a8e6a3;
@@ -769,6 +846,11 @@ export default {
     &.oxygen {
         color: #a0d8f0;
         background: rgba(80, 160, 200, 0.15);
+    }
+
+    &.combat {
+        color: #f0a8a8;
+        background: rgba(180, 80, 80, 0.15);
     }
 
     &.is-neg {

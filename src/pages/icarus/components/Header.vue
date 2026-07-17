@@ -35,7 +35,7 @@
                             <div v-if="gameVersionExtractedAt">Extracted {{ gameVersionExtractedAt }}</div>
                         </div>
                     </n-tooltip>
-                    <n-tooltip v-if="isCalculatorPage" trigger="hover" placement="bottom">
+                    <n-tooltip trigger="hover" placement="bottom">
                         <template #trigger>
                             <n-button size="small" secondary quaternary circle :type="pageLayout === 'top' ? 'primary' : 'default'" @click="toggleLayout">
                                 <n-icon size="16">
@@ -44,7 +44,7 @@
                                 </n-icon>
                             </n-button>
                         </template>
-                        {{ pageLayout === 'side' ? 'Switch to top search layout' : 'Switch to side search layout' }}
+                        {{ pageLayout === 'side' ? 'Switch to top layout' : 'Switch to side layout' }}
                     </n-tooltip>
                 </div>
             </div>
@@ -70,15 +70,13 @@ export default {
             gameAssetsUrl: GAME_ASSETS_URL,
             navItems: [
                 { label: 'Calculator', to: { name: RouteName.CALCULATOR } },
-                { label: 'Explore', to: { name: RouteName.EXPLORE } },
+                { label: 'Consumables', to: { name: RouteName.CONSUMABLES } },
+                { label: 'Gear', to: { name: RouteName.GEAR } },
             ],
         };
     },
     computed: {
         ...mapGetters(useIcarusStore, ['pageLayout', 'gameVersionShort', 'gameVersionLabel', 'gameVersionExtractedAt']),
-        isCalculatorPage() {
-            return this.$route.name === RouteName.CALCULATOR;
-        },
     },
     methods: {
         ...mapActions(useIcarusStore, ['setPageLayout']),

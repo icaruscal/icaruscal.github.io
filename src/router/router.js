@@ -8,9 +8,18 @@ const routes = [
         component: () => import('@/pages/icarus/Icarus.vue'),
     },
     {
-        name: RouteName.EXPLORE,
+        name: RouteName.CONSUMABLES,
+        path: '/consumables',
+        component: () => import('@/pages/icarus/ConsumablesExplore.vue'),
+    },
+    {
+        name: RouteName.GEAR,
+        path: '/gear',
+        component: () => import('@/pages/icarus/GearExplore.vue'),
+    },
+    {
         path: '/explore',
-        component: () => import('@/pages/icarus/FoodExplore.vue'),
+        redirect: (to) => ({ path: '/consumables', query: to.query }),
     },
 ];
 

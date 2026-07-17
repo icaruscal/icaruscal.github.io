@@ -54,7 +54,15 @@ D_ProcessorRecipes (Crafting/)        recipe: stations, inputs, outputs
               ├─ Itemable.RowName   ──► D_Itemable (Traits/)      name, description, icon
               ├─ Consumable.RowName ──► D_Consumable (Traits/)    instant stats + modifier ref
               │     └─ Modifier.Modifier.RowName ──► D_ModifierStates (Modifiers/)  buff stats
-              └─ Equippable.RowName ──► D_Equippable (Traits/)    armor/tool granted stats
+              ├─ Equippable.RowName ──► D_Equippable (Traits/)    modules/backpacks granted stats
+              ├─ ToolDamage.RowName ──► D_ToolDamage (Tools/)     melee / tool base damage
+              ├─ FirearmData.RowName ──► D_FirearmData (Tools/)   bow/gun DamageMultiplier, RPM
+              ├─ Ballistic.RowName  ──► D_Ballistic (Traits/)     arrow projectile damage
+              ├─ AmmoType.RowName   ──► D_AmmoTypes (Tools/)      bullet/shell ProjectileDamage
+              ├─ Attachments.RowName ──► D_IcarusAttachments → D_Alterations  socket mods
+              ├─ AdditionalStats    (inline on the static item)   extra weapon modifiers
+              └─ Armour.RowName     ──► D_Armour (Traits/)        worn piece ArmourStats + set
+                    └─ ArmourSet ──► D_ArmourSets → D_ArmourSetBonus
 ```
 
 Key tables:
@@ -69,7 +77,15 @@ Key tables:
 | `D_Itemable` | `Traits/` | DisplayName, Description, FlavorText, Icon |
 | `D_Consumable` | `Traits/` | Instant `Stats` on consumption (e.g. `BaseFoodRecovery_+`), `Modifier` ref + `ModifierLifetime` (seconds) |
 | `D_ModifierStates` | `Modifiers/` | Buff (`GrantedStats`), display name/description, merge behavior |
-| `D_Equippable` | `Traits/` | `GrantedStats` / `GlobalStat_GrantedStats` for equipment |
+| `D_Equippable` | `Traits/` | `GrantedStats` / `GlobalStat_GrantedStats` for equipment **modules / backpacks / saddles** (not body armour) |
+| `D_ToolDamage` | `Tools/` | Melee / tool `Melee_Damage`, variation, felling / mining / skinning / shattering |
+| `D_FirearmData` | `Tools/` | Bow/gun `DamageMultiplier`, accuracy, RPM, reload, valid ammo group |
+| `D_Ballistic` | `Traits/` | Arrow (and similar) projectile `Damage` + variation |
+| `D_AmmoTypes` | `Tools/` | Bullet/shell `ProjectileDamage`, `ProjectileCount`, extra `Stats` |
+| `D_Armour` | `Traits/` | Worn piece `ArmourStats`, `ArmourType`, `ArmourSet` |
+| `D_ArmourSets` / `D_ArmourSetBonus` | `Armour/` | Set id → bonus row (`RequiredGear`, `StatsGranted`) |
+| `D_IcarusAttachments` / `D_Alterations` | `Attachments/` / `Alterations/` | Socket attachment → alteration stats |
+| `D_DamageTypeInfo` | `Damage/` | Damage kind → DamageStat / ResistanceStat / defender multipliers |
 | `D_Stats` | `Stats/` | Stat key → UI text templates (`PositiveDescription`/`NegativeDescription`, `{0}` = abs value) |
 
 ### Stats example (Fruit Pie)
@@ -164,6 +180,10 @@ fetching / client-joining `D_ProcessorRecipes`, `D_ItemTemplate`, `D_ItemsStatic
 | `Items/D_ItemsStatic.json` | Trait links; ingredient/raw material ids |
 | `Traits/D_Itemable.json` | DisplayName, Description, Icon |
 | `Traits/D_Consumable.json` / `D_Equippable.json` | Instant / equip stats |
+| `Tools/D_ToolDamage.json` / `D_FirearmData.json` / `D_AmmoTypes.json` | Melee / firearm / bullet combat |
+| `Traits/D_Ballistic.json` / `D_Armour.json` | Arrow damage / worn armour stats |
+| `Armour/D_ArmourSets.json` / `D_ArmourSetBonus.json` | Armour set bonuses |
+| `Attachments/D_IcarusAttachments.json` / `Alterations/D_Alterations.json` | Tool attachment alterations |
 | `Modifiers/D_ModifierStates.json` | Buff granted stats |
 | `Stats/D_Stats.json` | Human-readable stat templates |
 | `Talents/D_Talents.json` | Tier deduction |
@@ -406,6 +426,8 @@ Explore filters this via `aud=prospector,animal,other` (other = no `foodAudience
 - `tier.talentDisplayName` is the talent's UI label when present (compact-omitted when null).
 - `items[*].deployable` / `stations[*].deployable` — pipe / power / internal-fuel requirements for placeables
   (see §7). Omitted when the item is not a deployable or has nothing to report.
+- `items[*].combat` — weapon / ammo / attachment combat numbers (see §8). Omitted when none apply.
+- `items[*].armour` — worn armour piece stats + set bonus (see §8). Omitted when not armour.
 - Loader defaults: missing `purchase` / `modifier` / `instantStats` / `equipGrantedStats` / `flags` / `stations` /
   `ingredients` → `null` or `[]` as appropriate.
 
@@ -422,13 +444,15 @@ Informational flags stay on the recipe; `meta.reviewQueueCount` counts rows with
 | `tier_unknown` | No tier could be deduced at all. Review. |
 | `missing_station_talent` / `missing_requirement_talent` | Talent lookup failed. Review. |
 | `missing_output_template` / `missing_static_item` / `missing_itemable` / `missing_consumable_row` / `missing_modifier_row` | Broken join in the item chain. Review. |
+| `missing_tool_damage_row` / `missing_firearm_row` / `missing_ballistic_row` / `missing_ammo_type_row` / `missing_armour_row` / `missing_attachment_row` / `missing_alteration_row` | Broken combat / armour join. Review. |
 | `unknown_stat_key` | Stat key not found in `D_Stats`. Review. |
 | `unknown_currency` / `shop_price_missing` | Purchase cost couldn't be resolved. Review. |
 | `recipe_disabled` | `bForceDisableRecipe` set. Review. |
 | `non_blueprint_talent_tree` | Requirement talent sits in a non-`Blueprint_T*` tree (missions etc). Review. |
 
-Snapshot from the 2026-07 export: **2538** recipes (2164 craft, 40 shop, 334 workshop); **2504** items
-(626 raw, 27 gather-first); **68** stations; **221** deployables with runtime data; 363 grant stats; 59 unknown tier; 199 in review queue.
+Snapshot from the 2026-07 export: **2584** recipes (2164 craft, 40 shop, 334 workshop, …);
+**2781** items (903 raw, 27 gather-first); **68** stations; **221** deployables; **1235** combat;
+**217** armour; 409 grant stats; 59 unknown tier; 199 in review queue.
 
 ## 7. Deployable runtime (pipes / power / fuel)
 
@@ -523,7 +547,91 @@ Each badge row shows:
 | Electric Composter | Required (1500 mW) | Optional (boost) | — |
 | Polymerizer | Required | — | — |
 
-## 8. Misc facts worth remembering
+## 8. Weapon combat & armour
+
+Combat and armour numbers live on **`items[*]`** (same pattern as deployable), not on recipes.
+`D_Equippable` is for modules / backpacks / saddles (`recipes[].equipGrantedStats`); **body armour
+does not use it**.
+
+### Join chains
+
+```text
+Melee / tools:
+  D_ItemsStatic.ToolDamage ──► D_ToolDamage
+    Melee_Damage, DamageVariationPercentage,
+    Felling_* / Mining_* / Skinning_* / Shattering_* / Reaping_*
+  D_ItemsStatic.AdditionalStats ──► resolved via D_Stats
+
+Bows / guns:
+  D_ItemsStatic.FirearmData ──► D_FirearmData
+    DamageMultiplier, RoundsPerMinute, ReloadTime, AmmoCapacity, ValidAmmoTypes
+
+Arrows:
+  D_ItemsStatic.Ballistic ──► D_Ballistic
+    Damage, DamageVariationPercentage
+
+Bullets / shells:
+  D_ItemsStatic.AmmoType ──► D_AmmoTypes
+    ProjectileDamage, ProjectileCount, Stats
+
+Attachments (socket items):
+  D_ItemsStatic.Attachments ──► D_IcarusAttachments.GrantedAlteration
+    ──► D_Alterations (DisplayName, Stats)
+
+Armour:
+  D_ItemsStatic.Armour ──► D_Armour
+    ArmourStats, ArmourType (Head/Chest/Hands/Legs/Feet/Undersuit), ArmourSet
+      ──► D_ArmourSets.SetBonus[0] ──► D_ArmourSetBonus
+            RequiredGear, Description, StatsGranted
+```
+
+Damage kinds (Melee, Projectile, Fire, Poison, …) map to attack/resist stat keys in
+`Damage/D_DamageTypeInfo.json`.
+
+### Catalog shapes
+
+**`items[*].combat`** (omit when empty):
+
+| Field | Source | Meaning |
+|---|---|---|
+| `toolDamage.meleeDamage` | `D_ToolDamage.Melee_Damage` | Base melee hit |
+| `toolDamage.damageVariationPercent` | `DamageVariationPercentage` | ±% roll |
+| `toolDamage.fellingDamage` / `fellingEfficiency` / … | same table | Tool-specific; omit when 0 |
+| `firearm.damageMultiplier` | `D_FirearmData` | Multiplies ammo/arrow damage (Wood Bow = 1, Compound = 2, …) |
+| `firearm.roundsPerMinute` / `reloadTime` / `ammoCapacity` / `validAmmoTypes` | same | Handling |
+| `ballistic.damage` | `D_Ballistic` | Arrow projectile damage |
+| `ammo.projectileDamage` / `projectileCount` / `stats` | `D_AmmoTypes` | Bullet/shell damage + extras |
+| `additionalStats[]` | `D_ItemsStatic.AdditionalStats` | e.g. spear crit, pickaxe armour damage |
+| `attachment` | Attachments → Alterations | When this item *is* a socket attachment |
+
+Ranged hit damage ≈ **(arrow `ballistic.damage` or ammo `projectileDamage`) × `firearm.damageMultiplier`**,
+plus player / talent / attachment stats.
+
+**`items[*].armour`** (omit when not armour):
+
+| Field | Meaning |
+|---|---|
+| `armourType` | `Head` / `Chest` / `Hands` / `Legs` / `Feet` / `Undersuit` / … |
+| `setId` | `D_ArmourSets` row (e.g. `Leather`, `Carbon`) |
+| `stats[]` | Piece `ArmourStats` (physical / cold / heat / exposure / slots, …) |
+| `setBonus` | From set → bonus row: `requiredGear` (usually 5), `description`, `stats[]` |
+
+Examples: Leather Chest → +10 Physical Resistance; full Leather set → +10% health/stamina regen.
+Composite Chest → +16 Physical; Carbon (Naneo) set → weight / collision / stamina bonuses.
+
+### UI
+
+| Piece | Role |
+|---|---|
+| `buildItemDetail` → `combat` / `combatRows` / `armour` | From `items[id]` |
+| `buildCombatDisplayRows(combat)` | Flat pill labels in `src/utility/icarusData.js` |
+| Item detail modal | Combat + Armor panels (when present) |
+
+### Meta counts
+
+`meta.combatCount` / `meta.armourCount` count static items that emitted those blocks.
+
+## 9. Misc facts worth remembering
 
 - The web app loads `/icarus-game/Data/version.json` first (for game version + `catalogHash`), then
   `/icarus-game/Data/data-catalog.json?v=<catalogHash>` (`src/store/icarus.js` → `processCatalogData`).

@@ -13,7 +13,7 @@
  *
  * Output shape (compact — same key names, sparse omit null/[]):
  *   - recipes[]     craft fields + stats/tier; display via items[staticItemName]
- *   - items{}       displayName / description / iconPath / recipeIds / deployable
+ *   - items{}       displayName / description / iconPath / recipeIds / deployable / combat / armour
  *   - stations{}    displayName / recipeSetDisplayName / iconPath / craftRecipeId / deployable
  *
  * Not shipped: raw Unreal `icon`, `lookup`, `reviewQueue` (rebuild from items.recipeIds / flags).
@@ -49,8 +49,72 @@ type ItemsStaticRow = {
     Deployable?: RowRef;
     Resource?: RowRef;
     Generator?: RowRef;
+    ToolDamage?: RowRef;
+    FirearmData?: RowRef;
+    Ballistic?: RowRef;
+    AmmoType?: RowRef;
+    Armour?: RowRef;
+    Attachments?: RowRef;
+    AdditionalStats?: Record<string, number>;
     Manual_Tags?: { GameplayTags?: Array<{ TagName?: string }> };
     Metadata?: MetadataBlock | null;
+};
+type ToolDamageRow = {
+    Name: string;
+    Melee_Damage?: number;
+    DamageVariationPercentage?: number;
+    Felling_Damage?: number;
+    Felling_Efficiency?: number;
+    Mining_Radius?: number;
+    Mining_Efficiency?: number;
+    Skinning_Efficiency?: number;
+    Reaping_Efficiency?: number;
+    Shattering_Damage?: number;
+    Shattering_Efficiency?: number;
+};
+type FirearmDataRow = {
+    Name: string;
+    DamageMultiplier?: number;
+    RoundsPerMinute?: number;
+    ReloadTime?: number;
+    AmmoCapacity?: number;
+    ValidAmmoTypes?: RowRef;
+};
+type BallisticRow = {
+    Name: string;
+    Damage?: number;
+    DamageVariationPercentage?: number;
+};
+type AmmoTypeRow = {
+    Name: string;
+    ProjectileDamage?: number;
+    ProjectileCount?: number;
+    Stats?: Record<string, number>;
+};
+type ArmourRow = {
+    Name: string;
+    ArmourStats?: Record<string, number>;
+    ArmourType?: string;
+    ArmourSet?: RowRef;
+};
+type ArmourSetRow = {
+    Name: string;
+    SetBonus?: RowRef[];
+};
+type ArmourSetBonusRow = {
+    Name: string;
+    RequiredGear?: number;
+    Description?: string;
+    StatsGranted?: Record<string, number>;
+};
+type AttachmentRow = {
+    Name: string;
+    GrantedAlteration?: RowRef;
+};
+type AlterationRow = {
+    Name: string;
+    DisplayName?: string;
+    Stats?: Record<string, number>;
 };
 type ProcessingRow = {
     Name: string;
@@ -179,6 +243,13 @@ type Flag =
     | 'missing_modifier_row'
     | 'missing_requirement_talent'
     | 'missing_station_talent'
+    | 'missing_tool_damage_row'
+    | 'missing_firearm_row'
+    | 'missing_ballistic_row'
+    | 'missing_ammo_type_row'
+    | 'missing_armour_row'
+    | 'missing_attachment_row'
+    | 'missing_alteration_row'
     | 'tier_unknown'
     | 'multi_station_tiers'
     | 'partial_station_tier_gaps'
@@ -307,6 +378,75 @@ type CatalogDeployableRuntime = {
     } | null;
 };
 
+/** Melee / tool base damage from D_ToolDamage (omit zero tool fields). */
+type CatalogToolDamage = {
+    meleeDamage: number;
+    damageVariationPercent: number;
+    fellingDamage?: number;
+    fellingEfficiency?: number;
+    miningRadius?: number;
+    miningEfficiency?: number;
+    skinningEfficiency?: number;
+    reapingEfficiency?: number;
+    shatteringDamage?: number;
+    shatteringEfficiency?: number;
+};
+
+/** Bow / gun handling from D_FirearmData — multiply ammo/arrow damage by damageMultiplier. */
+type CatalogFirearm = {
+    damageMultiplier: number;
+    roundsPerMinute: number | null;
+    reloadTime: number | null;
+    ammoCapacity: number | null;
+    validAmmoTypes: string | null;
+};
+
+/** Arrow / throwable projectile damage from D_Ballistic. */
+type CatalogBallistic = {
+    damage: number;
+    damageVariationPercent: number;
+};
+
+/** Bullet / shell damage from D_AmmoTypes. */
+type CatalogAmmo = {
+    projectileDamage: number;
+    projectileCount: number;
+    stats: ResolvedStat[];
+};
+
+/** Socket attachment item → D_IcarusAttachments → D_Alterations. */
+type CatalogAttachmentEffect = {
+    id: string;
+    displayName: string | null;
+    stats: ResolvedStat[];
+};
+
+/**
+ * Weapon / ammo combat numbers for an item (D_ToolDamage, D_FirearmData, D_Ballistic,
+ * D_AmmoTypes, AdditionalStats, Attachments). Omitted when nothing applies.
+ */
+type CatalogCombat = {
+    toolDamage?: CatalogToolDamage;
+    firearm?: CatalogFirearm;
+    ballistic?: CatalogBallistic;
+    ammo?: CatalogAmmo;
+    additionalStats?: ResolvedStat[];
+    attachment?: CatalogAttachmentEffect;
+};
+
+/** Body armour piece from D_Armour (+ optional set bonus via D_ArmourSets / D_ArmourSetBonus). */
+type CatalogArmour = {
+    armourType: string;
+    setId: string | null;
+    stats: ResolvedStat[];
+    setBonus: {
+        id: string;
+        requiredGear: number;
+        description: string | null;
+        stats: ResolvedStat[];
+    } | null;
+};
+
 /** Display record for a D_ItemsStatic row referenced by recipes / materials. */
 type CatalogItem = {
     id: string;
@@ -333,6 +473,10 @@ type CatalogItem = {
     locks: CatalogLocks | null;
     /** Pipe / power requirements when this item is a deployable (D_Deployable trait). */
     deployable?: CatalogDeployableRuntime;
+    /** Weapon / ammo / attachment combat data. */
+    combat?: CatalogCombat;
+    /** Worn armour piece stats + set bonus. */
+    armour?: CatalogArmour;
 };
 
 /** Crafting station (D_RecipeSets) with UI labels/icons. */
@@ -363,6 +507,13 @@ const REVIEW_FLAGS = new Set<Flag>([
     'missing_modifier_row',
     'missing_requirement_talent',
     'missing_station_talent',
+    'missing_tool_damage_row',
+    'missing_firearm_row',
+    'missing_ballistic_row',
+    'missing_ammo_type_row',
+    'missing_armour_row',
+    'missing_attachment_row',
+    'missing_alteration_row',
     'tier_unknown',
     'partial_station_tier_gaps',
     'recipe_disabled',
@@ -722,6 +873,194 @@ function resolveDeployableRuntime(args: {
     };
 }
 
+function positiveNumber(value: unknown): number | undefined {
+    return typeof value === 'number' && value !== 0 ? value : undefined;
+}
+
+/** Weapon / ammo / attachment combat joins for a static item. */
+function resolveCombat(args: {
+    staticRow: ItemsStaticRow;
+    toolDamageByName: Map<string, ToolDamageRow>;
+    firearmByName: Map<string, FirearmDataRow>;
+    ballisticByName: Map<string, BallisticRow>;
+    ammoByName: Map<string, AmmoTypeRow>;
+    attachmentByName: Map<string, AttachmentRow>;
+    alterationByName: Map<string, AlterationRow>;
+    statsByName: Map<string, StatRow>;
+    flags: Flag[];
+}): CatalogCombat | null {
+    const {
+        staticRow,
+        toolDamageByName,
+        firearmByName,
+        ballisticByName,
+        ammoByName,
+        attachmentByName,
+        alterationByName,
+        statsByName,
+        flags,
+    } = args;
+    const combat: CatalogCombat = {};
+
+    const toolDamageName = staticRow.ToolDamage?.RowName;
+    if (toolDamageName && toolDamageName !== 'None') {
+        const row = lookupByName(toolDamageByName, toolDamageName);
+        if (!row) {
+            flags.push('missing_tool_damage_row');
+        } else {
+            const toolDamage: CatalogToolDamage = {
+                meleeDamage: row.Melee_Damage ?? 0,
+                damageVariationPercent: row.DamageVariationPercentage ?? 0,
+            };
+            const fellingDamage = positiveNumber(row.Felling_Damage);
+            const fellingEfficiency = positiveNumber(row.Felling_Efficiency);
+            const miningRadius = positiveNumber(row.Mining_Radius);
+            const miningEfficiency = positiveNumber(row.Mining_Efficiency);
+            const skinningEfficiency = positiveNumber(row.Skinning_Efficiency);
+            const reapingEfficiency = positiveNumber(row.Reaping_Efficiency);
+            const shatteringDamage = positiveNumber(row.Shattering_Damage);
+            const shatteringEfficiency = positiveNumber(row.Shattering_Efficiency);
+            if (fellingDamage != null) toolDamage.fellingDamage = fellingDamage;
+            if (fellingEfficiency != null) toolDamage.fellingEfficiency = fellingEfficiency;
+            if (miningRadius != null) toolDamage.miningRadius = miningRadius;
+            if (miningEfficiency != null) toolDamage.miningEfficiency = miningEfficiency;
+            if (skinningEfficiency != null) toolDamage.skinningEfficiency = skinningEfficiency;
+            if (reapingEfficiency != null) toolDamage.reapingEfficiency = reapingEfficiency;
+            if (shatteringDamage != null) toolDamage.shatteringDamage = shatteringDamage;
+            if (shatteringEfficiency != null) toolDamage.shatteringEfficiency = shatteringEfficiency;
+            combat.toolDamage = toolDamage;
+        }
+    }
+
+    const firearmName = staticRow.FirearmData?.RowName;
+    if (firearmName && firearmName !== 'None') {
+        const row = lookupByName(firearmByName, firearmName);
+        if (!row) {
+            flags.push('missing_firearm_row');
+        } else {
+            const ammoTypes = row.ValidAmmoTypes?.RowName;
+            combat.firearm = {
+                damageMultiplier: row.DamageMultiplier ?? 1,
+                roundsPerMinute: typeof row.RoundsPerMinute === 'number' ? row.RoundsPerMinute : null,
+                reloadTime: typeof row.ReloadTime === 'number' ? row.ReloadTime : null,
+                ammoCapacity: typeof row.AmmoCapacity === 'number' ? row.AmmoCapacity : null,
+                validAmmoTypes: ammoTypes && ammoTypes !== 'None' ? ammoTypes : null,
+            };
+        }
+    }
+
+    const ballisticName = staticRow.Ballistic?.RowName;
+    if (ballisticName && ballisticName !== 'None') {
+        const row = lookupByName(ballisticByName, ballisticName);
+        if (!row) {
+            flags.push('missing_ballistic_row');
+        } else if ((row.Damage ?? 0) > 0) {
+            // Skip empty/default ballistic stubs (many AmmoType rows also link Ballistic with Damage 0).
+            combat.ballistic = {
+                damage: row.Damage ?? 0,
+                damageVariationPercent: row.DamageVariationPercentage ?? 0,
+            };
+        }
+    }
+
+    const ammoName = staticRow.AmmoType?.RowName;
+    if (ammoName && ammoName !== 'None') {
+        const row = lookupByName(ammoByName, ammoName);
+        if (!row) {
+            flags.push('missing_ammo_type_row');
+        } else {
+            combat.ammo = {
+                projectileDamage: row.ProjectileDamage ?? 0,
+                projectileCount: row.ProjectileCount ?? 1,
+                stats: resolveStats(row.Stats, statsByName, flags),
+            };
+        }
+    }
+
+    const additionalStats = resolveStats(staticRow.AdditionalStats, statsByName, flags);
+    if (additionalStats.length > 0) combat.additionalStats = additionalStats;
+
+    const attachmentName = staticRow.Attachments?.RowName;
+    if (attachmentName && attachmentName !== 'None') {
+        const attachment = lookupByName(attachmentByName, attachmentName);
+        if (!attachment) {
+            flags.push('missing_attachment_row');
+        } else {
+            const alterationName = attachment.GrantedAlteration?.RowName;
+            if (alterationName && alterationName !== 'None') {
+                const alteration = lookupByName(alterationByName, alterationName);
+                if (!alteration) {
+                    flags.push('missing_alteration_row');
+                } else {
+                    combat.attachment = {
+                        id: alteration.Name,
+                        displayName: parseNsLocText(alteration.DisplayName),
+                        stats: resolveStats(alteration.Stats, statsByName, flags),
+                    };
+                }
+            }
+        }
+    }
+
+    if (
+        !combat.toolDamage &&
+        !combat.firearm &&
+        !combat.ballistic &&
+        !combat.ammo &&
+        !combat.additionalStats &&
+        !combat.attachment
+    ) {
+        return null;
+    }
+    return combat;
+}
+
+/** Body armour piece + set bonus for a static item. */
+function resolveArmour(args: {
+    staticRow: ItemsStaticRow;
+    armourByName: Map<string, ArmourRow>;
+    armourSetsByName: Map<string, ArmourSetRow>;
+    armourSetBonusByName: Map<string, ArmourSetBonusRow>;
+    statsByName: Map<string, StatRow>;
+    flags: Flag[];
+}): CatalogArmour | null {
+    const armourName = args.staticRow.Armour?.RowName;
+    if (!armourName || armourName === 'None') return null;
+
+    const row = lookupByName(args.armourByName, armourName);
+    if (!row) {
+        args.flags.push('missing_armour_row');
+        return null;
+    }
+
+    const setIdRaw = row.ArmourSet?.RowName;
+    const setId = setIdRaw && setIdRaw !== 'None' ? setIdRaw : null;
+    let setBonus: CatalogArmour['setBonus'] = null;
+    if (setId) {
+        const setRow = lookupByName(args.armourSetsByName, setId);
+        const bonusRef = setRow?.SetBonus?.[0];
+        const bonusName = bonusRef?.RowName;
+        if (bonusName && bonusName !== 'None') {
+            const bonus = lookupByName(args.armourSetBonusByName, bonusName);
+            if (bonus) {
+                setBonus = {
+                    id: bonus.Name,
+                    requiredGear: bonus.RequiredGear ?? 0,
+                    description: parseNsLocText(bonus.Description),
+                    stats: resolveStats(bonus.StatsGranted, args.statsByName, args.flags),
+                };
+            }
+        }
+    }
+
+    return {
+        armourType: row.ArmourType && row.ArmourType !== 'Undefined' ? row.ArmourType : 'Unknown',
+        setId,
+        stats: resolveStats(row.ArmourStats, args.statsByName, args.flags),
+        setBonus,
+    };
+}
+
 async function exists(filePath: string): Promise<boolean> {
     try {
         await fs.access(filePath);
@@ -823,6 +1162,15 @@ async function main(): Promise<void> {
         accountFlagsTable,
         prospectListTable,
         dlcPackagesTable,
+        toolDamageTable,
+        firearmDataTable,
+        ballisticTable,
+        ammoTypesTable,
+        armourTable,
+        armourSetsTable,
+        armourSetBonusTable,
+        attachmentsTable,
+        alterationsTable,
     ] = await Promise.all([
         load<DataTable<RecipeRow>>('Crafting/D_ProcessorRecipes.json'),
         load<DataTable<ItemTemplateRow>>('Items/D_ItemTemplate.json'),
@@ -849,6 +1197,15 @@ async function main(): Promise<void> {
         loadOptional<DataTable<AccountFlagRow>>('Flags/D_AccountFlags.json'),
         loadOptional<DataTable<ProspectRow>>('Prospects/D_ProspectList.json'),
         loadOptional<DataTable<DlcPackageRow>>('DLC/D_DLCPackageData.json'),
+        loadOptional<DataTable<ToolDamageRow>>('Tools/D_ToolDamage.json'),
+        loadOptional<DataTable<FirearmDataRow>>('Tools/D_FirearmData.json'),
+        loadOptional<DataTable<BallisticRow>>('Traits/D_Ballistic.json'),
+        loadOptional<DataTable<AmmoTypeRow>>('Tools/D_AmmoTypes.json'),
+        loadOptional<DataTable<ArmourRow>>('Traits/D_Armour.json'),
+        loadOptional<DataTable<ArmourSetRow>>('Armour/D_ArmourSets.json'),
+        loadOptional<DataTable<ArmourSetBonusRow>>('Armour/D_ArmourSetBonus.json'),
+        loadOptional<DataTable<AttachmentRow>>('Attachments/D_IcarusAttachments.json'),
+        loadOptional<DataTable<AlterationRow>>('Alterations/D_Alterations.json'),
     ] as const);
 
     const recipes = recipesTable.Rows ?? [];
@@ -875,6 +1232,15 @@ async function main(): Promise<void> {
     const refinedOilByName = mergeTableByName(refinedOilTable ?? undefined);
     const generatorByName = indexByName(generatorTable ?? undefined);
     const optionalFlowByName = indexByName(optionalFlowsTable ?? undefined);
+    const toolDamageByName = mergeTableByName(toolDamageTable ?? undefined);
+    const firearmByName = mergeTableByName(firearmDataTable ?? undefined);
+    const ballisticByName = mergeTableByName(ballisticTable ?? undefined);
+    const ammoByName = mergeTableByName(ammoTypesTable ?? undefined);
+    const armourByName = mergeTableByName(armourTable ?? undefined);
+    const armourSetsByName = indexByName(armourSetsTable ?? undefined);
+    const armourSetBonusByName = indexByName(armourSetBonusTable ?? undefined);
+    const attachmentByName = indexByName(attachmentsTable ?? undefined);
+    const alterationByName = indexByName(alterationsTable ?? undefined);
     const flowByTable: Record<string, Map<string, ResourceFlowRow & Record<string, unknown>>> = {
         EnergyFlow: energyByName,
         WaterFlow: waterByName,
@@ -1821,6 +2187,61 @@ async function main(): Promise<void> {
         itemsOut[staticId] = emitObject({ ...items[staticId] });
     }
 
+    // Weapon / ammo combat + body armour for every static item that has those traits.
+    let combatCount = 0;
+    let armourCount = 0;
+    const combatResolverArgs = {
+        toolDamageByName,
+        firearmByName,
+        ballisticByName,
+        ammoByName,
+        attachmentByName,
+        alterationByName,
+        statsByName,
+    };
+    const armourResolverArgs = {
+        armourByName,
+        armourSetsByName,
+        armourSetBonusByName,
+        statsByName,
+    };
+
+    function ensureCatalogItem(staticId: string): CatalogItem {
+        if (items[staticId]) return items[staticId];
+        const display = resolveStaticDisplay(staticId);
+        const item: CatalogItem = {
+            id: staticId,
+            displayName: display.displayName,
+            description: display.description,
+            flavorText: display.flavorText,
+            iconPath: display.iconPath,
+            recipeIds: lookupByStatic[staticId] ?? [],
+            locks: null,
+        };
+        items[staticId] = item;
+        return item;
+    }
+
+    for (const [staticId, staticRow] of staticByName) {
+        const itemFlags: Flag[] = [];
+        const combat = resolveCombat({ staticRow, ...combatResolverArgs, flags: itemFlags });
+        const armour = resolveArmour({ staticRow, ...armourResolverArgs, flags: itemFlags });
+        for (const flag of uniqueFlags(itemFlags)) {
+            flagSummary.set(flag, (flagSummary.get(flag) ?? 0) + 1);
+        }
+        if (!combat && !armour) continue;
+        const item = ensureCatalogItem(staticId);
+        if (combat) {
+            combatCount += 1;
+            item.combat = combat;
+        }
+        if (armour) {
+            armourCount += 1;
+            item.armour = armour;
+        }
+        itemsOut[staticId] = emitObject({ ...item });
+    }
+
     // Stations: all recipe sets used by craft recipes, plus full D_RecipeSets when present.
     for (const row of recipeSetsTable?.Rows ?? []) {
         referencedStationIds.add(row.Name);
@@ -1957,6 +2378,8 @@ async function main(): Promise<void> {
             prospectorFoodCount,
             stationCount: Object.keys(stationsOut).length,
             deployableCount,
+            combatCount,
+            armourCount,
             unknownTierCount: unknownTiers.length,
             reviewQueueCount,
             flagSummary: Object.fromEntries([...flagSummary.entries()].sort((a, b) => b[1] - a[1])),
@@ -1972,6 +2395,10 @@ async function main(): Promise<void> {
                 review: 'meta.reviewQueueCount / flagSummary. Filter recipes whose flags intersect REVIEW_FLAGS for a review list.',
                 deployable:
                     'items[*].deployable / stations[*].deployable — pipe and power requirements for placeables (D_Resource + D_Processing + D_Generator). connections[].resource is electricity|water|biofuel|oxygen|crudeOil|refinedOil; required=false means optional (see optionalHint). powerDrawMw is processing draw when connected. generator covers internal fuel (biofuel/wood) without a pipe.',
+                combat:
+                    'items[*].combat — weapon/ammo numbers from D_ToolDamage (melee/tools), D_FirearmData (bow/gun DamageMultiplier), D_Ballistic (arrow damage), D_AmmoTypes (bullet/shell damage), AdditionalStats, and Attachments→D_Alterations. Ranged hit damage ≈ ammo/arrow damage × firearm.damageMultiplier (plus player stats).',
+                armour:
+                    'items[*].armour — worn piece from D_Armour (ArmourStats + ArmourType + setId). setBonus comes from D_ArmourSets → D_ArmourSetBonus (RequiredGear pieces for the bonus). Body armour does not use D_Equippable; modules/backpacks still use recipes[].equipGrantedStats.',
             },
         },
         recipes: recipesOut,
@@ -2027,6 +2454,7 @@ async function main(): Promise<void> {
     console.log(`  pretty:   ${prettyPath} (${formatBytes(Buffer.byteLength(prettyJson))})`);
     console.log(`  minified: ${minPath} (${formatBytes(Buffer.byteLength(minJson))})`);
     console.log(`Craft: ${craftRecipes.length}; gather: ${gatherRecipes.length}; mission: ${missionRecipes.length}; items: ${Object.keys(items).length} (raw: ${rawMaterialCount}, gatherFirst: ${gatherFirstCount}, animalFood: ${animalFoodCount}, prospectorFood: ${prospectorFoodCount}); stations: ${Object.keys(stationsOut).length}`);
+    console.log(`Deployables: ${deployableCount}; combat items: ${combatCount}; armour pieces: ${armourCount}`);
     console.log(`With granted stats: ${withStats.length}`);
     console.log(`Purchasable: ${purchasable.length} (shop + workshop)`);
     console.log(`Unknown tier: ${unknownTiers.length}`);

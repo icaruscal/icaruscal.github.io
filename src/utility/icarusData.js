@@ -804,6 +804,132 @@ export function buildFoodConsumables(catalog = {}) {
     return [...foodsByKey.values()].sort((a, b) => a.label.localeCompare(b.label));
 }
 
+/** D_ToolDamage fields that mark an item as a gathering tool rather than a pure melee weapon. */
+const GEAR_TOOL_FIELDS = [
+    'fellingDamage',
+    'fellingEfficiency',
+    'miningRadius',
+    'miningEfficiency',
+    'skinningEfficiency',
+    'reapingEfficiency',
+    'shatteringDamage',
+    'shatteringEfficiency',
+];
+
+/**
+ * Classify a static item into a Gear Explore category, or null when it is not gear.
+ * Furniture / coziness rows only carry `combat.additionalStats`, so "has combat" alone
+ * is not enough — require armour, a real combat block, or equip-granted stats.
+ */
+const classifyGearCategory = (item, recipes = []) => {
+    const combat = item?.combat ?? null;
+    if (item?.armour) return 'armor';
+    if (combat?.firearm) return 'weapon';
+    if (combat?.ballistic || combat?.ammo) return 'ammo';
+    if (combat?.attachment) return 'attachment';
+    if (combat?.toolDamage) {
+        const toolDamage = combat.toolDamage;
+        return GEAR_TOOL_FIELDS.some((field) => toolDamage[field] != null) ? 'tool' : 'weapon';
+    }
+    if (recipes.some((recipe) => (recipe.equipGrantedStats ?? []).length > 0)) return 'module';
+    return null;
+};
+
+/**
+ * Gear rows from the catalog for the Gear Explore page: armor, weapons, tools,
+ * ammo, attachments, and equippable modules. One row per static item; recipe
+ * data (tier / stations / acquisition / locks) comes from the preferred recipe.
+ */
+export function buildGearItems(catalog = {}) {
+    const items = catalog.items ?? {};
+    const stations = catalog.stations ?? {};
+
+    const recipesByStatic = new Map();
+    for (const recipe of catalog.recipes ?? []) {
+        const key = recipe.staticItemName;
+        if (!key) continue;
+        if (!recipesByStatic.has(key)) recipesByStatic.set(key, []);
+        recipesByStatic.get(key).push(recipe);
+    }
+
+    const rows = [];
+    for (const [staticId, item] of Object.entries(items)) {
+        const recipes = recipesByStatic.get(staticId) ?? [];
+        const category = classifyGearCategory(item, recipes);
+        if (!category) continue;
+
+        let preferred = null;
+        for (const recipe of recipes) {
+            if (!preferred) {
+                preferred = recipe;
+                continue;
+            }
+            const candidate = { id: recipe.id, staticItemName: staticId, acquisition: recipe.acquisition ?? 'craft' };
+            const existing = { id: preferred.id, staticItemName: staticId, acquisition: preferred.acquisition ?? 'craft' };
+            if (preferExploreRecipe(candidate, existing, item)) {
+                preferred = recipe;
+            }
+        }
+
+        const combat = item.combat ?? null;
+        const armour = item.armour ?? null;
+        const armourStats = armour?.stats ?? [];
+        const equipGrantedStats =
+            recipes.find((recipe) => (recipe.equipGrantedStats ?? []).length > 0)?.equipGrantedStats ?? [];
+        const gearStats = [
+            ...armourStats,
+            ...equipGrantedStats,
+            ...(combat?.additionalStats ?? []),
+            ...(combat?.attachment?.stats ?? []),
+            ...(combat?.ammo?.stats ?? []),
+        ];
+        const combatRows = buildCombatDisplayRows(combat);
+
+        const craftRecipes = recipes.filter((recipe) => recipe.acquisition === 'craft');
+        const craftTiers = craftRecipes.map((recipe) => recipe.tier?.value).filter((value) => value != null);
+        const tier = craftTiers.length > 0 ? Math.min(...craftTiers) : preferred?.tier?.value ?? null;
+
+        const acquisition = preferred?.acquisition ?? 'gather';
+        const stationIds = preferred?.stations ?? [];
+        const stationLabels = stationIds.map(
+            (id) => stations[id]?.displayName ?? stations[id]?.recipeSetDisplayName ?? id
+        );
+
+        rows.push({
+            id: staticId,
+            staticItemName: staticId,
+            recipeId: preferred?.id ?? null,
+            craftRecipeId: craftRecipes[0]?.id ?? null,
+            label: getItemLabel(staticId, { displayName: item.displayName ?? preferred?.displayName }),
+            description: item.description ?? preferred?.description ?? null,
+            iconPath: item.iconPath ?? preferred?.iconPath ?? '',
+            category,
+            acquisition,
+            mission: Boolean(item.mission || preferred?.mission || acquisition === 'mission'),
+            locks: mergeItemLocks(preferred?.locks, item.locks),
+            tier,
+            stations: stationIds,
+            stationLabels,
+            armourType: armour?.armourType ?? null,
+            setId: armour?.setId ?? null,
+            setLabel: armour?.setId ? String(armour.setId).replace(/_/g, ' ') : null,
+            armourStats,
+            setBonus: armour?.setBonus ?? null,
+            combat,
+            combatRows,
+            equipGrantedStats,
+            gearStats,
+            gearStatKeys: gearStats.map((stat) => stat.key),
+            physicalResist: getStatValue(armourStats, 'BasePhysicalDamageResistance_%') ?? 0,
+            meleeDamage: combat?.toolDamage?.meleeDamage ?? 0,
+            damageMultiplier: combat?.firearm?.damageMultiplier ?? 0,
+            projectileDamage: combat?.ballistic?.damage ?? combat?.ammo?.projectileDamage ?? 0,
+        });
+    }
+
+    return rows.sort((a, b) => a.label.localeCompare(b.label));
+}
+
 /** Whether a recipe has consumable / equip effects worth showing in a hover tooltip. */
 export function recipeHasModifierTooltip(recipe = {}) {
     if (!recipe) return false;
@@ -818,6 +944,88 @@ export function recipeHasModifierTooltip(recipe = {}) {
 export function formatModifierLifetimeMinutes(lifetimeSeconds) {
     if (lifetimeSeconds == null || Number.isNaN(Number(lifetimeSeconds))) return null;
     return Math.round(Number(lifetimeSeconds) / 60);
+}
+
+/** Trim Unreal float noise (3.5999999 → "3.6", 1.25 → "1.25", 300 → "300"). */
+function formatCombatNumber(value, maxDecimals = 2) {
+    const n = Number(value);
+    if (!Number.isFinite(n)) return String(value ?? '');
+    const rounded = Number(n.toFixed(maxDecimals));
+    return String(rounded);
+}
+
+/** Flat display rows for items[*].combat (tool / firearm / ammo / attachment). */
+export function buildCombatDisplayRows(combat) {
+    if (!combat) return [];
+    const rows = [];
+    const push = (key, display) => {
+        if (display) rows.push({ key, display });
+    };
+    const td = combat.toolDamage;
+    if (td) {
+        push('meleeDamage', `${formatCombatNumber(td.meleeDamage)} Melee Damage`);
+        if (td.damageVariationPercent)
+            push('damageVariation', `±${formatCombatNumber(td.damageVariationPercent)}% Damage Variation`);
+        if (td.fellingDamage != null) push('fellingDamage', `${formatCombatNumber(td.fellingDamage)} Felling Damage`);
+        if (td.fellingEfficiency != null)
+            push('fellingEfficiency', `${formatCombatNumber(td.fellingEfficiency)}× Felling Efficiency`);
+        if (td.miningRadius != null) push('miningRadius', `${formatCombatNumber(td.miningRadius)} Mining Radius`);
+        if (td.miningEfficiency != null)
+            push('miningEfficiency', `${formatCombatNumber(td.miningEfficiency)}× Mining Efficiency`);
+        if (td.skinningEfficiency != null)
+            push('skinningEfficiency', `${formatCombatNumber(td.skinningEfficiency)}× Skinning Efficiency`);
+        if (td.reapingEfficiency != null)
+            push('reapingEfficiency', `${formatCombatNumber(td.reapingEfficiency)}× Reaping Efficiency`);
+        if (td.shatteringDamage != null)
+            push('shatteringDamage', `${formatCombatNumber(td.shatteringDamage)} Shattering Damage`);
+        if (td.shatteringEfficiency != null)
+            push('shatteringEfficiency', `${formatCombatNumber(td.shatteringEfficiency)}× Shattering Efficiency`);
+    }
+    const firearm = combat.firearm;
+    if (firearm) {
+        push(
+            'damageMultiplier',
+            `${formatCombatNumber(firearm.damageMultiplier)}× Projectile Damage Multiplier`
+        );
+        if (firearm.roundsPerMinute != null)
+            push('rpm', `${formatCombatNumber(firearm.roundsPerMinute)} RPM`);
+        if (firearm.reloadTime != null)
+            push('reloadTime', `${formatCombatNumber(firearm.reloadTime)}s Reload`);
+        if (firearm.ammoCapacity != null)
+            push('ammoCapacity', `${formatCombatNumber(firearm.ammoCapacity)} Ammo Capacity`);
+        if (firearm.validAmmoTypes) push('validAmmo', `Ammo: ${firearm.validAmmoTypes.replace(/_/g, ' ')}`);
+    }
+    const ballistic = combat.ballistic;
+    if (ballistic) {
+        push('ballisticDamage', `${formatCombatNumber(ballistic.damage)} Projectile Damage`);
+        if (ballistic.damageVariationPercent)
+            push(
+                'ballisticVariation',
+                `±${formatCombatNumber(ballistic.damageVariationPercent)}% Damage Variation`
+            );
+    }
+    const ammo = combat.ammo;
+    if (ammo) {
+        const count = ammo.projectileCount > 1 ? ` ×${formatCombatNumber(ammo.projectileCount)}` : '';
+        push(
+            'ammoDamage',
+            `${formatCombatNumber(ammo.projectileDamage)} Projectile Damage${count}`
+        );
+        for (const stat of ammo.stats ?? []) {
+            push(`ammo-${stat.key}`, stat.display || `${stat.key}: ${stat.value}`);
+        }
+    }
+    for (const stat of combat.additionalStats ?? []) {
+        push(`add-${stat.key}`, stat.display || `${stat.key}: ${stat.value}`);
+    }
+    if (combat.attachment) {
+        const name = combat.attachment.displayName || combat.attachment.id;
+        if (name) push('attachmentName', name);
+        for (const stat of combat.attachment.stats ?? []) {
+            push(`att-${stat.key}`, stat.display || `${stat.key}: ${stat.value}`);
+        }
+    }
+    return rows;
 }
 
 const formatCostList = (costs = []) =>
@@ -1443,6 +1651,9 @@ export function buildItemDetail(catalog = {}, itemOrRecipeId) {
     const deployable =
         item?.deployable ?? stations[staticId]?.deployable ?? null;
     const deployableBadges = buildDeployableRuntimeBadges(deployable, items);
+    const combat = item?.combat ?? null;
+    const combatRows = buildCombatDisplayRows(combat);
+    const armour = item?.armour ?? null;
 
     return {
         id: staticId,
@@ -1455,6 +1666,9 @@ export function buildItemDetail(catalog = {}, itemOrRecipeId) {
         foodAudience: item?.foodAudience ?? null,
         locks: normalizeLocks(item?.locks),
         deployableBadges,
+        combat,
+        combatRows,
+        armour,
         availability,
         effects: {
             instantStats,
