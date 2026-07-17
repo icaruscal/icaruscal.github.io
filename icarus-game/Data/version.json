@@ -3,19 +3,19 @@
     "Version": {
         "Major": 3,
         "Minor": 0,
-        "Patch": 18,
-        "Changelist": 154111,
+        "Patch": 19,
+        "Changelist": 154458,
         "BuildType": "Shipping",
         "FeatureLevel": "DangerousHorizons"
     },
     "BackendSchema": {
         "Major": 1,
         "Minor": 0,
-        "Changelist": 153890
+        "Changelist": 154347
     },
     "Data": {
-        "Changelist": 154111
+        "Changelist": 154458
     },
-    "extractedAt": "2026-07-15",
+    "extractedAt": "2026-07-17",
     "catalogHash": "666f50087468"
 }
