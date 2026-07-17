@@ -15,7 +15,7 @@
  *
  * @module
  */
-import { readdir, readFile, stat, copyFile, rm, realpath, chmod } from 'node:fs/promises';
+import { readdir, readFile, stat, copyFile, rm, realpath, chmod, mkdir } from 'node:fs/promises';
 import * as path from 'node:path';
 import { syncStampedVersionJson } from './version-json.mjs';
 /**
@@ -293,6 +293,7 @@ async function updateGameAssets(baseWebLoc, extractedUeExportDir) {
                 continue;
             }
             try {
+                await mkdir(path.dirname(assetInfo.fullPathName), { recursive: true });
                 await copyFile(assetInfo.uaAssetPath, assetInfo.fullPathName);
                 await chmod(assetInfo.fullPathName, 0o644);
                 console.log(`${assetInfo.uaAssetPath} => ${assetInfo.fullPathName} ${assetInfo.webLocExist ? 'replaced' : 'created'} successfully.`);
